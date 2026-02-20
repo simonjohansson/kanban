@@ -477,6 +477,23 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Implement explicit readable card typography/colors.
   - [x] Run `swift test` and root `make test`.
 
+### Active follow-up: web board responsive layout + collapsible projects sidebar
+- Goal: make `/Users/simonjohansson/src/kanban/apps/kanban-web` responsive so all 4 lanes are always visible horizontally as width changes, reduce sidebar dominance, and add a control to hide/show projects panel.
+- User requirements:
+  1. Board lanes should scale with width and remain visible without horizontal clipping.
+  2. Projects sidebar is too wide and must be collapsible via a button.
+- Plan:
+  1. Add failing Playwright assertions for board non-overflow + sidebar toggle behavior.
+  2. Add testable layout helpers (lane min behavior + sidebar width state) if needed.
+  3. Implement App.svelte layout/state/CSS updates.
+  4. Run web e2e and root tests.
+- Checklist:
+  - [x] Add failing e2e assertions for responsive 4-lane visibility after viewport resize.
+  - [x] Add failing e2e assertions for hide/show projects sidebar toggle.
+  - [x] Implement sidebar toggle UI/state and reduced default width.
+  - [x] Implement responsive lane sizing with no horizontal clipping.
+  - [x] Run `make frontend-test-e2e` and `make test`.
+
 ## Proposed Backend Refactor (Service Layer)
 ### Problem
 - Current Huma handlers orchestrate too much: markdown write, sqlite projection update, logging, and websocket event publishing.

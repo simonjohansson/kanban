@@ -60,6 +60,7 @@ test.afterAll(async () => {
 });
 
 test('shows 4 lanes and reflects cards across project switching and moves', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
   await page.goto('/');
 
   await expect(page.getByTestId('projects-title')).toHaveText('Projects');
@@ -118,4 +119,40 @@ test('shows 4 lanes and reflects cards across project switching and moves', asyn
 
   await expect(page.getByTestId('lane-Todo')).not.toContainText('Alpha Task');
   await expect(page.getByTestId('lane-Done')).toContainText('Alpha Task');
+
+  const sidebar = page.getByTestId('projects-sidebar');
+  const toggle = page.getByTestId('sidebar-toggle');
+
+  await expect(toggle).toBeVisible();
+
+  const sidebarExpanded = await sidebar.boundingBox();
+  expect(sidebarExpanded).not.toBeNull();
+  expect((sidebarExpanded?.width ?? 0) >= 220).toBe(true);
+
+  await toggle.click();
+
+  const sidebarCollapsed = await sidebar.boundingBox();
+  expect(sidebarCollapsed).not.toBeNull();
+  expect((sidebarCollapsed?.width ?? 0) <= 90).toBe(true);
+
+  await toggle.click();
+
+  await page.setViewportSize({ width: 920, height: 820 });
+  await expect(page.getByTestId('board')).toBeVisible();
+
+  const boardFitsAtMediumViewport = await page.evaluate(() => {
+    const board = document.querySelector('[data-testid="board"]') as HTMLElement | null;
+    if (!board) return false;
+    return board.scrollWidth <= board.clientWidth;
+  });
+  expect(boardFitsAtMediumViewport).toBe(true);
+
+  await page.setViewportSize({ width: 760, height: 820 });
+
+  const boardFitsAtNarrowViewport = await page.evaluate(() => {
+    const board = document.querySelector('[data-testid="board"]') as HTMLElement | null;
+    if (!board) return false;
+    return board.scrollWidth <= board.clientWidth;
+  });
+  expect(boardFitsAtNarrowViewport).toBe(true);
 });

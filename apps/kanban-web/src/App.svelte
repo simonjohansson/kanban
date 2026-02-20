@@ -16,6 +16,7 @@
   let cardsByLane: Record<LaneStatus, CardSummary[]> = emptyLaneMap();
   let selectedProjectSlug: string | null = null;
   let alertMessage: string | null = null;
+  let sidebarHidden = false;
   let ws: WebSocket | null = null;
 
   $: cardsByLane = buildLaneMap(cards);
@@ -134,26 +135,45 @@
     if (project.remote_url?.trim()) lines.push(`Remote: ${project.remote_url.trim()}`);
     return lines.length > 0 ? lines.join('\n') : project.slug;
   }
+
+  function toggleSidebar(): void {
+    sidebarHidden = !sidebarHidden;
+  }
 </script>
 
-<main class="layout">
-  <aside class="sidebar" data-testid="projects-sidebar">
-    <h1 data-testid="projects-title">Projects</h1>
-    <ul class="project-list">
-      {#each projects as project (project.slug)}
-        <li>
-          <button
-            class:selected={selectedProjectSlug === project.slug}
-            data-testid="project-item"
-            on:click={() => selectProject(project.slug)}
-            title={tooltip(project)}
-            type="button"
-          >
-            {project.name}
-          </button>
-        </li>
-      {/each}
-    </ul>
+<main class="layout" class:sidebar-hidden={sidebarHidden}>
+  <aside class="sidebar" class:collapsed={sidebarHidden} data-testid="projects-sidebar">
+    <div class="sidebar-header">
+      {#if !sidebarHidden}
+        <h1 data-testid="projects-title">Projects</h1>
+      {/if}
+      <button
+        aria-label={sidebarHidden ? 'Show projects' : 'Hide projects'}
+        class="sidebar-toggle"
+        data-testid="sidebar-toggle"
+        on:click={toggleSidebar}
+        type="button"
+      >
+        {sidebarHidden ? '›' : '‹'}
+      </button>
+    </div>
+    {#if !sidebarHidden}
+      <ul class="project-list">
+        {#each projects as project (project.slug)}
+          <li>
+            <button
+              class:selected={selectedProjectSlug === project.slug}
+              data-testid="project-item"
+              on:click={() => selectProject(project.slug)}
+              title={tooltip(project)}
+              type="button"
+            >
+              {project.name}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </aside>
   <section class="detail">
     {#if !selectedProjectSlug}
@@ -187,22 +207,62 @@
   }
 
   .layout {
+    --sidebar-expanded-width: 240px;
+    --sidebar-collapsed-width: 64px;
     display: grid;
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: var(--sidebar-expanded-width) minmax(0, 1fr);
     min-height: 100vh;
     background: linear-gradient(180deg, #faf7f0 0%, #ffffff 100%);
   }
 
+  .layout.sidebar-hidden {
+    grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+  }
+
   .sidebar {
     border-right: 1px solid #e5e7eb;
-    padding: 20px;
+    padding: 16px;
     background: #fff;
+    overflow: hidden;
+  }
+
+  .sidebar.collapsed {
+    padding-inline: 10px;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 16px 0;
   }
 
   .sidebar h1 {
     margin: 0 0 16px 0;
     font-size: 1.05rem;
     letter-spacing: 0.02em;
+  }
+
+  .sidebar.collapsed h1 {
+    display: none;
+  }
+
+  .sidebar-toggle {
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    color: #1f2937;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .sidebar-toggle:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
   }
 
   .project-list {
@@ -233,18 +293,20 @@
   .detail {
     padding: 16px;
     color: #6b7280;
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .board {
     display: grid;
-    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
     align-items: start;
+    width: 100%;
     min-height: calc(100vh - 48px);
   }
 
   .lane {
+    min-width: 0;
     background: #f3f4f6;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
@@ -268,6 +330,7 @@
     padding: 10px;
     color: #111827;
     font-size: 0.9rem;
+    overflow-wrap: anywhere;
   }
 
   .alert {
@@ -282,19 +345,4 @@
     font-size: 0.9rem;
   }
 
-  @media (max-width: 800px) {
-    .layout {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr;
-    }
-
-    .sidebar {
-      border-right: 0;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    .board {
-      grid-template-columns: 1fr;
-    }
-  }
 </style>
