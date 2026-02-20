@@ -1,0 +1,442 @@
+openapi: 3.1.0
+info:
+  title: Kanban Backend API
+  version: 0.1.0
+  description: |
+    Source-of-truth is markdown files on disk. SQLite is a rebuildable projection.
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: health
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+  /openapi.yaml:
+    get:
+      summary: OpenAPI specification
+      operationId: getOpenAPIYaml
+      responses:
+        '200':
+          description: OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
+  /projects:
+    post:
+      summary: Create project
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Project already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List projects
+      operationId: listProjects
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+  /projects/{project}/cards:
+    post:
+      summary: Create card
+      operationId: createCard
+      parameters:
+        - $ref: '#/components/parameters/Project'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardRequest'
+      responses:
+        '201':
+          description: Created card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List cards
+      operationId: listCards
+      parameters:
+        - $ref: '#/components/parameters/Project'
+        - name: include_deleted
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of cards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CardSummary'
+  /projects/{project}/cards/{number}:
+    get:
+      summary: Get card
+      operationId: getCard
+      parameters:
+        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/CardNumber'
+      responses:
+        '200':
+          description: Card details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete card
+      operationId: deleteCard
+      parameters:
+        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/CardNumber'
+        - name: hard
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Deleted card state/event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /projects/{project}/cards/{number}/move:
+    patch:
+      summary: Move card
+      operationId: moveCard
+      parameters:
+        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/CardNumber'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveCardRequest'
+      responses:
+        '200':
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+  /projects/{project}/cards/{number}/comments:
+    post:
+      summary: Append comment
+      operationId: addComment
+      parameters:
+        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/CardNumber'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextBodyRequest'
+      responses:
+        '200':
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+  /projects/{project}/cards/{number}/description:
+    patch:
+      summary: Append description entry
+      operationId: appendDescription
+      parameters:
+        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/CardNumber'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextBodyRequest'
+      responses:
+        '200':
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+  /admin/rebuild:
+    post:
+      summary: Rebuild SQLite projection from markdown
+      operationId: rebuildProjection
+      responses:
+        '200':
+          description: Projection rebuilt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects_rebuilt:
+                    type: integer
+                  cards_rebuilt:
+                    type: integer
+  /ws:
+    get:
+      summary: Websocket event stream
+      description: |
+        Subscribe to project/card events. Optional `project` query param filters by project slug.
+      operationId: websocketEvents
+      responses:
+        '101':
+          description: Switching protocols to websocket
+components:
+  parameters:
+    Project:
+      name: project
+      in: path
+      required: true
+      schema:
+        type: string
+    CardNumber:
+      name: number
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    CreateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        local_path:
+          type: string
+        remote_url:
+          type: string
+    Project:
+      type: object
+      required: [name, slug, created_at, updated_at, next_card_seq]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        local_path:
+          type: string
+        remote_url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        next_card_seq:
+          type: integer
+    CreateCardRequest:
+      type: object
+      required: [title, status]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [Todo, Doing, Review, Done]
+        column:
+          type: string
+    MoveCardRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [Todo, Doing, Review, Done]
+        column:
+          type: string
+    TextBodyRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+    TextEvent:
+      type: object
+      required: [timestamp, body]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        body:
+          type: string
+    HistoryEvent:
+      type: object
+      required: [timestamp, type, details]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        type:
+          type: string
+        details:
+          type: string
+    Card:
+      type: object
+      required:
+        - id
+        - project
+        - number
+        - title
+        - status
+        - column
+        - deleted
+        - created_at
+        - updated_at
+        - description
+        - comments
+        - history
+      properties:
+        id:
+          type: string
+        project:
+          type: string
+        number:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum: [Todo, Doing, Review, Done]
+        column:
+          type: string
+        deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        description:
+          type: array
+          items:
+            $ref: '#/components/schemas/TextEvent'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TextEvent'
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryEvent'
+    CardSummary:
+      type: object
+      required:
+        - id
+        - project
+        - number
+        - title
+        - status
+        - column
+        - deleted
+        - created_at
+        - updated_at
+        - comments_count
+        - history_count
+      properties:
+        id:
+          type: string
+        project:
+          type: string
+        number:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+        column:
+          type: string
+        deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        comments_count:
+          type: integer
+        history_count:
+          type: integer
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
