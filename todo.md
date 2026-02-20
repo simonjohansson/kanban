@@ -458,6 +458,25 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [ ] Unify config loading semantics across Go/Swift/Web clients and document precedence.
   - [ ] Raise backend coverage to >=80% and record package-level report.
 
+### Active follow-up: macOS board layout/readability polish
+- Goal: fix board ergonomics in `/Users/simonjohansson/src/kanban/apps/kanban-macos` so lanes start at top, scale with window width, and card titles are readable.
+- User-reported issues:
+  1. Lane columns render around mid-screen instead of top.
+  2. Lanes should resize with the window and use available horizontal space.
+  3. Card title text appears as unreadable white blobs.
+- Plan:
+  1. Add failing Swift tests for layout math + card style contrast contract.
+  2. Refactor board presentation constants into a testable helper.
+  3. Update `MainSplitView` to top-anchor lanes and apply responsive width math.
+  4. Apply explicit accessible card foreground/background colors.
+  5. Run Swift tests and root test target.
+- Checklist:
+  - [x] Add failing tests for responsive lane-width calculation and non-negative bounds.
+  - [x] Add failing tests for card title/background contrast contract.
+  - [x] Implement top-anchored, responsive lane layout in `MainSplitView`.
+  - [x] Implement explicit readable card typography/colors.
+  - [x] Run `swift test` and root `make test`.
+
 ## Proposed Backend Refactor (Service Layer)
 ### Problem
 - Current Huma handlers orchestrate too much: markdown write, sqlite projection update, logging, and websocket event publishing.

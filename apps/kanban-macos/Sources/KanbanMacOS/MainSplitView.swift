@@ -20,14 +20,23 @@ struct MainSplitView: View {
                             .foregroundStyle(.secondary)
                     }
             } else {
-                ScrollView(.horizontal) {
-                    HStack(alignment: .top, spacing: 12) {
-                        ForEach(KanbanLaneStatus.allCases, id: \.rawValue) { lane in
-                            laneView(for: lane)
+                GeometryReader { geometry in
+                    let laneWidth = BoardPresentation.laneWidth(
+                        containerWidth: geometry.size.width,
+                        laneCount: KanbanLaneStatus.allCases.count
+                    )
+
+                    ScrollView(.vertical) {
+                        HStack(alignment: .top, spacing: BoardPresentation.laneSpacing) {
+                            ForEach(KanbanLaneStatus.allCases, id: \.rawValue) { lane in
+                                laneView(for: lane, laneWidth: laneWidth)
+                            }
                         }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(.horizontal, BoardPresentation.horizontalPadding)
+                        .padding(.vertical, BoardPresentation.verticalPadding)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
         }
@@ -103,7 +112,7 @@ struct MainSplitView: View {
     }
 
     @ViewBuilder
-    private func laneView(for lane: KanbanLaneStatus) -> some View {
+    private func laneView(for lane: KanbanLaneStatus, laneWidth: Double) -> some View {
         let cards = viewModel.cards(for: lane)
         VStack(alignment: .leading, spacing: 8) {
             Text(lane.rawValue)
@@ -116,10 +125,11 @@ struct MainSplitView: View {
                 ForEach(cards) { card in
                     Text(card.title)
                         .font(.subheadline)
+                        .foregroundStyle(BoardPresentation.cardTitleColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
-                        .background(Color.white)
+                        .background(BoardPresentation.cardBackgroundColor)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.gray.opacity(0.25), lineWidth: 1)
@@ -129,7 +139,8 @@ struct MainSplitView: View {
             }
         }
         .padding(10)
-        .frame(width: 240, alignment: .topLeading)
+        .frame(width: laneWidth, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(Color.gray.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
