@@ -13,21 +13,43 @@ struct MainSplitView: View {
             }
             .navigationTitle("Projects")
         } detail: {
-            Color.clear
-                .overlay {
-                    Text("No project selected")
-                        .foregroundStyle(.secondary)
+            if selectedProjectID == nil {
+                Color.clear
+                    .overlay {
+                        Text("No project selected")
+                            .foregroundStyle(.secondary)
+                    }
+            } else {
+                ScrollView(.horizontal) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(KanbanLaneStatus.allCases, id: \.rawValue) { lane in
+                            laneView(for: lane)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
+            }
         }
         .task {
-            sidebarProbe.write(projects: viewModel.projects, selectedProjectSlug: selectedProjectID)
             await viewModel.load()
+            selectedProjectID = viewModel.selectedProjectSlug
+            writeProbe()
         }
         .onChange(of: viewModel.projects) { _, latest in
-            sidebarProbe.write(projects: latest, selectedProjectSlug: selectedProjectID)
+            if let selectedProjectID, !latest.contains(where: { $0.slug == selectedProjectID }) {
+                self.selectedProjectID = nil
+            }
+            writeProbe()
+        }
+        .onChange(of: viewModel.cards) { _, _ in
+            writeProbe()
         }
         .onChange(of: selectedProjectID) { _, latest in
-            sidebarProbe.write(projects: viewModel.projects, selectedProjectSlug: latest)
+            Task {
+                await viewModel.selectProject(slug: latest)
+                writeProbe()
+            }
         }
         .task {
             await processSelectionRequests()
@@ -78,5 +100,45 @@ struct MainSplitView: View {
             }
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
+    }
+
+    @ViewBuilder
+    private func laneView(for lane: KanbanLaneStatus) -> some View {
+        let cards = viewModel.cards(for: lane)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(lane.rawValue)
+                .font(.headline)
+            if cards.isEmpty {
+                Text("No cards")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(cards) { card in
+                    Text(card.title)
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+        }
+        .padding(10)
+        .frame(width: 240, alignment: .topLeading)
+        .background(Color.gray.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func writeProbe() {
+        sidebarProbe.write(
+            projects: viewModel.projects,
+            selectedProjectSlug: selectedProjectID,
+            cardsByStatus: viewModel.cardsByStatusMap()
+        )
     }
 }

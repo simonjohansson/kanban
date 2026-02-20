@@ -33,6 +33,7 @@ struct KanbanMacOSApp: App {
 
 private struct FallbackProjectsClient: ProjectsAPIClient {
     func listProjects() async throws -> [ProjectSummary] { [] }
+    func listCards(projectSlug _: String) async throws -> [KanbanCardSummary] { [] }
 }
 
 private final class AppDelegate: NSObject, NSApplicationDelegate {

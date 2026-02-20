@@ -28,6 +28,25 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
             throw URLError(.badServerResponse)
         }
     }
+
+    public func listCards(projectSlug: String) async throws -> [KanbanCardSummary] {
+        let response = try await client.listCards(path: .init(project: projectSlug))
+        switch response {
+        case .ok(let ok):
+            let body = try ok.body.json
+            return body.cards.map {
+                KanbanCardSummary(
+                    id: $0.id,
+                    number: Int($0.number),
+                    projectSlug: $0.project,
+                    title: $0.title,
+                    status: $0.status
+                )
+            }
+        default:
+            throw URLError(.badServerResponse)
+        }
+    }
 }
 
 struct FlexibleRFC3339DateTranscoder: DateTranscoder {

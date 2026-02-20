@@ -85,6 +85,7 @@ func (s *Server) routes() {
 
 	// Websocket upgrade endpoint remains a native HTTP handler.
 	s.router.Get("/ws", s.hub.ServeWS)
+	s.router.Get("/*", s.frontendHandler())
 }
 
 func (s *Server) registerOperations() {

@@ -7,7 +7,7 @@ struct ProjectsStoreTests {
     func initialLoadFetchesProjects() async throws {
         let api = APIStub(projectResponses: [
             [.init(name: "Alpha", slug: "alpha", localPath: "/tmp/alpha", remoteURL: nil)],
-        ])
+        ], cardResponses: [:])
         let events = EventStreamStub(events: [])
         let store = ProjectsStore(apiClient: api, eventStream: events)
 
@@ -24,7 +24,7 @@ struct ProjectsStoreTests {
                 .init(name: "Alpha", slug: "alpha", localPath: nil, remoteURL: nil),
                 .init(name: "Beta", slug: "beta", localPath: nil, remoteURL: nil),
             ],
-        ])
+        ], cardResponses: [:])
         let events = EventStreamStub(events: [
             .init(type: "project.created", projectSlug: "beta"),
         ])
@@ -34,21 +34,43 @@ struct ProjectsStoreTests {
         let updates = store.startWatching()
         let next = try await updates.first(where: { _ in true })
 
-        #expect(next?.count == 2)
-        #expect(next?.contains(where: { $0.slug == "beta" }) == true)
+        #expect(next?.projects.count == 2)
+        #expect(next?.projects.contains(where: { $0.slug == "beta" }) == true)
+    }
+
+    @Test
+    func loadCardsFetchesProjectCards() async throws {
+        let api = APIStub(
+            projectResponses: [[]],
+            cardResponses: [
+                "alpha": [.init(id: "alpha/card-1", number: 1, projectSlug: "alpha", title: "Task", status: "Todo")],
+            ]
+        )
+        let events = EventStreamStub(events: [])
+        let store = ProjectsStore(apiClient: api, eventStream: events)
+
+        let cards = try await store.loadCards(projectSlug: "alpha")
+        #expect(cards.count == 1)
+        #expect(cards.first?.title == "Task")
     }
 }
 
 private actor APIStub: ProjectsAPIClient {
     private var responses: [[ProjectSummary]]
+    private let cardResponses: [String: [KanbanCardSummary]]
 
-    init(projectResponses: [[ProjectSummary]]) {
+    init(projectResponses: [[ProjectSummary]], cardResponses: [String: [KanbanCardSummary]]) {
         self.responses = projectResponses
+        self.cardResponses = cardResponses
     }
 
     func listProjects() async throws -> [ProjectSummary] {
         if responses.isEmpty { return [] }
         return responses.removeFirst()
+    }
+
+    func listCards(projectSlug: String) async throws -> [KanbanCardSummary] {
+        cardResponses[projectSlug] ?? []
     }
 }
 

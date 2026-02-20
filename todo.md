@@ -339,6 +339,85 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Run Swift package tests and fix regressions.
   - [x] Add root Makefile target to compile and launch the Swift app.
 
+### Active follow-up: Web frontend (Svelte) served by backend
+- Goal: add a Svelte frontend that can run standalone in Node for development/testing and also be embedded/served by Go backend in production.
+- Confirmed decisions:
+  - Path/name: `/Users/simonjohansson/src/kanban/apps/kanban-web`.
+  - Stack: Svelte + TypeScript.
+  - Node: latest LTS.
+  - Runtime mode: choose easiest standalone mode.
+  - Backend routing: serve frontend at `/` with SPA fallback for unknown non-API routes.
+  - Scope for now: minimal parity with Swift shell (left project pane + empty main pane + realtime project updates via websocket).
+  - Browser tests: Playwright headless by default.
+  - API integration: use generated client from backend OpenAPI.
+- Requirements:
+  - Frontend can be run independently (dev server + browser e2e tests).
+  - Backend serves built frontend when running `kanban serve`.
+  - Keep API communication over HTTP/WebSocket against backend endpoints.
+- Plan:
+  1. Scaffold frontend project in monorepo (`/Users/simonjohansson/src/kanban/apps/kanban-web`) using current Svelte/SvelteKit.
+  2. Add standalone runtime:
+  - `npm run dev` for local development.
+  - production build output suitable for backend embedding.
+  3. Add backend static-serving layer:
+  - use `go:embed` for built assets.
+  - serve app shell/assets from backend routes without breaking API routes (`/projects`, `/ws`, `/openapi.yaml`, etc.).
+  4. Add frontend browser e2e tests (Playwright) that open real browser and validate critical flows.
+  5. Add Make targets for frontend install/build/test and embed-refresh workflow.
+  6. Add docs for standalone frontend vs embedded backend mode.
+- Checklist:
+  - [x] Add failing backend test for serving frontend index/assets from embedded bundle.
+  - [x] Add failing frontend browser e2e smoke test (load app, fetch projects, render state).
+  - [x] Scaffold Svelte app with API client wiring and websocket subscription baseline.
+  - [x] Implement backend embedded static file serving and route fallback.
+  - [x] Add Make targets for `frontend-dev`, `frontend-build`, `frontend-test-e2e`.
+  - [x] Ensure `kanban serve` serves embedded frontend build.
+  - [x] Run backend + frontend + browser e2e tests until green.
+
+### Active follow-up: Coverage uplift to 80%
+- Goal: raise backend statement coverage from current ~39.3% to at least 80%.
+- Focus gaps (current low areas):
+  - `internal/service`
+  - `internal/kanban`
+  - untested command/flow branches and error paths.
+- Plan:
+  1. Add targeted unit tests for `internal/service` methods and error mapping paths.
+  2. Add command-level tests for `internal/kanban` (`serve`, flag precedence, output/error branches).
+  3. Add additional backend e2e/error-path tests to cover branch-heavy handlers.
+  4. Measure coverage after each batch and prioritize lowest packages first.
+- Checklist:
+  - [ ] Add failing tests for uncovered `internal/service` methods (list/get/move/comment/append/delete/rebuild).
+  - [ ] Add failing tests for uncovered `internal/kanban` run/serve branches.
+  - [ ] Add failing tests for remaining backend handler error branches.
+  - [ ] Reach >=80% backend statement coverage and record report.
+
+### Active follow-up: Kanban lanes in Swift + Web (status-only board)
+- Goal: both `/Users/simonjohansson/src/kanban/apps/kanban-macos` and `/Users/simonjohansson/src/kanban/apps/kanban-web` should render a normal 4-lane board (`Todo`, `Doing`, `Review`, `Done`) for the selected project.
+- Requested behavior:
+  - Cards are created from API/CLI (no in-app create UI in this step).
+  - Lanes are keyed by `status`.
+  - When switching projects, lane content reflects the selected project only.
+  - If cards are created/moved via API/CLI while app is open, views update automatically.
+  - E2E assertions should verify card titles in lanes.
+- Additional request:
+  - Remove `column` field usage and move toward status-only board semantics.
+- Plan:
+  1. Add failing web e2e coverage for card create/move + project switching.
+  2. Add failing Swift e2e coverage for card create/move + project switching.
+  3. Implement web board lanes + selected-project card loading + websocket-triggered refresh.
+  4. Implement Swift board lanes + selected-project card loading + websocket-triggered refresh.
+  5. Remove `column` usage in app layers and align with status-only lane logic.
+  6. Run app unit/e2e suites and backend tests impacted by API interactions.
+- Checklist:
+  - [x] Add failing frontend e2e for 4-lane board create/switch/switch-back flow.
+  - [x] Add failing frontend e2e for move-via-API reflected in lanes.
+  - [x] Add failing Swift e2e for 4-lane board create/switch/switch-back flow.
+  - [x] Add failing Swift e2e for move-via-API reflected in lanes.
+  - [x] Implement web board view and card refresh wiring.
+  - [x] Implement Swift board view and card refresh wiring.
+  - [x] Remove `column` usage from app-layer lane logic.
+  - [x] Run all relevant tests until green.
+
 ## Proposed Backend Refactor (Service Layer)
 ### Problem
 - Current Huma handlers orchestrate too much: markdown write, sqlite projection update, logging, and websocket event publishing.

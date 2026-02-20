@@ -1,0 +1,27 @@
+{
+  "name": "kanban-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:embed": "KANBAN_WEB_OUTDIR=../../backend/internal/server/webui/dist vite build",
+    "preview": "vite preview",
+    "generate:client": "openapi --input ../../backend/api/openapi.yaml --output src/lib/generated --client fetch --useUnionTypes",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "svelte": "^5.1.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@sveltejs/vite-plugin-svelte": "^5.1.0",
+    "openapi-typescript-codegen": "^0.29.0",
+    "typescript": "^5.9.2",
+    "vite": "^6.3.5"
+  }
+}

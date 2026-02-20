@@ -8,19 +8,21 @@ struct ProjectsViewModelTests {
     func loadPopulatesProjects() async throws {
         let store = StoreStub(result: .success([
             .init(name: "Alpha", slug: "alpha", localPath: nil, remoteURL: nil),
-        ]), stream: .updates([]))
+        ]), cards: ["alpha": [.init(id: "alpha/card-1", number: 1, projectSlug: "alpha", title: "Task A", status: "Todo")]], stream: .updates([]))
         let viewModel = ProjectsViewModel(store: store)
 
+        await viewModel.selectProject(slug: "alpha")
         await viewModel.load()
 
         #expect(viewModel.projects.count == 1)
+        #expect(viewModel.cards.count == 1)
         #expect(viewModel.alertMessage == nil)
     }
 
     @Test
     @MainActor
     func loadFailureSetsAlertMessage() async throws {
-        let store = StoreStub(result: .failure(URLError(.notConnectedToInternet)), stream: .updates([]))
+        let store = StoreStub(result: .failure(URLError(.notConnectedToInternet)), cards: [:], stream: .updates([]))
         let viewModel = ProjectsViewModel(store: store)
 
         await viewModel.load()
@@ -36,6 +38,7 @@ struct ProjectsViewModelTests {
             result: .success([
                 .init(name: "Alpha", slug: "alpha", localPath: nil, remoteURL: nil),
             ]),
+            cards: [:],
             stream: .failure(URLError(.networkConnectionLost))
         )
         let viewModel = ProjectsViewModel(store: store)
@@ -49,6 +52,7 @@ struct ProjectsViewModelTests {
 
 private struct StoreStub: ProjectsStoreProtocol {
     let result: Result<[ProjectSummary], Error>
+    let cards: [String: [KanbanCardSummary]]
     let stream: StreamBehavior
 
     func initialLoad() async throws -> [ProjectSummary] {
@@ -60,7 +64,11 @@ private struct StoreStub: ProjectsStoreProtocol {
         }
     }
 
-    func startWatching() -> AsyncThrowingStream<[ProjectSummary], Error> {
+    func loadCards(projectSlug: String) async throws -> [KanbanCardSummary] {
+        cards[projectSlug] ?? []
+    }
+
+    func startWatching() -> AsyncThrowingStream<StoreUpdate, Error> {
         AsyncThrowingStream { continuation in
             switch stream {
             case .updates(let values):
@@ -76,6 +84,6 @@ private struct StoreStub: ProjectsStoreProtocol {
 }
 
 private enum StreamBehavior {
-    case updates([[ProjectSummary]])
+    case updates([StoreUpdate])
     case failure(Error)
 }

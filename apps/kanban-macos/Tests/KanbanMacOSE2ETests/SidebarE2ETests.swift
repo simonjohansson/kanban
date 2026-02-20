@@ -8,7 +8,7 @@ import Testing
 @Suite(.serialized)
 struct SidebarE2ETests {
     @Test
-    func appShowsTwoProjectsAndSelectionInSidebar() async throws {
+    func appShowsLanesAndReflectsCardsAcrossProjectSwitchingAndMoves() async throws {
         guard ProcessInfo.processInfo.environment["KANBAN_RUN_SWIFT_E2E"] == "1" else {
             return
         }
@@ -24,6 +24,10 @@ struct SidebarE2ETests {
         let initialState = try await harness.waitForSidebarState()
         #expect(initialState.projects.isEmpty)
         #expect(initialState.selectedProjectSlug == nil)
+        #expect(initialState.cardsByStatus?["Todo"]?.isEmpty ?? true)
+        #expect(initialState.cardsByStatus?["Doing"]?.isEmpty ?? true)
+        #expect(initialState.cardsByStatus?["Review"]?.isEmpty ?? true)
+        #expect(initialState.cardsByStatus?["Done"]?.isEmpty ?? true)
 
         let configuration = Configuration(dateTranscoder: FlexibleE2EDateTranscoder())
         let client = Client(serverURL: harness.serverURL, configuration: configuration, transport: URLSessionTransport())
@@ -51,25 +55,46 @@ struct SidebarE2ETests {
             return
         }
 
+        let firstSlug = try firstCreated.body.json.slug
         let secondSlug = try secondCreated.body.json.slug
-        _ = try firstCreated.body.json.slug
         let projectsState = try await harness.waitForSidebarProjects(named: ["Swift E2E Project One", "Swift E2E Project Two"])
         #expect(projectsState.projects.count == 2)
 
-        try harness.clickProject(slug: secondSlug)
+        try harness.clickProject(slug: firstSlug)
+        _ = try await harness.waitForSelectedProject(slug: firstSlug)
 
-        let selected = try await harness.waitForSelectedProject(slug: secondSlug)
-        #expect(selected.selectedProjectSlug == secondSlug)
+        let firstCardNumber = try await harness.createCard(projectSlug: firstSlug, title: "Swift First Card", status: "Todo")
+        _ = try await harness.waitForLaneContains(status: "Todo", title: "Swift First Card")
+
+        try harness.clickProject(slug: secondSlug)
+        _ = try await harness.waitForSelectedProject(slug: secondSlug)
+        _ = try await harness.waitForBoardEmpty()
+
+        _ = try await harness.createCard(projectSlug: secondSlug, title: "Swift Second Card", status: "Todo")
+        let secondLaneState = try await harness.waitForLaneContains(status: "Todo", title: "Swift Second Card")
+        #expect(secondLaneState.cardsByStatus?["Todo"]?.contains("Swift First Card") == false)
+
+        try harness.clickProject(slug: firstSlug)
+        _ = try await harness.waitForSelectedProject(slug: firstSlug)
+        let firstLaneState = try await harness.waitForLaneContains(status: "Todo", title: "Swift First Card")
+        #expect(firstLaneState.cardsByStatus?["Todo"]?.contains("Swift Second Card") == false)
+
+        try await harness.moveCard(projectSlug: firstSlug, cardNumber: firstCardNumber, status: "Done")
+        _ = try await harness.waitForLaneContains(status: "Done", title: "Swift First Card")
+        let movedState = try await harness.waitForSidebarState()
+        #expect(movedState.cardsByStatus?["Todo"]?.contains("Swift First Card") == false)
     }
 }
 
 private struct SidebarState: Codable {
     let projects: [String]
     let selectedProjectSlug: String?
+    let cardsByStatus: [String: [String]]?
 
     enum CodingKeys: String, CodingKey {
         case projects
         case selectedProjectSlug = "selected_project_slug"
+        case cardsByStatus = "cards_by_status"
     }
 }
 
@@ -255,6 +280,77 @@ private final class E2EHarness {
             try await Task.sleep(nanoseconds: 120_000_000)
         }
         throw HarnessError.timeout("project \(slug) was not selected")
+    }
+
+    func waitForLaneContains(status: String, title: String) async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(20)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before lane update")
+            }
+            if let state = try readSidebarState(),
+               state.cardsByStatus?[status]?.contains(title) == true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("lane \(status) did not contain card \(title)")
+    }
+
+    func waitForBoardEmpty() async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(12)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before board update")
+            }
+            if let state = try readSidebarState() {
+                let todo = state.cardsByStatus?["Todo"] ?? []
+                let doing = state.cardsByStatus?["Doing"] ?? []
+                let review = state.cardsByStatus?["Review"] ?? []
+                let done = state.cardsByStatus?["Done"] ?? []
+                if todo.isEmpty && doing.isEmpty && review.isEmpty && done.isEmpty {
+                    return state
+                }
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("board was not empty")
+    }
+
+    func createCard(projectSlug: String, title: String, status: String) async throws -> Int {
+        let url = serverURL.appendingPathComponent("projects/\(projectSlug)/cards")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        let payload: [String: String] = [
+            "title": title,
+            "description": title,
+            "status": status,
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 201 else {
+            throw HarnessError.processFailed("create card failed")
+        }
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let number = object["number"] as? Int else {
+            throw HarnessError.processFailed("create card response missing number")
+        }
+        return number
+    }
+
+    func moveCard(projectSlug: String, cardNumber: Int, status: String) async throws {
+        let url = serverURL.appendingPathComponent("projects/\(projectSlug)/cards/\(cardNumber)/move")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": status])
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw HarnessError.processFailed("move card failed")
+        }
     }
 
     func stop() {

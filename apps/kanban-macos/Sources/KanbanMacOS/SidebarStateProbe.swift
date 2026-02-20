@@ -26,14 +26,15 @@ struct SidebarStateProbe {
         return SidebarStateProbe(outputURL: outputURL, selectionInputURL: selectionInputURL)
     }
 
-    func write(projects: [ProjectSummary], selectedProjectSlug: String?) {
+    func write(projects: [ProjectSummary], selectedProjectSlug: String?, cardsByStatus: [String: [String]]) {
         guard let outputURL else {
             return
         }
 
         let payload = SidebarStateProbePayload(
             projects: projects.map(\.name),
-            selectedProjectSlug: selectedProjectSlug
+            selectedProjectSlug: selectedProjectSlug,
+            cardsByStatus: cardsByStatus
         )
         guard let raw = try? JSONEncoder().encode(payload) else {
             return
@@ -57,9 +58,11 @@ struct SidebarStateProbe {
 struct SidebarStateProbePayload: Codable, Equatable {
     let projects: [String]
     let selectedProjectSlug: String?
+    let cardsByStatus: [String: [String]]
 
     enum CodingKeys: String, CodingKey {
         case projects
         case selectedProjectSlug = "selected_project_slug"
+        case cardsByStatus = "cards_by_status"
     }
 }

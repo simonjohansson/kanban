@@ -18,12 +18,22 @@ struct SidebarStateProbeTests {
             ProjectSummary(name: "Beta", slug: "beta", localPath: nil, remoteURL: nil),
         ]
 
-        probe.write(projects: projects, selectedProjectSlug: "beta")
+        probe.write(
+            projects: projects,
+            selectedProjectSlug: "beta",
+            cardsByStatus: [
+                "Todo": ["Task A"],
+                "Doing": [],
+                "Review": [],
+                "Done": [],
+            ]
+        )
 
         let raw = try Data(contentsOf: output)
         let payload = try JSONDecoder().decode(SidebarStateProbePayload.self, from: raw)
         #expect(payload.projects == ["Alpha", "Beta"])
         #expect(payload.selectedProjectSlug == "beta")
+        #expect(payload.cardsByStatus["Todo"] == ["Task A"])
     }
 
     @Test

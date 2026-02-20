@@ -37,11 +37,14 @@ public struct WebSocketProjectEventStream: ProjectEventStream {
                             continue
                         }
 
-                        if let raw = try? JSONDecoder().decode(RawEvent.self, from: payload),
-                           let project = raw.project?.trimmingCharacters(in: .whitespacesAndNewlines),
-                           !project.isEmpty
-                        {
-                            continuation.yield(ProjectEvent(type: raw.type, projectSlug: project))
+                        if let raw = try? JSONDecoder().decode(RawEvent.self, from: payload) {
+                            let project = raw.project?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            continuation.yield(
+                                ProjectEvent(
+                                    type: raw.type,
+                                    projectSlug: project?.isEmpty == false ? project : nil
+                                )
+                            )
                         }
                     } catch {
                         continuation.finish(throwing: error)
