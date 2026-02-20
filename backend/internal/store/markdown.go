@@ -21,8 +21,10 @@ import (
 type MarkdownStore struct {
 	dataDir     string
 	projectsDir string
-	mu          sync.Mutex
+	mu          sync.RWMutex
 }
+
+var renameFile = os.Rename
 
 func NewMarkdownStore(dataDir string) (*MarkdownStore, error) {
 	projectsDir := filepath.Join(dataDir, "projects")
@@ -89,6 +91,9 @@ func (s *MarkdownStore) CreateProject(name, localPath, remoteURL string) (model.
 }
 
 func (s *MarkdownStore) ListProjects() ([]model.Project, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	dirs, err := os.ReadDir(s.projectsDir)
 	if err != nil {
 		return nil, err
@@ -109,6 +114,9 @@ func (s *MarkdownStore) ListProjects() ([]model.Project, error) {
 }
 
 func (s *MarkdownStore) GetProject(slug string) (model.Project, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	return s.loadProject(slug)
 }
 
@@ -175,6 +183,13 @@ func (s *MarkdownStore) CreateCard(projectSlug, title, description, status strin
 }
 
 func (s *MarkdownStore) GetCard(projectSlug string, number int) (model.Card, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.getCardUnlocked(projectSlug, number)
+}
+
+func (s *MarkdownStore) getCardUnlocked(projectSlug string, number int) (model.Card, error) {
 	data, err := os.ReadFile(s.cardPath(projectSlug, number))
 	if err != nil {
 		return model.Card{}, err
@@ -194,7 +209,7 @@ func (s *MarkdownStore) AppendDescription(projectSlug string, number int, body s
 	if body == "" {
 		return model.Card{}, errors.New("description body is required")
 	}
-	card, err := s.GetCard(projectSlug, number)
+	card, err := s.getCardUnlocked(projectSlug, number)
 	if err != nil {
 		return model.Card{}, err
 	}
@@ -216,7 +231,7 @@ func (s *MarkdownStore) AddComment(projectSlug string, number int, body string) 
 	if body == "" {
 		return model.Card{}, errors.New("comment body is required")
 	}
-	card, err := s.GetCard(projectSlug, number)
+	card, err := s.getCardUnlocked(projectSlug, number)
 	if err != nil {
 		return model.Card{}, err
 	}
@@ -237,7 +252,7 @@ func (s *MarkdownStore) MoveCard(projectSlug string, number int, status string) 
 	if err := validateStatus(status); err != nil {
 		return model.Card{}, err
 	}
-	card, err := s.GetCard(projectSlug, number)
+	card, err := s.getCardUnlocked(projectSlug, number)
 	if err != nil {
 		return model.Card{}, err
 	}
@@ -255,7 +270,7 @@ func (s *MarkdownStore) DeleteCard(projectSlug string, number int, hard bool) (m
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	card, err := s.GetCard(projectSlug, number)
+	card, err := s.getCardUnlocked(projectSlug, number)
 	if err != nil {
 		return model.Card{}, err
 	}
@@ -279,6 +294,9 @@ func (s *MarkdownStore) DeleteCard(projectSlug string, number int, hard bool) (m
 }
 
 func (s *MarkdownStore) Snapshot() ([]model.Project, []model.Card, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	projects, err := s.ListProjects()
 	if err != nil {
 		return nil, nil, err
@@ -372,7 +390,7 @@ func (s *MarkdownStore) writeProject(p model.Project) error {
 	buf.WriteString("# Project\n")
 	buf.WriteString(p.Name)
 	buf.WriteByte('\n')
-	return os.WriteFile(s.projectPath(p.Slug), buf.Bytes(), 0o644)
+	return writeFileAtomic(s.projectPath(p.Slug), buf.Bytes(), 0o644)
 }
 
 func (s *MarkdownStore) writeCard(c model.Card) error {
@@ -385,7 +403,44 @@ func (s *MarkdownStore) writeCard(c model.Card) error {
 	buf.Write(yml)
 	buf.WriteString("---\n")
 	buf.WriteString(body)
-	return os.WriteFile(s.cardPath(c.ProjectSlug, c.Number), buf.Bytes(), 0o644)
+	return writeFileAtomic(s.cardPath(c.ProjectSlug, c.Number), buf.Bytes(), 0o644)
+}
+
+func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".tmp-*")
+	if err != nil {
+		return err
+	}
+
+	tmpPath := tmp.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmpPath, perm); err != nil {
+		return err
+	}
+	if err := renameFile(tmpPath, path); err != nil {
+		return err
+	}
+
+	cleanup = false
+	return nil
 }
 
 func serializeCard(c model.Card) ([]byte, string, error) {

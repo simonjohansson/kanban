@@ -386,8 +386,8 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   3. Add additional backend e2e/error-path tests to cover branch-heavy handlers.
   4. Measure coverage after each batch and prioritize lowest packages first.
 - Checklist:
-  - [ ] Add failing tests for uncovered `internal/service` methods (list/get/move/comment/append/delete/rebuild).
-  - [ ] Add failing tests for uncovered `internal/kanban` run/serve branches.
+  - [x] Add failing tests for uncovered `internal/service` methods (list/get/move/comment/append/delete/rebuild).
+  - [x] Add failing tests for uncovered `internal/kanban` run/serve branches.
   - [ ] Add failing tests for remaining backend handler error branches.
   - [ ] Reach >=80% backend statement coverage and record report.
 
@@ -457,6 +457,38 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [ ] Refactor CLI command tree into per-command packages with shared execution helpers.
   - [ ] Unify config loading semantics across Go/Swift/Web clients and document precedence.
   - [ ] Raise backend coverage to >=80% and record package-level report.
+
+### Active execution: Remaining unchecked TODO sweep (top-down)
+- Context:
+  - User requested finishing all outstanding TODOs from top to bottom without stopping.
+  - Current unchecked items overlap between coverage and architecture tracks.
+- Ordered execution plan:
+  1. Close remaining backend handler error-branch tests.
+  2. Add markdown store reliability tests (atomic writes + read/write locking), then implement.
+  3. Add websocket reliability tests (ordering/drop + resync fallback contract), then implement.
+  4. Refactor backend server into modular handler files while keeping behavior stable.
+  5. Refactor CLI command tree into per-command packages with shared execution helpers.
+  6. Unify config semantics for Go/Swift/Web and document precedence.
+  7. Re-run full suites, measure coverage, and update report/checklists.
+- Checklist:
+  - [ ] Add failing tests for remaining backend handler error branches.
+  - [ ] Add failing unit tests for markdown store atomic write + read/write locking expectations.
+  - [ ] Add failing tests for websocket reliability strategy (event ordering/drop handling + resync fallback).
+  - [ ] Refactor backend server into modular handlers (projects/cards/events/projection/static).
+  - [ ] Refactor CLI command tree into per-command packages with shared execution helpers.
+  - [ ] Unify config loading semantics across Go/Swift/Web clients and document precedence.
+  - [ ] Reach >=80% backend statement coverage and record reports.
+
+### Active task: Root documentation
+- Context:
+  - User requested a root-level README explaining what the monorepo is, how it works, and a Mermaid architecture diagram.
+- Plan:
+  1. Create `/Users/simonjohansson/src/kanban/README.md`.
+  2. Document components (backend API+CLI binary, macOS app, web app), markdown+sqlite model, realtime flow, and test/dev commands.
+  3. Add Mermaid diagram of runtime architecture/data flow.
+- Checklist:
+  - [x] Add root `README.md` with overview and architecture.
+  - [x] Include Mermaid diagram showing backend, storage, and clients.
 
 ### Active follow-up: macOS board layout/readability polish
 - Goal: fix board ergonomics in `/Users/simonjohansson/src/kanban/apps/kanban-macos` so lanes start at top, scale with window width, and card titles are readable.

@@ -69,7 +69,21 @@ func (h *hub) Publish(event model.Event) {
 	select {
 	case h.broadcast <- event:
 	default:
-		// Drop when saturated to avoid blocking request flow.
+		// Queue saturation means at least one event was dropped.
+		// Replace the oldest queued event with a resync sentinel so clients can refetch state.
+		select {
+		case <-h.broadcast:
+		default:
+		}
+		fallback := model.Event{
+			Type:      "resync.required",
+			Project:   event.Project,
+			Timestamp: time.Now().UTC(),
+		}
+		select {
+		case h.broadcast <- fallback:
+		default:
+		}
 	}
 }
 

@@ -39,6 +39,8 @@ func TestProjectAndCardErrorPaths(t *testing.T) {
 
 	invalidCardNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/abc", http.MethodGet, nil)
 	require.Equal(t, http.StatusUnprocessableEntity, invalidCardNumber.StatusCode)
+	zeroCardNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/0", http.MethodGet, nil)
+	require.Equal(t, http.StatusBadRequest, zeroCardNumber.StatusCode)
 
 	missingCard := doJSON(t, httpServer.URL+"/projects/err-board/cards/999", http.MethodGet, nil)
 	require.Equal(t, http.StatusNotFound, missingCard.StatusCode)
@@ -48,15 +50,23 @@ func TestProjectAndCardErrorPaths(t *testing.T) {
 
 	invalidMoveStatus := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/move", http.MethodPatch, map[string]string{"status": "Blocked"})
 	require.Equal(t, http.StatusBadRequest, invalidMoveStatus.StatusCode)
+	zeroMoveNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/0/move", http.MethodPatch, map[string]string{"status": "Todo"})
+	require.Equal(t, http.StatusBadRequest, zeroMoveNumber.StatusCode)
 
 	emptyComment := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/comments", http.MethodPost, map[string]string{"body": "   "})
 	require.Equal(t, http.StatusBadRequest, emptyComment.StatusCode)
+	zeroCommentNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/0/comments", http.MethodPost, map[string]string{"body": "hi"})
+	require.Equal(t, http.StatusBadRequest, zeroCommentNumber.StatusCode)
 
 	emptyDescription := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/description", http.MethodPatch, map[string]string{"body": ""})
 	require.Equal(t, http.StatusBadRequest, emptyDescription.StatusCode)
+	zeroDescriptionNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/0/description", http.MethodPatch, map[string]string{"body": "desc"})
+	require.Equal(t, http.StatusBadRequest, zeroDescriptionNumber.StatusCode)
 
 	missingDelete := doJSON(t, httpServer.URL+"/projects/err-board/cards/999", http.MethodDelete, nil)
 	require.Equal(t, http.StatusNotFound, missingDelete.StatusCode)
+	zeroDeleteNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/0", http.MethodDelete, nil)
+	require.Equal(t, http.StatusBadRequest, zeroDeleteNumber.StatusCode)
 }
 
 func TestWebsocketProjectFilter(t *testing.T) {
