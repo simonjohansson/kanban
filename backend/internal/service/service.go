@@ -117,6 +117,7 @@ func (s *Service) CreateCard(projectSlug, title, description, branch, status str
 		}
 		return model.Card{}, newError(CodeValidation, err.Error(), err)
 	}
+	card = normalizeCardDefaults(card)
 	project, err := s.store.GetProject(projectSlug)
 	if err != nil {
 		return model.Card{}, newError(CodeInternal, "load project failed", err)
@@ -146,6 +147,7 @@ func (s *Service) SetCardBranch(projectSlug string, number int, branch string) (
 		}
 		return model.Card{}, newError(CodeValidation, err.Error(), err)
 	}
+	card = normalizeCardDefaults(card)
 	if err := s.projection.UpsertCard(card); err != nil {
 		return model.Card{}, newError(CodeInternal, "projection sync failed", err)
 	}
@@ -176,7 +178,7 @@ func (s *Service) GetCard(projectSlug string, number int) (model.Card, error) {
 		}
 		return model.Card{}, newError(CodeInternal, "get card failed", err)
 	}
-	return card, nil
+	return normalizeCardDefaults(card), nil
 }
 
 func (s *Service) MoveCard(projectSlug string, number int, status string) (model.Card, error) {
@@ -187,6 +189,7 @@ func (s *Service) MoveCard(projectSlug string, number int, status string) (model
 		}
 		return model.Card{}, newError(CodeValidation, err.Error(), err)
 	}
+	card = normalizeCardDefaults(card)
 	if err := s.projection.UpsertCard(card); err != nil {
 		return model.Card{}, newError(CodeInternal, "projection sync failed", err)
 	}
@@ -209,6 +212,7 @@ func (s *Service) CommentCard(projectSlug string, number int, body string) (mode
 		}
 		return model.Card{}, newError(CodeValidation, err.Error(), err)
 	}
+	card = normalizeCardDefaults(card)
 	if err := s.projection.UpsertCard(card); err != nil {
 		return model.Card{}, newError(CodeInternal, "projection sync failed", err)
 	}
@@ -231,6 +235,7 @@ func (s *Service) AppendDescription(projectSlug string, number int, body string)
 		}
 		return model.Card{}, newError(CodeValidation, err.Error(), err)
 	}
+	card = normalizeCardDefaults(card)
 	if err := s.projection.UpsertCard(card); err != nil {
 		return model.Card{}, newError(CodeInternal, "projection sync failed", err)
 	}
@@ -253,6 +258,7 @@ func (s *Service) DeleteCard(projectSlug string, number int, hard bool) (model.C
 		}
 		return model.Card{}, newError(CodeValidation, err.Error(), err)
 	}
+	card = normalizeCardDefaults(card)
 
 	if hard {
 		if err := s.projection.HardDeleteCard(projectSlug, number); err != nil {
@@ -304,4 +310,17 @@ func (s *Service) publish(event model.Event) {
 	}
 	event.Project = strings.TrimSpace(event.Project)
 	s.publisher.Publish(event)
+}
+
+func normalizeCardDefaults(card model.Card) model.Card {
+	if card.Description == nil {
+		card.Description = []model.TextEvent{}
+	}
+	if card.Comments == nil {
+		card.Comments = []model.TextEvent{}
+	}
+	if card.History == nil {
+		card.History = []model.HistoryEvent{}
+	}
+	return card
 }

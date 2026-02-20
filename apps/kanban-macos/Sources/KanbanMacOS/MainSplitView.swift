@@ -23,28 +23,49 @@ struct MainSplitView: View {
                             .foregroundStyle(.secondary)
                     }
             } else {
-                GeometryReader { geometry in
-                    let laneSpacing = zoom.scaled(BoardPresentation.laneSpacing)
-                    let horizontalPadding = zoom.scaled(BoardPresentation.horizontalPadding)
-                    let verticalPadding = zoom.scaled(BoardPresentation.verticalPadding)
-                    let laneWidth = BoardPresentation.laneWidth(
-                        containerWidth: geometry.size.width,
-                        laneCount: KanbanLaneStatus.allCases.count,
-                        laneSpacing: laneSpacing,
-                        horizontalPadding: horizontalPadding
-                    )
+                ZStack {
+                    GeometryReader { geometry in
+                        let laneSpacing = zoom.scaled(BoardPresentation.laneSpacing)
+                        let horizontalPadding = zoom.scaled(BoardPresentation.horizontalPadding)
+                        let verticalPadding = zoom.scaled(BoardPresentation.verticalPadding)
+                        let laneWidth = BoardPresentation.laneWidth(
+                            containerWidth: geometry.size.width,
+                            laneCount: KanbanLaneStatus.allCases.count,
+                            laneSpacing: laneSpacing,
+                            horizontalPadding: horizontalPadding
+                        )
 
-                    ScrollView(.vertical) {
-                        HStack(alignment: .top, spacing: laneSpacing) {
-                            ForEach(KanbanLaneStatus.allCases, id: \.rawValue) { lane in
-                                laneView(for: lane, laneWidth: laneWidth, zoom: zoom)
+                        ScrollView(.vertical) {
+                            HStack(alignment: .top, spacing: laneSpacing) {
+                                ForEach(KanbanLaneStatus.allCases, id: \.rawValue) { lane in
+                                    laneView(for: lane, laneWidth: laneWidth, zoom: zoom)
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .padding(.horizontal, horizontalPadding)
+                            .padding(.vertical, verticalPadding)
                         }
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.horizontal, horizontalPadding)
-                        .padding(.vertical, verticalPadding)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                    if viewModel.selectedCardNumber != nil {
+                        CardDetailsOverlay(
+                            details: viewModel.cardDetails,
+                            isLoading: viewModel.isCardDetailsLoading,
+                            errorMessage: viewModel.cardDetailsErrorMessage,
+                            onClose: { _ in
+                                viewModel.closeCardDetails()
+                                writeProbe()
+                            },
+                            onRetry: {
+                                Task {
+                                    await viewModel.retrySelectedCard()
+                                    writeProbe()
+                                }
+                            }
+                        )
+                        .zIndex(2)
+                    }
                 }
             }
         }
@@ -60,6 +81,18 @@ struct MainSplitView: View {
             writeProbe()
         }
         .onChange(of: viewModel.cards) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.selectedCardNumber) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.cardDetails) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.cardDetailsErrorMessage) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.isCardDetailsLoading) { _, _ in
             writeProbe()
         }
         .onChange(of: selectedProjectID) { _, latest in
@@ -112,9 +145,19 @@ struct MainSplitView: View {
             return
         }
         while !Task.isCancelled {
-            if let requested = sidebarProbe.consumeSelectionRequest(),
-               viewModel.projects.contains(where: { $0.slug == requested }) {
-                selectedProjectID = requested
+            if let requested = sidebarProbe.consumeSelectionRequest() {
+                if let cardNumber = parseCardOpenRequest(requested) {
+                    await viewModel.selectCard(number: cardNumber)
+                    writeProbe()
+                } else if parseCardCloseRequest(requested) {
+                    viewModel.closeCardDetails()
+                    writeProbe()
+                } else if let slug = parseProjectSelectionRequest(requested),
+                          viewModel.projects.contains(where: { $0.slug == slug }) {
+                    selectedProjectID = slug
+                } else if viewModel.projects.contains(where: { $0.slug == requested }) {
+                    selectedProjectID = requested
+                }
             }
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
@@ -152,6 +195,12 @@ struct MainSplitView: View {
                             .stroke(Color.gray.opacity(0.25), lineWidth: 1)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .onTapGesture {
+                        Task {
+                            await viewModel.selectCard(number: card.number)
+                            writeProbe()
+                        }
+                    }
                 }
             }
         }
@@ -167,7 +216,44 @@ struct MainSplitView: View {
             projects: viewModel.projects,
             selectedProjectSlug: selectedProjectID,
             cardsByStatus: viewModel.cardsByStatusMap(),
-            cardsByStatusDetailed: viewModel.cardsByStatusDetailedMap()
+            cardsByStatusDetailed: viewModel.cardsByStatusDetailedMap(),
+            cardDetailsVisible: viewModel.selectedCardNumber != nil,
+            cardDetails: viewModel.cardDetails.map {
+                SidebarCardDetailsStateProbe(
+                    title: $0.title,
+                    branch: $0.branch,
+                    descriptionBodies: $0.description.map(\.body),
+                    commentBodies: $0.comments.map(\.body)
+                )
+            },
+            cardDetailsError: viewModel.cardDetailsErrorMessage
         )
+    }
+
+    private func parseProjectSelectionRequest(_ raw: String) -> String? {
+        let prefix = "project:"
+        guard raw.hasPrefix(prefix) else {
+            return nil
+        }
+        let value = String(raw.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    private func parseCardOpenRequest(_ raw: String) -> Int? {
+        let prefix = "card:"
+        guard raw.hasPrefix(prefix) else {
+            return nil
+        }
+        let rawNumber = String(raw.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let number = Int(rawNumber), number > 0 else {
+            return nil
+        }
+        return number
+    }
+
+    private func parseCardCloseRequest(_ raw: String) -> Bool {
+        raw.hasPrefix("card-close:")
     }
 }

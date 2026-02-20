@@ -1,12 +1,15 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { DefaultService, OpenAPI, type CardSummary, type Project } from './lib/generated';
+  import { DefaultService, OpenAPI, type Card, type CardSummary, type Project } from './lib/generated';
+  import CardDetailsModal from './lib/components/CardDetailsModal.svelte';
 
   type ProjectSummary = Pick<Project, 'name' | 'slug' | 'local_path' | 'remote_url'>;
   const LANES = ['Todo', 'Doing', 'Review', 'Done'] as const;
   type LaneStatus = (typeof LANES)[number];
+  type HistoryMode = 'push' | 'replace' | 'none';
   const CARD_EVENT_TYPES = new Set(['card.created', 'card.moved', 'card.deleted_soft', 'card.deleted_hard']);
   const PROJECT_EVENT_TYPES = new Set(['project.created', 'project.deleted']);
+  const CARD_ROUTE_RE = /^\/card\/([^/]+)\/(\d+)\/?$/;
 
   const configuredBase = (import.meta.env.VITE_KANBAN_SERVER_URL ?? '').trim();
   let resolvedBase = configuredBase;
@@ -18,18 +21,37 @@
   let alertMessage: string | null = null;
   let sidebarHidden = false;
   let ws: WebSocket | null = null;
+  let cardDetailsProjectSlug: string | null = null;
+  let cardDetailsNumber: number | null = null;
+  let cardDetails: Card | null = null;
+  let cardDetailsLoading = false;
+  let cardDetailsError: string | null = null;
+  let cardDetailsRequestToken = 0;
+  let cardDetailsOpen = false;
 
   $: cardsByLane = buildLaneMap(cards);
+  $: cardDetailsOpen = cardDetailsProjectSlug !== null && cardDetailsNumber !== null;
 
   onMount(async () => {
     resolvedBase = await resolveServerBase();
     OpenAPI.BASE = resolvedBase;
     await loadProjects();
+    const initialCardRoute = parseCardRoute(window.location.pathname);
+    if (initialCardRoute) {
+      await openCardDetails(initialCardRoute.projectSlug, initialCardRoute.number, {
+        historyMode: 'replace',
+        selectProject: true,
+      });
+    }
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('keydown', handleGlobalKeyDown);
     connectWebSocket();
   });
 
   onDestroy(() => {
     ws?.close();
+    window.removeEventListener('popstate', handlePopState);
+    window.removeEventListener('keydown', handleGlobalKeyDown);
   });
 
   async function loadProjects(): Promise<void> {
@@ -38,6 +60,9 @@
       projects = [...payload.projects].sort(sortProjects);
       if (selectedProjectSlug && !projects.some((project) => project.slug === selectedProjectSlug)) {
         selectedProjectSlug = null;
+      }
+      if (cardDetailsProjectSlug && !projects.some((project) => project.slug === cardDetailsProjectSlug)) {
+        closeCardDetails({ historyMode: 'replace' });
       }
       await loadCards();
     } catch (err) {
@@ -60,7 +85,86 @@
 
   async function selectProject(slug: string): Promise<void> {
     selectedProjectSlug = slug;
+    if (cardDetailsProjectSlug && cardDetailsProjectSlug !== slug) {
+      closeCardDetails({ historyMode: 'replace' });
+    }
     await loadCards();
+  }
+
+  async function openCardDetails(
+    projectSlug: string,
+    number: number,
+    options: { historyMode?: HistoryMode; selectProject?: boolean } = {}
+  ): Promise<void> {
+    const historyMode = options.historyMode ?? 'push';
+    const selectProjectIfNeeded = options.selectProject ?? false;
+    const requestToken = ++cardDetailsRequestToken;
+
+    cardDetailsProjectSlug = projectSlug;
+    cardDetailsNumber = number;
+    cardDetails = null;
+    cardDetailsError = null;
+    cardDetailsLoading = true;
+    syncCardDetailsRoute(projectSlug, number, historyMode);
+
+    if (selectProjectIfNeeded && selectedProjectSlug !== projectSlug) {
+      selectedProjectSlug = projectSlug;
+      await loadCards();
+      if (requestToken !== cardDetailsRequestToken) {
+        return;
+      }
+    }
+
+    try {
+      const payload = await DefaultService.getCard(projectSlug, number);
+      if (requestToken !== cardDetailsRequestToken) {
+        return;
+      }
+      cardDetails = payload;
+    } catch (err) {
+      if (requestToken !== cardDetailsRequestToken) {
+        return;
+      }
+      cardDetailsError = `Failed to load card details: ${String(err)}`;
+    } finally {
+      if (requestToken === cardDetailsRequestToken) {
+        cardDetailsLoading = false;
+      }
+    }
+  }
+
+  async function retryCardDetails(): Promise<void> {
+    if (!cardDetailsProjectSlug || cardDetailsNumber === null) {
+      return;
+    }
+    await openCardDetails(cardDetailsProjectSlug, cardDetailsNumber, { historyMode: 'replace', selectProject: true });
+  }
+
+  function closeCardDetails(options: { historyMode?: HistoryMode } = {}): void {
+    const historyMode = options.historyMode ?? 'push';
+    cardDetailsRequestToken += 1;
+    cardDetailsProjectSlug = null;
+    cardDetailsNumber = null;
+    cardDetails = null;
+    cardDetailsError = null;
+    cardDetailsLoading = false;
+    syncRootRoute(historyMode);
+  }
+
+  function handlePopState(): void {
+    const route = parseCardRoute(window.location.pathname);
+    if (!route) {
+      closeCardDetails({ historyMode: 'none' });
+      return;
+    }
+    void openCardDetails(route.projectSlug, route.number, { historyMode: 'none', selectProject: true });
+  }
+
+  function handleGlobalKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && cardDetailsOpen) {
+      event.preventDefault();
+      closeCardDetails({ historyMode: 'push' });
+    }
   }
 
   function connectWebSocket(): void {
@@ -142,6 +246,53 @@
     sidebarHidden = !sidebarHidden;
   }
 
+  function parseCardRoute(pathname: string): { projectSlug: string; number: number } | null {
+    const match = pathname.match(CARD_ROUTE_RE);
+    if (!match) {
+      return null;
+    }
+    let projectSlug: string;
+    try {
+      projectSlug = decodeURIComponent(match[1]);
+    } catch {
+      return null;
+    }
+    const number = Number.parseInt(match[2], 10);
+    if (!Number.isInteger(number) || number <= 0) {
+      return null;
+    }
+    return { projectSlug, number };
+  }
+
+  function syncCardDetailsRoute(projectSlug: string, number: number, mode: HistoryMode): void {
+    if (mode === 'none') {
+      return;
+    }
+    const nextPath = `/card/${encodeURIComponent(projectSlug)}/${number}`;
+    if (window.location.pathname === nextPath) {
+      return;
+    }
+    if (mode === 'replace') {
+      window.history.replaceState({}, '', nextPath);
+      return;
+    }
+    window.history.pushState({}, '', nextPath);
+  }
+
+  function syncRootRoute(mode: HistoryMode): void {
+    if (mode === 'none') {
+      return;
+    }
+    if (window.location.pathname === '/') {
+      return;
+    }
+    if (mode === 'replace') {
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+    window.history.pushState({}, '', '/');
+  }
+
   async function resolveServerBase(): Promise<string> {
     if (configuredBase) {
       return configuredBase;
@@ -210,7 +361,11 @@
             <h2>{lane}</h2>
             <div class="lane-cards">
               {#each cardsByLane[lane] as card (card.id)}
-                <article class="card" data-testid="card-item">
+                <article
+                  class="card"
+                  data-testid="card-item"
+                  on:click={() => openCardDetails(card.project, card.number, { historyMode: 'push', selectProject: false })}
+                >
                   <div class="card-title">{card.title}</div>
                   {#if card.branch?.trim()}
                     <div class="card-branch">{card.branch.trim()}</div>
@@ -224,6 +379,16 @@
     {/if}
   </section>
 </main>
+
+{#if cardDetailsOpen}
+  <CardDetailsModal
+    card={cardDetails}
+    errorMessage={cardDetailsError}
+    loading={cardDetailsLoading}
+    onClose={() => closeCardDetails({ historyMode: 'push' })}
+    onRetry={retryCardDetails}
+  />
+{/if}
 
 {#if alertMessage}
   <div class="alert" role="alert">{alertMessage}</div>
@@ -374,6 +539,7 @@
     overflow-wrap: anywhere;
     display: grid;
     gap: 6px;
+    cursor: pointer;
   }
 
   .card-title {

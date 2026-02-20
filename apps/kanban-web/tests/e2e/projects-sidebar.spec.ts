@@ -164,3 +164,171 @@ test('shows 4 lanes and reflects cards across project switching and moves', asyn
   });
   expect(boardFitsAtNarrowViewport).toBe(true);
 });
+
+test('opens card details popup with deep links and close behaviors', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto('/');
+
+  const createProjectResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Modal Project' }),
+  });
+  expect(createProjectResponse.status).toBe(201);
+
+  const createFirstCardResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Card One',
+      description: 'First description body',
+      branch: 'feature/card-one',
+      status: 'Todo',
+    }),
+  });
+  expect(createFirstCardResponse.status).toBe(201);
+
+  const createSecondCardResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Card Two',
+      description: 'Second description body',
+      branch: 'feature/card-two',
+      status: 'Todo',
+    }),
+  });
+  expect(createSecondCardResponse.status).toBe(201);
+
+  const firstCommentResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/comments', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ body: 'First comment line 1\\nFirst comment line 2' }),
+  });
+  expect(firstCommentResponse.status).toBe(200);
+
+  const secondCommentResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/2/comments', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ body: 'Second comment body' }),
+  });
+  expect(secondCommentResponse.status).toBe(200);
+
+  await page.reload();
+
+  await page.getByTestId('project-item').filter({ hasText: 'Modal Project' }).click();
+  await expect(page.getByTestId('lane-Todo')).toContainText('Card One');
+  await expect(page.getByTestId('lane-Todo')).toContainText('Card Two');
+
+  await page.getByTestId('card-item').filter({ hasText: 'Card One' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-details-title')).toHaveText('Card One');
+  await expect(page.getByTestId('card-details-branch')).toContainText('feature/card-one');
+  await expect(page.getByTestId('card-details-description')).toContainText('First description body');
+  await expect(page.getByTestId('card-details-comments')).toContainText('First comment line 1');
+  await expect(page.getByTestId('card-details-comments')).toContainText('First comment line 2');
+  await expect(page.getByTestId('card-details-comments')).not.toContainText('\\n');
+  await expect(page).toHaveURL(/\/card\/modal-project\/1$/);
+
+  await page.getByTestId('card-item').filter({ hasText: 'Card Two' }).click();
+  await expect(page.getByTestId('card-details-title')).toHaveText('Card Two');
+  await expect(page.getByTestId('card-details-branch')).toContainText('feature/card-two');
+  await expect(page.getByTestId('card-details-description')).toContainText('Second description body');
+  await expect(page.getByTestId('card-details-comments')).toContainText('Second comment body');
+  await expect(page).toHaveURL(/\/card\/modal-project\/2$/);
+
+  await page.getByTestId('card-details-close').click();
+  await expect(page.getByTestId('card-details-modal')).toHaveCount(0);
+  await expect(page).toHaveURL('/');
+
+  await page.getByTestId('card-item').filter({ hasText: 'Card One' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('card-details-modal')).toHaveCount(0);
+  await expect(page).toHaveURL('/');
+
+  await page.getByTestId('card-item').filter({ hasText: 'Card One' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await page.getByTestId('lane-Doing').click({ position: { x: 10, y: 10 } });
+  await expect(page.getByTestId('card-details-modal')).toHaveCount(0);
+  await expect(page).toHaveURL('/');
+
+  await page.goto('/card/modal-project/1');
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-details-title')).toHaveText('Card One');
+
+  await page.goto('/card/modal-project/999');
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-details-error')).toContainText('Failed to load card details');
+  await page.getByTestId('card-details-retry').click();
+  await expect(page.getByTestId('card-details-error')).toContainText('Failed to load card details');
+});
+
+test('guards malformed deep links and ignores stale card-detail requests', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto('/');
+
+  const createRaceAResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Race A' }),
+  });
+  expect(createRaceAResponse.status).toBe(201);
+
+  const createRaceBResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Race B' }),
+  });
+  expect(createRaceBResponse.status).toBe(201);
+
+  const createRaceACardResponse = await fetch('http://127.0.0.1:18080/projects/race-a/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Race A Card', description: 'a', status: 'Todo' }),
+  });
+  expect(createRaceACardResponse.status).toBe(201);
+
+  const createRaceBCardResponse = await fetch('http://127.0.0.1:18080/projects/race-b/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Race B Card', description: 'b', status: 'Todo' }),
+  });
+  expect(createRaceBCardResponse.status).toBe(201);
+
+  await page.reload();
+  await expect(page.getByTestId('project-item').filter({ hasText: 'Race A' })).toHaveCount(1);
+  await expect(page.getByTestId('project-item').filter({ hasText: 'Race B' })).toHaveCount(1);
+
+  await page.route('**/projects/race-a/cards', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.continue();
+  });
+
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/card/race-a/1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.history.pushState({}, '', '/card/race-b/1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-details-title')).toHaveText('Race B Card');
+  await expect(page).toHaveURL(/\/card\/race-b\/1$/);
+
+  await page.waitForTimeout(700);
+  await expect(page.getByTestId('card-details-title')).toHaveText('Race B Card');
+
+  const pageErrors: Error[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error));
+
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/card/%/1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await page.waitForTimeout(120);
+
+  expect(pageErrors).toHaveLength(0);
+  await page.getByTestId('project-item').filter({ hasText: 'Race A' }).click();
+  await expect(page.getByTestId('lane-Todo')).toContainText('Race A Card');
+});

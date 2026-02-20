@@ -94,6 +94,98 @@ struct SidebarE2ETests {
         let movedState = try await harness.waitForSidebarState()
         #expect(movedState.cardsByStatus?["Todo"]?.contains("Swift First Card") == false)
     }
+
+    @Test
+    func appShowsCardDetailsPopupForClickedCards() async throws {
+        guard ProcessInfo.processInfo.environment["KANBAN_RUN_SWIFT_E2E"] == "1" else {
+            return
+        }
+
+        let harness = try E2EHarness()
+        defer { harness.stop() }
+
+        try harness.startBackend()
+        try await harness.waitForBackendReady()
+        try harness.startApp()
+
+        let configuration = Configuration(dateTranscoder: FlexibleE2EDateTranscoder())
+        let client = Client(serverURL: harness.serverURL, configuration: configuration, transport: URLSessionTransport())
+        let createOutput = try await client.createProject(
+            body: .json(
+                Components.Schemas.CreateProjectRequest(
+                    name: "Swift Modal Project"
+                )
+            )
+        )
+        guard case .created(let created) = createOutput else {
+            Issue.record("expected createProject to return .created")
+            return
+        }
+        let projectSlug = try created.body.json.slug
+        _ = try await harness.waitForSidebarProject(named: "Swift Modal Project")
+
+        try harness.clickProject(slug: projectSlug)
+        _ = try await harness.waitForSelectedProject(slug: projectSlug)
+
+        let firstCard = try await harness.createCard(
+            projectSlug: projectSlug,
+            title: "Swift Modal Card One",
+            status: "Todo",
+            branch: "feature/swift-modal-one"
+        )
+        let secondCard = try await harness.createCard(
+            projectSlug: projectSlug,
+            title: "Swift Modal Card Two",
+            status: "Todo",
+            branch: "feature/swift-modal-two"
+        )
+        try await harness.commentOnCard(projectSlug: projectSlug, cardNumber: firstCard, body: "First modal line 1\\nFirst modal line 2")
+        try await harness.commentOnCard(projectSlug: projectSlug, cardNumber: secondCard, body: "Second modal comment")
+        _ = try await harness.waitForLaneContains(status: "Todo", title: "Swift Modal Card One")
+        _ = try await harness.waitForLaneContains(status: "Todo", title: "Swift Modal Card Two")
+
+        try harness.clickCard(number: firstCard)
+        _ = try await harness.waitForCardDetails(
+            title: "Swift Modal Card One",
+            branch: "feature/swift-modal-one",
+            descriptionBody: "Swift Modal Card One",
+            commentBody: "First modal line 1\nFirst modal line 2"
+        )
+
+        try harness.clickCard(number: secondCard)
+        _ = try await harness.waitForCardDetails(
+            title: "Swift Modal Card Two",
+            branch: "feature/swift-modal-two",
+            descriptionBody: "Swift Modal Card Two",
+            commentBody: "Second modal comment"
+        )
+
+        try harness.closeCardDetails(method: "button")
+        _ = try await harness.waitForCardDetailsClosed()
+
+        try harness.clickCard(number: firstCard)
+        _ = try await harness.waitForCardDetails(
+            title: "Swift Modal Card One",
+            branch: "feature/swift-modal-one",
+            descriptionBody: "Swift Modal Card One",
+            commentBody: "First modal line 1\nFirst modal line 2"
+        )
+        try harness.closeCardDetails(method: "escape")
+        _ = try await harness.waitForCardDetailsClosed()
+
+        try harness.clickCard(number: firstCard)
+        _ = try await harness.waitForCardDetails(
+            title: "Swift Modal Card One",
+            branch: "feature/swift-modal-one",
+            descriptionBody: "Swift Modal Card One",
+            commentBody: "First modal line 1\nFirst modal line 2"
+        )
+        try harness.closeCardDetails(method: "outside")
+        _ = try await harness.waitForCardDetailsClosed()
+
+        try harness.clickCard(number: 999)
+        _ = try await harness.waitForCardDetailsError(contains: "Failed to load card details")
+    }
 }
 
 private struct SidebarState: Codable {
@@ -101,18 +193,38 @@ private struct SidebarState: Codable {
     let selectedProjectSlug: String?
     let cardsByStatus: [String: [String]]?
     let cardsByStatusDetailed: [String: [SidebarCardState]]?
+    let cardDetailsVisible: Bool?
+    let cardDetails: SidebarCardDetailsState?
+    let cardDetailsError: String?
 
     enum CodingKeys: String, CodingKey {
         case projects
         case selectedProjectSlug = "selected_project_slug"
         case cardsByStatus = "cards_by_status"
         case cardsByStatusDetailed = "cards_by_status_detailed"
+        case cardDetailsVisible = "card_details_visible"
+        case cardDetails = "card_details"
+        case cardDetailsError = "card_details_error"
     }
 }
 
 private struct SidebarCardState: Codable {
     let title: String
     let branch: String?
+}
+
+private struct SidebarCardDetailsState: Codable {
+    let title: String
+    let branch: String?
+    let descriptionBodies: [String]
+    let commentBodies: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case branch
+        case descriptionBodies = "description_bodies"
+        case commentBodies = "comment_bodies"
+    }
 }
 
 private final class E2EHarness {
@@ -285,6 +397,14 @@ private final class E2EHarness {
         try slug.write(to: selectFileURL, atomically: true, encoding: .utf8)
     }
 
+    func clickCard(number: Int) throws {
+        try "card:\(number)".write(to: selectFileURL, atomically: true, encoding: .utf8)
+    }
+
+    func closeCardDetails(method: String) throws {
+        try "card-close:\(method)".write(to: selectFileURL, atomically: true, encoding: .utf8)
+    }
+
     func waitForSelectedProject(slug: String) async throws -> SidebarState {
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
@@ -373,6 +493,68 @@ private final class E2EHarness {
             throw HarnessError.processFailed("create card response missing number")
         }
         return number
+    }
+
+    func commentOnCard(projectSlug: String, cardNumber: Int, body: String) async throws {
+        let url = serverURL.appendingPathComponent("projects/\(projectSlug)/cards/\(cardNumber)/comments")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["body": body])
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw HarnessError.processFailed("comment card failed")
+        }
+    }
+
+    func waitForCardDetails(title: String, branch: String, descriptionBody: String, commentBody: String) async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(20)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before card details opened")
+            }
+            if let state = try readSidebarState(),
+               state.cardDetailsVisible == true,
+               state.cardDetails?.title == title,
+               state.cardDetails?.branch == branch,
+               state.cardDetails?.descriptionBodies.contains(descriptionBody) == true,
+               state.cardDetails?.commentBodies.contains(commentBody) == true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("card details for \(title) were not visible")
+    }
+
+    func waitForCardDetailsClosed() async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(12)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before card details closed")
+            }
+            if let state = try readSidebarState(), state.cardDetailsVisible != true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("card details did not close")
+    }
+
+    func waitForCardDetailsError(contains message: String) async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(15)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before card details error")
+            }
+            if let state = try readSidebarState(),
+               state.cardDetailsVisible == true,
+               state.cardDetailsError?.contains(message) == true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("card details error did not appear")
     }
 
     func moveCard(projectSlug: String, cardNumber: Int, status: String) async throws {

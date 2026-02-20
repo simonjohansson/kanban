@@ -72,6 +72,18 @@ private actor APIStub: ProjectsAPIClient {
     func listCards(projectSlug: String) async throws -> [KanbanCardSummary] {
         cardResponses[projectSlug] ?? []
     }
+
+    func getCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails {
+        KanbanCardDetails(
+            id: "\(projectSlug)/card-\(number)",
+            number: number,
+            projectSlug: projectSlug,
+            title: "Task \(number)",
+            status: "Todo",
+            description: [],
+            comments: []
+        )
+    }
 }
 
 private struct EventStreamStub: ProjectEventStream {
