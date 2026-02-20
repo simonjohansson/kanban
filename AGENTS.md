@@ -7,6 +7,12 @@
 - If the `kanban` command cannot talk to the server, stop immediately and tell the user to start the server.
 - Ask extensive clarifying questions about the feature before planning implementation.
 - Create cards in the kanban board for the agreed work.
+- Every card must include a detailed description that synthesizes the initial feature request and all follow-up clarifications/questions.
+- A card is not ready for `doing` until its description explicitly includes:
+  - the original feature request summary,
+  - the key decisions/clarifications from follow-up Q&A,
+  - clear in-scope and out-of-scope boundaries, and
+  - acceptance criteria written as a checklist that can be objectively verified.
 - If working in a worktree/branch, record the active worktree/branch on the card.
 - Once feature context and scope are aligned, move the card to `doing`.
 - Start implementation only after the card is in `doing`.
