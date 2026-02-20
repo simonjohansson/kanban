@@ -98,6 +98,7 @@
   ): Promise<void> {
     const historyMode = options.historyMode ?? 'push';
     const selectProjectIfNeeded = options.selectProject ?? false;
+    const requestToken = ++cardDetailsRequestToken;
 
     cardDetailsProjectSlug = projectSlug;
     cardDetailsNumber = number;
@@ -109,9 +110,11 @@
     if (selectProjectIfNeeded && selectedProjectSlug !== projectSlug) {
       selectedProjectSlug = projectSlug;
       await loadCards();
+      if (requestToken !== cardDetailsRequestToken) {
+        return;
+      }
     }
 
-    const requestToken = ++cardDetailsRequestToken;
     try {
       const payload = await DefaultService.getCard(projectSlug, number);
       if (requestToken !== cardDetailsRequestToken) {
@@ -248,7 +251,12 @@
     if (!match) {
       return null;
     }
-    const projectSlug = decodeURIComponent(match[1]);
+    let projectSlug: string;
+    try {
+      projectSlug = decodeURIComponent(match[1]);
+    } catch {
+      return null;
+    }
     const number = Number.parseInt(match[2], 10);
     if (!Number.isInteger(number) || number <= 0) {
       return null;

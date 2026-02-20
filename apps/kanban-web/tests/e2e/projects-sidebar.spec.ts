@@ -263,3 +263,72 @@ test('opens card details popup with deep links and close behaviors', async ({ pa
   await page.getByTestId('card-details-retry').click();
   await expect(page.getByTestId('card-details-error')).toContainText('Failed to load card details');
 });
+
+test('guards malformed deep links and ignores stale card-detail requests', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto('/');
+
+  const createRaceAResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Race A' }),
+  });
+  expect(createRaceAResponse.status).toBe(201);
+
+  const createRaceBResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Race B' }),
+  });
+  expect(createRaceBResponse.status).toBe(201);
+
+  const createRaceACardResponse = await fetch('http://127.0.0.1:18080/projects/race-a/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Race A Card', description: 'a', status: 'Todo' }),
+  });
+  expect(createRaceACardResponse.status).toBe(201);
+
+  const createRaceBCardResponse = await fetch('http://127.0.0.1:18080/projects/race-b/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Race B Card', description: 'b', status: 'Todo' }),
+  });
+  expect(createRaceBCardResponse.status).toBe(201);
+
+  await page.reload();
+  await expect(page.getByTestId('project-item').filter({ hasText: 'Race A' })).toHaveCount(1);
+  await expect(page.getByTestId('project-item').filter({ hasText: 'Race B' })).toHaveCount(1);
+
+  await page.route('**/projects/race-a/cards', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.continue();
+  });
+
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/card/race-a/1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.history.pushState({}, '', '/card/race-b/1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-details-title')).toHaveText('Race B Card');
+  await expect(page).toHaveURL(/\/card\/race-b\/1$/);
+
+  await page.waitForTimeout(700);
+  await expect(page.getByTestId('card-details-title')).toHaveText('Race B Card');
+
+  const pageErrors: Error[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error));
+
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/card/%/1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await page.waitForTimeout(120);
+
+  expect(pageErrors).toHaveLength(0);
+  await page.getByTestId('project-item').filter({ hasText: 'Race A' }).click();
+  await expect(page.getByTestId('lane-Todo')).toContainText('Race A Card');
+});

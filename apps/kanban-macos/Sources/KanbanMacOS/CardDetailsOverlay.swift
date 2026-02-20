@@ -8,73 +8,64 @@ struct CardDetailsOverlay: View {
     let onRetry: () -> Void
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.34)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    onClose("outside")
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            header
 
-            VStack(alignment: .leading, spacing: 12) {
-                header
-
-                if isLoading {
-                    ProgressView("Loading card details...")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else if let errorMessage {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                        Button("Retry") {
-                            onRetry()
-                        }
-                        .buttonStyle(.borderedProminent)
+            if isLoading {
+                ProgressView("Loading card details...")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let errorMessage {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                    Button("Retry") {
+                        onRetry()
                     }
-                } else if let details {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 14) {
-                            section(title: "Branch") {
-                                Text(details.branch?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty ?? "No branch")
-                                    .font(.system(.body, design: .monospaced))
-                            }
-                            section(title: "Description") {
-                                if details.description.isEmpty {
-                                    Text("No description")
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    ForEach(Array(details.description.enumerated()), id: \.offset) { _, event in
-                                        detailItem(event.body)
-                                    }
-                                }
-                            }
-                            section(title: "Comments") {
-                                if details.comments.isEmpty {
-                                    Text("No comments")
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    ForEach(Array(details.comments.enumerated()), id: \.offset) { _, event in
-                                        detailItem(event.body)
-                                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            } else if let details {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        section(title: "Branch") {
+                            Text(details.branch?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty ?? "No branch")
+                                .font(.system(.body, design: .monospaced))
+                        }
+                        section(title: "Description") {
+                            if details.description.isEmpty {
+                                Text("No description")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(Array(details.description.enumerated()), id: \.offset) { _, event in
+                                    detailItem(event.body)
                                 }
                             }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        section(title: "Comments") {
+                            if details.comments.isEmpty {
+                                Text("No comments")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(Array(details.comments.enumerated()), id: \.offset) { _, event in
+                                    detailItem(event.body)
+                                }
+                            }
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            }
-            .padding(16)
-            .frame(width: 560, alignment: .topLeading)
-            .frame(maxHeight: 600)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-            )
-            .onTapGesture {
-                // absorb tap gestures so they do not close the overlay
             }
         }
+        .padding(16)
+        .frame(width: 560, alignment: .topLeading)
+        .frame(maxHeight: 600)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.24), radius: 24, y: 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .onExitCommand {
             onClose("escape")
         }
