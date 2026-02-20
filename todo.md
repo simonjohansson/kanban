@@ -497,6 +497,22 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Add root `README.md` with overview and architecture.
   - [x] Include Mermaid diagram showing backend, storage, and clients.
 
+### Active hotfix: sqlc projection compatibility migration
+- Context:
+  - User reported that projection failures must be fixed in code, not by manual DB edits.
+  - Root issue: legacy SQLite schema has `cards.column_name` as `NOT NULL`, while current sqlc insert paths are status-only and do not write `column_name`.
+  - Product decision: no migration needed; projection DB should be deleted and rebuilt from markdown on startup.
+- Plan:
+  1. Add failing startup tests that verify projection DB is recreated and rebuilt from markdown.
+  2. Implement startup logic to remove existing projection DB, recreate schema, and rebuild from markdown.
+  3. Verify stale schema (`column_name`) is gone and runtime card queries work after startup.
+  4. Run backend and full test suites.
+- Checklist:
+  - [x] Add failing startup compatibility test for legacy cards schema.
+  - [x] Implement startup projection recreation (`rm sqlite + recreate`).
+  - [x] Add regression test for successful card listing after startup rebuild.
+  - [x] Run backend + monorepo tests until green.
+
 ### Active follow-up: macOS board layout/readability polish
 - Goal: fix board ergonomics in `/Users/simonjohansson/src/kanban/apps/kanban-macos` so lanes start at top, scale with window width, and card titles are readable.
 - User-reported issues:

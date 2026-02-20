@@ -1,8 +1,11 @@
 package server
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
@@ -36,6 +39,13 @@ func New(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := os.MkdirAll(filepath.Dir(opts.SQLitePath), 0o755); err != nil {
+		return nil, err
+	}
+	if err := os.Remove(opts.SQLitePath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+
 	projection, err := store.NewSQLiteProjection(opts.SQLitePath)
 	if err != nil {
 		return nil, err
@@ -50,6 +60,14 @@ func New(opts Options) (*Server, error) {
 		logger:     logger,
 		router:     router,
 	}
+
+	if result, err := s.service.RebuildProjection(); err != nil {
+		_ = projection.Close()
+		return nil, err
+	} else {
+		s.logger.Info("projection rebuilt on startup", "projects_rebuilt", result.ProjectsRebuilt, "cards_rebuilt", result.CardsRebuilt)
+	}
+
 	s.routes()
 	s.logger.Info("server initialized", "data_dir", opts.DataDir, "sqlite_path", opts.SQLitePath)
 	return s, nil
