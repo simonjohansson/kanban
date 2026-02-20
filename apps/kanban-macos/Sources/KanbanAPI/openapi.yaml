@@ -481,8 +481,6 @@ components:
                     examples:
                         - https://example.com/schemas/Card.json
                     readOnly: true
-                column:
-                    type: string
                 comments:
                     type: array
                     items:
@@ -520,7 +518,6 @@ components:
                 - number
                 - title
                 - status
-                - column
                 - deleted
                 - created_at
                 - updated_at
@@ -531,8 +528,6 @@ components:
             type: object
             additionalProperties: false
             properties:
-                column:
-                    type: string
                 comments_count:
                     type: integer
                     format: int64
@@ -564,7 +559,6 @@ components:
                 - number
                 - title
                 - status
-                - column
                 - deleted
                 - created_at
                 - updated_at
@@ -581,8 +575,6 @@ components:
                     examples:
                         - https://example.com/schemas/CreateCardRequest.json
                     readOnly: true
-                column:
-                    type: string
                 description:
                     type: string
                 status:
@@ -761,8 +753,6 @@ components:
                     examples:
                         - https://example.com/schemas/MoveCardRequest.json
                     readOnly: true
-                column:
-                    type: string
                 status:
                     type: string
             required:

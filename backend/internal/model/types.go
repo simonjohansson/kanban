@@ -36,7 +36,6 @@ type Card struct {
 	Number      int            `json:"number"`
 	Title       string         `json:"title"`
 	Status      string         `json:"status"`
-	Column      string         `json:"column"`
 	Deleted     bool           `json:"deleted"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
@@ -51,7 +50,6 @@ type CardSummary struct {
 	Number        int       `json:"number"`
 	Title         string    `json:"title"`
 	Status        string    `json:"status"`
-	Column        string    `json:"column"`
 	Deleted       bool      `json:"deleted"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`

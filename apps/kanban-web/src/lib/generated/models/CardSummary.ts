@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CardSummary = {
-    column: string;
     comments_count: number;
     created_at: string;
     deleted: boolean;

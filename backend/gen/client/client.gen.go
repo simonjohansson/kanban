@@ -21,7 +21,6 @@ import (
 type Card struct {
 	// Schema A URL to the JSON Schema for this object.
 	Schema      *string        `json:"$schema,omitempty"`
-	Column      string         `json:"column"`
 	Comments    []TextEvent    `json:"comments"`
 	CreatedAt   time.Time      `json:"created_at"`
 	Deleted     bool           `json:"deleted"`
@@ -37,7 +36,6 @@ type Card struct {
 
 // CardSummary defines model for CardSummary.
 type CardSummary struct {
-	Column        string    `json:"column"`
 	CommentsCount int64     `json:"comments_count"`
 	CreatedAt     time.Time `json:"created_at"`
 	Deleted       bool      `json:"deleted"`
@@ -54,7 +52,6 @@ type CardSummary struct {
 type CreateCardRequest struct {
 	// Schema A URL to the JSON Schema for this object.
 	Schema      *string `json:"$schema,omitempty"`
-	Column      *string `json:"column,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Status      string  `json:"status"`
 	Title       string  `json:"title"`
@@ -145,7 +142,6 @@ type ListProjectsOutputBody struct {
 type MoveCardRequest struct {
 	// Schema A URL to the JSON Schema for this object.
 	Schema *string `json:"$schema,omitempty"`
-	Column *string `json:"column,omitempty"`
 	Status string  `json:"status"`
 }
 

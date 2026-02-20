@@ -62,7 +62,6 @@ func (p *SQLiteProjection) UpsertCard(card model.Card) error {
 		Number:        int64(card.Number),
 		Title:         card.Title,
 		Status:        card.Status,
-		ColumnName:    card.Column,
 		Deleted:       boolToInt(card.Deleted),
 		CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt:     card.UpdatedAt.UTC().Format(time.RFC3339),
@@ -150,7 +149,6 @@ func (p *SQLiteProjection) RebuildFromMarkdown(projects []model.Project, cards [
 			Number:        int64(card.Number),
 			Title:         card.Title,
 			Status:        card.Status,
-			ColumnName:    card.Column,
 			Deleted:       boolToInt(card.Deleted),
 			CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
 			UpdatedAt:     card.UpdatedAt.UTC().Format(time.RFC3339),
@@ -173,7 +171,6 @@ func mapCardSummaryRowsFromActive(rows []sqlcgen.Card) ([]model.CardSummary, err
 			row.Number,
 			row.Title,
 			row.Status,
-			row.ColumnName,
 			row.Deleted,
 			row.CreatedAt,
 			row.UpdatedAt,
@@ -197,7 +194,6 @@ func mapCardSummaryRowsFromAll(rows []sqlcgen.Card) ([]model.CardSummary, error)
 			row.Number,
 			row.Title,
 			row.Status,
-			row.ColumnName,
 			row.Deleted,
 			row.CreatedAt,
 			row.UpdatedAt,
@@ -212,7 +208,7 @@ func mapCardSummaryRowsFromAll(rows []sqlcgen.Card) ([]model.CardSummary, error)
 	return cards, nil
 }
 
-func cardSummaryFromRaw(id, projectSlug string, number int64, title, status, column string, deleted int64, created, updated string, commentsCount, historyCount int64) (model.CardSummary, error) {
+func cardSummaryFromRaw(id, projectSlug string, number int64, title, status string, deleted int64, created, updated string, commentsCount, historyCount int64) (model.CardSummary, error) {
 	createdAt, err := time.Parse(time.RFC3339, created)
 	if err != nil {
 		return model.CardSummary{}, err
@@ -227,7 +223,6 @@ func cardSummaryFromRaw(id, projectSlug string, number int64, title, status, col
 		Number:        int(number),
 		Title:         title,
 		Status:        status,
-		Column:        column,
 		Deleted:       deleted == 1,
 		CreatedAt:     createdAt,
 		UpdatedAt:     updatedAt,

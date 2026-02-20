@@ -24,11 +24,11 @@ func TestCardLifecyclePersistsMarkdownAndProjection(t *testing.T) {
 		"title":       "Set up CI",
 		"description": "Wire up first CI pipeline",
 		"status":      "Todo",
-		"column":      "Todo",
 	})
 	require.Equal(t, http.StatusCreated, createCardResp.StatusCode)
 	createCardBody := decodeMap(t, createCardResp.Body)
 	require.Equal(t, "infra-board/card-1", createCardBody["id"])
+	require.NotContains(t, createCardBody, "column")
 
 	cardPath := filepath.Join(dataDir, "projects", "infra-board", "card-1.md")
 	cardMarkdown, err := os.ReadFile(cardPath)
@@ -44,13 +44,14 @@ func TestCardLifecyclePersistsMarkdownAndProjection(t *testing.T) {
 	descResp := doJSON(t, httpServer.URL+"/projects/infra-board/cards/1/description", http.MethodPatch, map[string]string{"body": "Also add branch protection checks"})
 	require.Equal(t, http.StatusOK, descResp.StatusCode)
 
-	moveResp := doJSON(t, httpServer.URL+"/projects/infra-board/cards/1/move", http.MethodPatch, map[string]string{"status": "Doing", "column": "Doing"})
+	moveResp := doJSON(t, httpServer.URL+"/projects/infra-board/cards/1/move", http.MethodPatch, map[string]string{"status": "Doing"})
 	require.Equal(t, http.StatusOK, moveResp.StatusCode)
 
 	getCardResp := doJSON(t, httpServer.URL+"/projects/infra-board/cards/1", http.MethodGet, nil)
 	require.Equal(t, http.StatusOK, getCardResp.StatusCode)
 	getCardBody := decodeMap(t, getCardResp.Body)
 	require.Equal(t, "Doing", getCardBody["status"])
+	require.NotContains(t, getCardBody, "column")
 	require.Len(t, getCardBody["description"].([]any), 2)
 	require.Len(t, getCardBody["comments"].([]any), 1)
 
@@ -93,4 +94,32 @@ func TestCardLifecyclePersistsMarkdownAndProjection(t *testing.T) {
 
 	finalMarkdown := readFile(t, filepath.Join(dataDir, "projects", "infra-board", "project.md"))
 	require.Contains(t, string(finalMarkdown), "next_card_seq: 2")
+}
+
+func TestCardEndpointsRejectColumnInRequests(t *testing.T) {
+	t.Parallel()
+
+	_, _, httpServer := newTestServer(t)
+
+	createProjectResp := doJSON(t, httpServer.URL+"/projects", http.MethodPost, map[string]string{"name": "Infra Board"})
+	require.Equal(t, http.StatusCreated, createProjectResp.StatusCode)
+
+	createCardResp := doJSON(t, httpServer.URL+"/projects/infra-board/cards", http.MethodPost, map[string]string{
+		"title":  "Set up CI",
+		"status": "Todo",
+		"column": "Todo",
+	})
+	require.Equal(t, http.StatusUnprocessableEntity, createCardResp.StatusCode)
+
+	createWithoutColumnResp := doJSON(t, httpServer.URL+"/projects/infra-board/cards", http.MethodPost, map[string]string{
+		"title":  "Set up CI",
+		"status": "Todo",
+	})
+	require.Equal(t, http.StatusCreated, createWithoutColumnResp.StatusCode)
+
+	moveResp := doJSON(t, httpServer.URL+"/projects/infra-board/cards/1/move", http.MethodPatch, map[string]string{
+		"status": "Doing",
+		"column": "Doing",
+	})
+	require.Equal(t, http.StatusUnprocessableEntity, moveResp.StatusCode)
 }

@@ -213,8 +213,8 @@ func printPrimer(output Output, stdout io.Writer) error {
 				map[string]any{"timestamp": "2026-02-20T12:05:00Z", "body": "Looks good"},
 			},
 			"history": []any{
-				map[string]any{"timestamp": "2026-02-20T12:00:00Z", "type": "card.created", "details": "status=Todo column=Todo"},
-				map[string]any{"timestamp": "2026-02-20T12:10:00Z", "type": "card.moved", "details": "status=Doing column=Doing"},
+				map[string]any{"timestamp": "2026-02-20T12:00:00Z", "type": "card.created", "details": "status=Todo"},
+				map[string]any{"timestamp": "2026-02-20T12:10:00Z", "type": "card.moved", "details": "status=Doing"},
 			},
 		},
 		"list_cards": map[string]any{
@@ -225,7 +225,6 @@ func printPrimer(output Output, stdout io.Writer) error {
 					"number":         1,
 					"title":          "Task",
 					"status":         "Todo",
-					"column":         "Todo",
 					"deleted":        false,
 					"comments_count": 1,
 					"history_count":  2,

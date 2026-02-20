@@ -14,7 +14,6 @@ type Card struct {
 	Number        int64
 	Title         string
 	Status        string
-	ColumnName    string
 	Deleted       int64
 	CreatedAt     string
 	UpdatedAt     string

@@ -28,7 +28,6 @@ func TestWebsocketReceivesProjectAndCardEvents(t *testing.T) {
 		"title":       "Implement events",
 		"description": "Broadcast all operations",
 		"status":      "Todo",
-		"column":      "Todo",
 	})
 	require.Equal(t, http.StatusCreated, createCardResp.StatusCode)
 
@@ -38,7 +37,7 @@ func TestWebsocketReceivesProjectAndCardEvents(t *testing.T) {
 	descResp := doJSON(t, httpServer.URL+"/projects/realtime/cards/1/description", http.MethodPatch, map[string]string{"body": "Include reconnect semantics later"})
 	require.Equal(t, http.StatusOK, descResp.StatusCode)
 
-	moveResp := doJSON(t, httpServer.URL+"/projects/realtime/cards/1/move", http.MethodPatch, map[string]string{"status": "Doing", "column": "Doing"})
+	moveResp := doJSON(t, httpServer.URL+"/projects/realtime/cards/1/move", http.MethodPatch, map[string]string{"status": "Doing"})
 	require.Equal(t, http.StatusOK, moveResp.StatusCode)
 
 	softDeleteResp := doJSON(t, httpServer.URL+"/projects/realtime/cards/1", http.MethodDelete, nil)

@@ -15,9 +15,9 @@ type MarkdownStore interface {
 	ListProjects() ([]model.Project, error)
 	GetProject(slug string) (model.Project, error)
 	DeleteProject(slug string) error
-	CreateCard(projectSlug, title, description, status, column string) (model.Card, error)
+	CreateCard(projectSlug, title, description, status string) (model.Card, error)
 	GetCard(projectSlug string, number int) (model.Card, error)
-	MoveCard(projectSlug string, number int, status, column string) (model.Card, error)
+	MoveCard(projectSlug string, number int, status string) (model.Card, error)
 	AddComment(projectSlug string, number int, body string) (model.Card, error)
 	AppendDescription(projectSlug string, number int, body string) (model.Card, error)
 	DeleteCard(projectSlug string, number int, hard bool) (model.Card, error)
@@ -108,8 +108,8 @@ func (s *Service) DeleteProject(slug string) error {
 	return nil
 }
 
-func (s *Service) CreateCard(projectSlug, title, description, status, column string) (model.Card, error) {
-	card, err := s.store.CreateCard(projectSlug, title, description, status, column)
+func (s *Service) CreateCard(projectSlug, title, description, status string) (model.Card, error) {
+	card, err := s.store.CreateCard(projectSlug, title, description, status)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return model.Card{}, newError(CodeValidation, "project not found", err)
@@ -156,8 +156,8 @@ func (s *Service) GetCard(projectSlug string, number int) (model.Card, error) {
 	return card, nil
 }
 
-func (s *Service) MoveCard(projectSlug string, number int, status, column string) (model.Card, error) {
-	card, err := s.store.MoveCard(projectSlug, number, status, column)
+func (s *Service) MoveCard(projectSlug string, number int, status string) (model.Card, error) {
+	card, err := s.store.MoveCard(projectSlug, number, status)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return model.Card{}, newError(CodeNotFound, "card not found", err)
@@ -167,7 +167,7 @@ func (s *Service) MoveCard(projectSlug string, number int, status, column string
 	if err := s.projection.UpsertCard(card); err != nil {
 		return model.Card{}, newError(CodeInternal, "projection sync failed", err)
 	}
-	s.logger.Info("card moved", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "status", card.Status, "column", card.Column)
+	s.logger.Info("card moved", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "status", card.Status)
 	s.publish(model.Event{
 		Type:      "card.moved",
 		Project:   card.ProjectSlug,

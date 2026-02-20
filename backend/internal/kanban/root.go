@@ -199,7 +199,7 @@ func newCardCommand(cfg *Config, stdout io.Writer) *cobra.Command {
 		Short:   "Create a card.",
 		Long:    "Create a card in a project with required title and status.",
 		Example: strings.TrimSpace(`kanban card create --project alpha --title "Task" --status Todo
-kanban cards new -p alpha -t "Task" -s Doing -c Doing`),
+kanban cards new -p alpha -t "Task" -s Doing`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -210,7 +210,6 @@ kanban cards new -p alpha -t "Task" -s Doing -c Doing`),
 			title, _ := cmd.Flags().GetString("title")
 			status, _ := cmd.Flags().GetString("status")
 			description, _ := cmd.Flags().GetString("description")
-			column, _ := cmd.Flags().GetString("column")
 
 			body := apiclient.CreateCardRequest{
 				Title:  strings.TrimSpace(title),
@@ -218,9 +217,6 @@ kanban cards new -p alpha -t "Task" -s Doing -c Doing`),
 			}
 			if value := strings.TrimSpace(description); value != "" {
 				body.Description = &value
-			}
-			if value := strings.TrimSpace(column); value != "" {
-				body.Column = &value
 			}
 
 			resp, reqErr := client.CreateCard(context.Background(), strings.TrimSpace(project), body)
@@ -231,7 +227,6 @@ kanban cards new -p alpha -t "Task" -s Doing -c Doing`),
 	createCmd.Flags().StringP("title", "t", "", "Card title")
 	createCmd.Flags().StringP("description", "d", "", "Initial description text")
 	createCmd.Flags().StringP("status", "s", "", "Card status (Todo|Doing|Review|Done)")
-	createCmd.Flags().StringP("column", "c", "", "Board column override")
 	_ = createCmd.MarkFlagRequired("project")
 	_ = createCmd.MarkFlagRequired("title")
 	_ = createCmd.MarkFlagRequired("status")
@@ -289,9 +284,9 @@ kanban cards show -p alpha -i 1 --output json`),
 	moveCmd := &cobra.Command{
 		Use:   "move",
 		Short: "Move a card.",
-		Long:  "Update card status and optionally column.",
+		Long:  "Update card status.",
 		Example: strings.TrimSpace(`kanban card move --project alpha --id 1 --status Doing
-kanban cards move -p alpha -i 1 -s Review -c Review`),
+kanban cards move -p alpha -i 1 -s Review`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -301,12 +296,8 @@ kanban cards move -p alpha -i 1 -s Review -c Review`),
 			project, _ := cmd.Flags().GetString("project")
 			id, _ := cmd.Flags().GetInt64("id")
 			status, _ := cmd.Flags().GetString("status")
-			column, _ := cmd.Flags().GetString("column")
 
 			body := apiclient.MoveCardRequest{Status: strings.TrimSpace(status)}
-			if value := strings.TrimSpace(column); value != "" {
-				body.Column = &value
-			}
 
 			resp, reqErr := client.MoveCard(context.Background(), strings.TrimSpace(project), id, body)
 			return handleResponse(cfg.Output, stdout, resp, reqErr)
@@ -315,7 +306,6 @@ kanban cards move -p alpha -i 1 -s Review -c Review`),
 	moveCmd.Flags().StringP("project", "p", "", "Project slug")
 	moveCmd.Flags().Int64P("id", "i", 0, "Card number")
 	moveCmd.Flags().StringP("status", "s", "", "Target status (Todo|Doing|Review|Done)")
-	moveCmd.Flags().StringP("column", "c", "", "Target column")
 	_ = moveCmd.MarkFlagRequired("project")
 	_ = moveCmd.MarkFlagRequired("id")
 	_ = moveCmd.MarkFlagRequired("status")

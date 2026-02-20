@@ -22,7 +22,6 @@ func TestRebuildProjectionFromMarkdown(t *testing.T) {
 		"title":       "Test rebuild",
 		"description": "Projection should be recoverable",
 		"status":      "Todo",
-		"column":      "Todo",
 	})
 	require.Equal(t, http.StatusCreated, createCardResp.StatusCode)
 

@@ -7,7 +7,6 @@ export type MoveCardRequest = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    column?: string;
     status: string;
 };
 

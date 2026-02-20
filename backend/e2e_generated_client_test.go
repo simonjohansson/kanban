@@ -60,7 +60,6 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 		Title:       "Set up generated client e2e test",
 		Status:      "Todo",
 		Description: ptr("Initial description"),
-		Column:      ptr("Todo"),
 	})
 	require.NoError(t, err)
 	require.Equal(t, 201, createCard.StatusCode())
@@ -93,7 +92,6 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 
 	moveCard, err := client.MoveCardWithResponse(ctx, "generated-client-demo", int64(1), genclient.MoveCardRequest{
 		Status: "Doing",
-		Column: ptr("Doing"),
 	})
 	require.NoError(t, err)
 	require.Equal(t, 200, moveCard.StatusCode())

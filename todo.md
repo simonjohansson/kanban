@@ -418,6 +418,46 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Remove `column` usage from app-layer lane logic.
   - [x] Run all relevant tests until green.
 
+### Active follow-up: Architecture audit + cleanup/rearchitecture plan
+- Goal: reduce duplication, improve domain consistency, and make backend/clients easier to evolve and test.
+- Context:
+  - User requested a deep planning pass before implementation.
+  - Current hot spots are large mixed-responsibility files and domain drift (`status` vs `column`).
+  - Need a phased plan that can be executed with strict TDD and black-box-first workflow.
+- Audit tracks ("tree subagents"):
+  1. Domain model consistency (status-only kanban semantics).
+  2. Backend layering and orchestration boundaries.
+  3. Storage reliability and projection consistency.
+  4. Transport/API contract and OpenAPI/client generation flow.
+  5. Runtime/config consistency across backend, CLI, web, and macOS.
+  6. Build/test tooling and coverage strategy.
+- Key findings:
+  - Backend model/store/server/CLI still carry `column` in several paths despite status-only lane requirement.
+  - `internal/server/server.go`, `internal/store/markdown.go`, and `internal/kanban/root.go` are oversized and blend concerns.
+  - Markdown store uses coarse locking for writes but not read-side locking; file writes are not atomic temp+rename.
+  - Service layer still has repetitive patterns for write->projection->event->log operations.
+  - Config is partially unified in Go, but Swift uses ad-hoc YAML parsing and web uses env-only defaults.
+  - Websocket hub can drop events under backpressure; clients currently rely on events as reload triggers.
+  - Coverage remains below target; package-level gaps persist in command/service/store error branches.
+- Plan:
+  1. Eliminate `column` from domain/API/store/projection and migrate to strict `status`.
+  2. Split backend transport and CLI monolith files into command/use-case-focused packages.
+  3. Harden markdown IO (atomic writes + read/write locking policy + corruption-safe rebuild tests).
+  4. Introduce shared config contract across all clients (generated schema + parsers where possible).
+  5. Improve realtime reliability model (event IDs + client resync strategy + watch contract tests).
+  6. Execute coverage uplift program to >=80% with explicit per-package targets.
+- Checklist:
+  - [x] Complete architecture audit and document findings/plan.
+  - [x] Add failing backend e2e tests for status-only payloads (no `column` accepted/returned).
+  - [x] Implement status-only backend contract (remove `column` from model/service/server/openapi and e2e flows).
+  - [x] Regenerate downstream API clients/spec snapshots after status-only migration (Go + Web + macOS spec copy).
+  - [ ] Add failing unit tests for markdown store atomic write + read/write locking expectations.
+  - [ ] Add failing tests for websocket reliability strategy (event ordering/drop handling + resync fallback).
+  - [ ] Refactor backend server into modular handlers (projects/cards/events/projection/static).
+  - [ ] Refactor CLI command tree into per-command packages with shared execution helpers.
+  - [ ] Unify config loading semantics across Go/Swift/Web clients and document precedence.
+  - [ ] Raise backend coverage to >=80% and record package-level report.
+
 ## Proposed Backend Refactor (Service Layer)
 ### Problem
 - Current Huma handlers orchestrate too much: markdown write, sqlite projection update, logging, and websocket event publishing.

@@ -277,7 +277,6 @@ type createCardRequest struct {
 	Title       string  `json:"title"`
 	Description *string `json:"description,omitempty"`
 	Status      string  `json:"status"`
-	Column      *string `json:"column,omitempty"`
 }
 
 type createCardInput struct {
@@ -290,7 +289,7 @@ type createCardOutput struct {
 }
 
 func (s *Server) createCard(_ context.Context, input *createCardInput) (*createCardOutput, error) {
-	card, err := s.service.CreateCard(input.Project, input.Body.Title, stringOrEmpty(input.Body.Description), input.Body.Status, stringOrEmpty(input.Body.Column))
+	card, err := s.service.CreateCard(input.Project, input.Body.Title, stringOrEmpty(input.Body.Description), input.Body.Status)
 	if err != nil {
 		return nil, toHumaError(err)
 	}
@@ -343,7 +342,6 @@ func (s *Server) getCard(_ context.Context, input *cardPathInput) (*getCardOutpu
 
 type moveCardRequest struct {
 	Status string  `json:"status"`
-	Column *string `json:"column,omitempty"`
 }
 
 type moveCardInput struct {
@@ -361,7 +359,7 @@ func (s *Server) moveCard(_ context.Context, input *moveCardInput) (*moveCardOut
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
-	card, err := s.service.MoveCard(input.Project, number, input.Body.Status, stringOrEmpty(input.Body.Column))
+	card, err := s.service.MoveCard(input.Project, number, input.Body.Status)
 	if err != nil {
 		return nil, toHumaError(err)
 	}

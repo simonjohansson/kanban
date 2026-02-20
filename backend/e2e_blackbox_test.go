@@ -70,7 +70,6 @@ func TestE2EBlackBoxServerProcess(t *testing.T) {
 		"title":       "exercise process",
 		"description": "test real server",
 		"status":      "Todo",
-		"column":      "Todo",
 	})
 	require.Equal(t, http.StatusCreated, createCard.StatusCode)
 

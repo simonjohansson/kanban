@@ -7,7 +7,6 @@ export type CreateCardRequest = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    column?: string;
     description?: string;
     status: string;
     title: string;

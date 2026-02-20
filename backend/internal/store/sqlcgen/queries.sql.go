@@ -67,7 +67,6 @@ CREATE TABLE IF NOT EXISTS cards (
   number INTEGER NOT NULL,
   title TEXT NOT NULL,
   status TEXT NOT NULL,
-  column_name TEXT NOT NULL,
   deleted INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -101,9 +100,9 @@ func (q *Queries) InitProjectsTable(ctx context.Context) error {
 
 const insertCard = `-- name: InsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertCardParams struct {
@@ -112,7 +111,6 @@ type InsertCardParams struct {
 	Number        int64
 	Title         string
 	Status        string
-	ColumnName    string
 	Deleted       int64
 	CreatedAt     string
 	UpdatedAt     string
@@ -127,7 +125,6 @@ func (q *Queries) InsertCard(ctx context.Context, arg InsertCardParams) error {
 		arg.Number,
 		arg.Title,
 		arg.Status,
-		arg.ColumnName,
 		arg.Deleted,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -166,7 +163,7 @@ func (q *Queries) InsertProject(ctx context.Context, arg InsertProjectParams) er
 }
 
 const listCardsActive = `-- name: ListCardsActive :many
-SELECT id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 FROM cards
 WHERE project_slug = ? AND deleted = 0
 ORDER BY number ASC
@@ -187,7 +184,6 @@ func (q *Queries) ListCardsActive(ctx context.Context, projectSlug string) ([]Ca
 			&i.Number,
 			&i.Title,
 			&i.Status,
-			&i.ColumnName,
 			&i.Deleted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -208,7 +204,7 @@ func (q *Queries) ListCardsActive(ctx context.Context, projectSlug string) ([]Ca
 }
 
 const listCardsWithDeleted = `-- name: ListCardsWithDeleted :many
-SELECT id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 FROM cards
 WHERE project_slug = ?
 ORDER BY number ASC
@@ -229,7 +225,6 @@ func (q *Queries) ListCardsWithDeleted(ctx context.Context, projectSlug string) 
 			&i.Number,
 			&i.Title,
 			&i.Status,
-			&i.ColumnName,
 			&i.Deleted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -251,15 +246,14 @@ func (q *Queries) ListCardsWithDeleted(ctx context.Context, projectSlug string) 
 
 const upsertCard = `-- name: UpsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   project_slug = excluded.project_slug,
   number = excluded.number,
   title = excluded.title,
   status = excluded.status,
-  column_name = excluded.column_name,
   deleted = excluded.deleted,
   created_at = excluded.created_at,
   updated_at = excluded.updated_at,
@@ -273,7 +267,6 @@ type UpsertCardParams struct {
 	Number        int64
 	Title         string
 	Status        string
-	ColumnName    string
 	Deleted       int64
 	CreatedAt     string
 	UpdatedAt     string
@@ -288,7 +281,6 @@ func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
 		arg.Number,
 		arg.Title,
 		arg.Status,
-		arg.ColumnName,
 		arg.Deleted,
 		arg.CreatedAt,
 		arg.UpdatedAt,

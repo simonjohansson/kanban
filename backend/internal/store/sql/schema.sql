@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS cards (
   number INTEGER NOT NULL,
   title TEXT NOT NULL,
   status TEXT NOT NULL,
-  column_name TEXT NOT NULL,
   deleted INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,

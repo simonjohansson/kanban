@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS cards (
   number INTEGER NOT NULL,
   title TEXT NOT NULL,
   status TEXT NOT NULL,
-  column_name TEXT NOT NULL,
   deleted INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -38,15 +37,14 @@ ON CONFLICT(slug) DO UPDATE SET
 
 -- name: UpsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   project_slug = excluded.project_slug,
   number = excluded.number,
   title = excluded.title,
   status = excluded.status,
-  column_name = excluded.column_name,
   deleted = excluded.deleted,
   created_at = excluded.created_at,
   updated_at = excluded.updated_at,
@@ -63,13 +61,13 @@ DELETE FROM cards WHERE project_slug = ?;
 DELETE FROM projects WHERE slug = ?;
 
 -- name: ListCardsActive :many
-SELECT id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 FROM cards
 WHERE project_slug = ? AND deleted = 0
 ORDER BY number ASC;
 
 -- name: ListCardsWithDeleted :many
-SELECT id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 FROM cards
 WHERE project_slug = ?
 ORDER BY number ASC;
@@ -86,6 +84,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: InsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, status, deleted, created_at, updated_at, comments_count, history_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

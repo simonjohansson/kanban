@@ -48,7 +48,7 @@ type cardFrontmatter struct {
 	Number      int       `yaml:"number"`
 	Title       string    `yaml:"title"`
 	Status      string    `yaml:"status"`
-	Column      string    `yaml:"column"`
+	Column      string    `yaml:"column,omitempty"`
 	Deleted     bool      `yaml:"deleted"`
 	CreatedAt   time.Time `yaml:"created_at"`
 	UpdatedAt   time.Time `yaml:"updated_at"`
@@ -126,7 +126,7 @@ func (s *MarkdownStore) DeleteProject(slug string) error {
 	return os.RemoveAll(projectDir)
 }
 
-func (s *MarkdownStore) CreateCard(projectSlug, title, description, status, column string) (model.Card, error) {
+func (s *MarkdownStore) CreateCard(projectSlug, title, description, status string) (model.Card, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -137,11 +137,6 @@ func (s *MarkdownStore) CreateCard(projectSlug, title, description, status, colu
 	if err := validateStatus(status); err != nil {
 		return model.Card{}, err
 	}
-	column = strings.TrimSpace(column)
-	if column == "" {
-		column = status
-	}
-
 	project, err := s.loadProject(projectSlug)
 	if err != nil {
 		return model.Card{}, err
@@ -157,7 +152,6 @@ func (s *MarkdownStore) CreateCard(projectSlug, title, description, status, colu
 		Number:      number,
 		Title:       title,
 		Status:      status,
-		Column:      column,
 		Deleted:     false,
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -168,7 +162,7 @@ func (s *MarkdownStore) CreateCard(projectSlug, title, description, status, colu
 	card.History = append(card.History, model.HistoryEvent{
 		Timestamp: now,
 		Type:      "card.created",
-		Details:   fmt.Sprintf("status=%s column=%s", status, column),
+		Details:   fmt.Sprintf("status=%s", status),
 	})
 
 	if err := s.writeCard(card); err != nil {
@@ -236,16 +230,12 @@ func (s *MarkdownStore) AddComment(projectSlug string, number int, body string) 
 	return card, nil
 }
 
-func (s *MarkdownStore) MoveCard(projectSlug string, number int, status, column string) (model.Card, error) {
+func (s *MarkdownStore) MoveCard(projectSlug string, number int, status string) (model.Card, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if err := validateStatus(status); err != nil {
 		return model.Card{}, err
-	}
-	column = strings.TrimSpace(column)
-	if column == "" {
-		column = status
 	}
 	card, err := s.GetCard(projectSlug, number)
 	if err != nil {
@@ -253,9 +243,8 @@ func (s *MarkdownStore) MoveCard(projectSlug string, number int, status, column 
 	}
 	now := time.Now().UTC()
 	card.Status = status
-	card.Column = column
 	card.UpdatedAt = now
-	card.History = append(card.History, model.HistoryEvent{Timestamp: now, Type: "card.moved", Details: fmt.Sprintf("status=%s column=%s", status, column)})
+	card.History = append(card.History, model.HistoryEvent{Timestamp: now, Type: "card.moved", Details: fmt.Sprintf("status=%s", status)})
 	if err := s.writeCard(card); err != nil {
 		return model.Card{}, err
 	}
@@ -406,7 +395,6 @@ func serializeCard(c model.Card) ([]byte, string, error) {
 		Number:      c.Number,
 		Title:       c.Title,
 		Status:      c.Status,
-		Column:      c.Column,
 		Deleted:     c.Deleted,
 		CreatedAt:   c.CreatedAt,
 		UpdatedAt:   c.UpdatedAt,
@@ -467,7 +455,6 @@ func parseCard(data []byte) (model.Card, error) {
 		Number:      fm.Number,
 		Title:       fm.Title,
 		Status:      fm.Status,
-		Column:      fm.Column,
 		Deleted:     fm.Deleted,
 		CreatedAt:   fm.CreatedAt,
 		UpdatedAt:   fm.UpdatedAt,

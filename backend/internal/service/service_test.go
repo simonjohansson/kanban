@@ -16,10 +16,10 @@ type markdownStoreStub struct {
 	deleteProjectFn     func(string) error
 	createProjectFn     func(string, string, string) (model.Project, error)
 	listProjectsFn      func() ([]model.Project, error)
-	createCardFn        func(string, string, string, string, string) (model.Card, error)
+	createCardFn        func(string, string, string, string) (model.Card, error)
 	getProjectFn        func(string) (model.Project, error)
 	getCardFn           func(string, int) (model.Card, error)
-	moveCardFn          func(string, int, string, string) (model.Card, error)
+	moveCardFn          func(string, int, string) (model.Card, error)
 	addCommentFn        func(string, int, string) (model.Card, error)
 	appendDescriptionFn func(string, int, string) (model.Card, error)
 	deleteCardFn        func(string, int, bool) (model.Card, error)
@@ -42,16 +42,16 @@ func (m *markdownStoreStub) DeleteProject(slug string) error {
 	return m.deleteProjectFn(slug)
 }
 
-func (m *markdownStoreStub) CreateCard(projectSlug, title, description, status, column string) (model.Card, error) {
-	return m.createCardFn(projectSlug, title, description, status, column)
+func (m *markdownStoreStub) CreateCard(projectSlug, title, description, status string) (model.Card, error) {
+	return m.createCardFn(projectSlug, title, description, status)
 }
 
 func (m *markdownStoreStub) GetCard(projectSlug string, number int) (model.Card, error) {
 	return m.getCardFn(projectSlug, number)
 }
 
-func (m *markdownStoreStub) MoveCard(projectSlug string, number int, status, column string) (model.Card, error) {
-	return m.moveCardFn(projectSlug, number, status, column)
+func (m *markdownStoreStub) MoveCard(projectSlug string, number int, status string) (model.Card, error) {
+	return m.moveCardFn(projectSlug, number, status)
 }
 
 func (m *markdownStoreStub) AddComment(projectSlug string, number int, body string) (model.Card, error) {
@@ -185,7 +185,6 @@ func TestCreateCardUpsertsProjectAndCard(t *testing.T) {
 		ProjectSlug: "alpha",
 		Number:      1,
 		Status:      "Todo",
-		Column:      "Todo",
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -203,7 +202,7 @@ func TestCreateCardUpsertsProjectAndCard(t *testing.T) {
 	)
 
 	markdown := &markdownStoreStub{
-		createCardFn: func(projectSlug, _, _, _, _ string) (model.Card, error) {
+		createCardFn: func(projectSlug, _, _, _ string) (model.Card, error) {
 			require.Equal(t, "alpha", projectSlug)
 			return createdCard, nil
 		},
@@ -227,7 +226,7 @@ func TestCreateCardUpsertsProjectAndCard(t *testing.T) {
 	publisher := &publisherStub{}
 
 	svc := newNoopService(markdown, projection, publisher)
-	card, err := svc.CreateCard("alpha", "title", "", "Todo", "")
+	card, err := svc.CreateCard("alpha", "title", "", "Todo")
 	require.NoError(t, err)
 	require.Equal(t, "alpha/card-1", card.ID)
 	require.True(t, projectUpserted)
