@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,13 +36,18 @@ func TestE2EBlackBoxServerProcess(t *testing.T) {
 	t.Cleanup(cancel)
 
 	cmd := exec.CommandContext(ctx, binaryPath, "--addr", addr, "--data-dir", dataDir, "--sqlite-path", sqlitePath)
-	cmd.Env = os.Environ()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	stdoutPipe, err := cmd.StdoutPipe()
+	require.NoError(t, err)
+	stderrPipe, err := cmd.StderrPipe()
+	require.NoError(t, err)
+	var streamWG sync.WaitGroup
+	streamReaderToTestLogs(t, "backend stdout", stdoutPipe, &streamWG)
+	streamReaderToTestLogs(t, "backend stderr", stderrPipe, &streamWG)
 	require.NoError(t, cmd.Start())
 	t.Cleanup(func() {
 		cancel()
 		_ = cmd.Wait()
+		streamWG.Wait()
 	})
 
 	baseURL := "http://" + addr

@@ -143,6 +143,7 @@ Current MVP scope is backend + API + full end-to-end test harness.
 - [x] Refactor code while preserving green tests.
 - [x] Add OpenAPI spec for backend API.
 - [x] Add OpenAPI-based client generation workflow for future CLI/Swift/Web clients.
+- [x] Add e2e test that uses generated OpenAPI client for full operation flow.
 - [x] Run full test suite and report results.
 
 ## Done
@@ -158,6 +159,10 @@ Current MVP scope is backend + API + full end-to-end test harness.
 - [x] Implemented websocket event stream endpoint (`/ws`).
 - [x] Added OpenAPI spec at `/Users/simonjohansson/src/kanban/backend/api/openapi.yaml` and served endpoint `GET /openapi.yaml`.
 - [x] Added OpenAPI validation/client generation workflow via `/Users/simonjohansson/src/kanban/backend/Makefile`.
+- [x] Added generated OpenAPI client at `/Users/simonjohansson/src/kanban/backend/internal/gen/client/client.gen.go`.
+- [x] Added generated-client e2e flow test at `/Users/simonjohansson/src/kanban/backend/e2e_generated_client_test.go`.
+- [x] Added backend logging (startup/shutdown, HTTP request logs, and operation-level action logs).
+- [x] Added e2e backend log streaming to test output for black-box and generated-client tests.
 - [x] Added integration/e2e tests (in-process + black-box process) with filesystem + sqlite assertions.
 - [x] Full backend test suite is green.
 - [x] Increased backend server package coverage to `83.6%`.

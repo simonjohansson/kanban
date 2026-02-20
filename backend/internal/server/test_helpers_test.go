@@ -26,6 +26,13 @@ func newTestServer(t *testing.T) (dataDir string, sqlitePath string, httpServer 
 	return dataDir, sqlitePath, httpServer
 }
 
+func newHTTPTestServer(t *testing.T, handler http.Handler) *httptest.Server {
+	t.Helper()
+	httpServer := httptest.NewServer(handler)
+	t.Cleanup(httpServer.Close)
+	return httpServer
+}
+
 func doJSON(t *testing.T, url, method string, payload any) *http.Response {
 	t.Helper()
 

@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: Kanban Backend API
   version: 0.1.0
@@ -81,7 +81,7 @@ paths:
       summary: Create card
       operationId: createCard
       parameters:
-        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ProjectSlug'
       requestBody:
         required: true
         content:
@@ -105,7 +105,7 @@ paths:
       summary: List cards
       operationId: listCards
       parameters:
-        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ProjectSlug'
         - name: include_deleted
           in: query
           required: false
@@ -128,7 +128,7 @@ paths:
       summary: Get card
       operationId: getCard
       parameters:
-        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ProjectSlug'
         - $ref: '#/components/parameters/CardNumber'
       responses:
         '200':
@@ -147,7 +147,7 @@ paths:
       summary: Delete card
       operationId: deleteCard
       parameters:
-        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ProjectSlug'
         - $ref: '#/components/parameters/CardNumber'
         - name: hard
           in: query
@@ -172,7 +172,7 @@ paths:
       summary: Move card
       operationId: moveCard
       parameters:
-        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ProjectSlug'
         - $ref: '#/components/parameters/CardNumber'
       requestBody:
         required: true
@@ -192,7 +192,7 @@ paths:
       summary: Append comment
       operationId: addComment
       parameters:
-        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ProjectSlug'
         - $ref: '#/components/parameters/CardNumber'
       requestBody:
         required: true
@@ -212,7 +212,7 @@ paths:
       summary: Append description entry
       operationId: appendDescription
       parameters:
-        - $ref: '#/components/parameters/Project'
+        - $ref: '#/components/parameters/ProjectSlug'
         - $ref: '#/components/parameters/CardNumber'
       requestBody:
         required: true
@@ -254,7 +254,7 @@ paths:
           description: Switching protocols to websocket
 components:
   parameters:
-    Project:
+    ProjectSlug:
       name: project
       in: path
       required: true

@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -18,16 +19,22 @@ import (
 type Options struct {
 	DataDir    string
 	SQLitePath string
+	Logger     *slog.Logger
 }
 
 type Server struct {
 	store      *store.MarkdownStore
 	projection *store.SQLiteProjection
 	hub        *hub
+	logger     *slog.Logger
 	router     *chi.Mux
 }
 
 func New(opts Options) (*Server, error) {
+	logger := opts.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
 	markdownStore, err := store.NewMarkdownStore(opts.DataDir)
 	if err != nil {
 		return nil, err
@@ -36,9 +43,10 @@ func New(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{store: markdownStore, projection: projection, hub: newHub()}
+	s := &Server{store: markdownStore, projection: projection, hub: newHub(), logger: logger}
 	s.router = chi.NewRouter()
 	s.routes()
+	s.logger.Info("server initialized", "data_dir", opts.DataDir, "sqlite_path", opts.SQLitePath)
 	return s, nil
 }
 
@@ -52,6 +60,7 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) routes() {
+	s.router.Use(s.requestLoggingMiddleware)
 	s.router.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 	})
@@ -94,6 +103,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	s.logger.Info("project created", "project", project.Slug)
 	s.publishEvent(model.Event{Type: "project.created", Project: project.Slug, Timestamp: time.Now().UTC()})
 	writeJSON(w, http.StatusCreated, project)
 }
@@ -139,6 +149,7 @@ func (s *Server) createCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	s.logger.Info("card created", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number)
 	s.publishEvent(model.Event{
 		Type:      "card.created",
 		Project:   card.ProjectSlug,
@@ -209,6 +220,7 @@ func (s *Server) moveCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	s.logger.Info("card moved", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "status", card.Status, "column", card.Column)
 	s.publishEvent(model.Event{
 		Type:      "card.moved",
 		Project:   card.ProjectSlug,
@@ -248,6 +260,7 @@ func (s *Server) commentCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	s.logger.Info("card commented", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "comments_count", len(card.Comments))
 	s.publishEvent(model.Event{
 		Type:      "card.commented",
 		Project:   card.ProjectSlug,
@@ -283,6 +296,7 @@ func (s *Server) appendDescription(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	s.logger.Info("card description appended", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "description_entries", len(card.Description))
 	s.publishEvent(model.Event{
 		Type:      "card.updated",
 		Project:   card.ProjectSlug,
@@ -315,6 +329,7 @@ func (s *Server) deleteCard(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		s.logger.Info("card hard deleted", "project", projectSlug, "card_id", card.ID, "card_number", card.Number)
 		s.publishEvent(model.Event{
 			Type:      "card.deleted_hard",
 			Project:   projectSlug,
@@ -326,6 +341,7 @@ func (s *Server) deleteCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	} else {
+		s.logger.Info("card soft deleted", "project", projectSlug, "card_id", card.ID, "card_number", card.Number)
 		s.publishEvent(model.Event{
 			Type:      "card.deleted_soft",
 			Project:   projectSlug,
@@ -364,6 +380,7 @@ func (s *Server) rebuildProjection(w http.ResponseWriter, _ *http.Request) {
 		"projects_rebuilt": len(projects),
 		"cards_rebuilt":    len(cards),
 	})
+	s.logger.Info("projection rebuilt", "projects_rebuilt", len(projects), "cards_rebuilt", len(cards))
 }
 
 func (s *Server) openAPIYAML(w http.ResponseWriter, _ *http.Request) {

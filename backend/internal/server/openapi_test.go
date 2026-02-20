@@ -17,7 +17,7 @@ func TestOpenAPIYamlEndpoint(t *testing.T) {
 	require.Equal(t, "application/yaml", resp.Header.Get("Content-Type"))
 
 	raw := readBody(t, resp.Body)
-	require.Contains(t, string(raw), "openapi: 3.1.0")
+	require.Contains(t, string(raw), "openapi: 3.0.3")
 	require.Contains(t, string(raw), "/projects:")
 	require.Contains(t, string(raw), "/ws:")
 }
