@@ -513,6 +513,40 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Add regression test for successful card listing after startup rebuild.
   - [x] Run backend + monorepo tests until green.
 
+### Active feature: Card branch metadata
+- Context:
+  - New feature request: add optional `branch` metadata on cards.
+  - Workflow intent: after scoping is complete, set branch/worktree metadata and move card to `Doing`.
+  - Requirements:
+    - `branch` is optional.
+    - Persist and expose across markdown, sqlite projection, API, CLI, and UI.
+    - Support both create-time branch and explicit branch update command.
+    - Validate branch name using git branch naming rules.
+    - One current branch value per card (no branch history yet).
+    - No automatic status move when branch changes.
+    - Show branch in macOS and web card views.
+- Plan (TDD order):
+  1. Add failing backend API/e2e tests for create card with branch and explicit branch update endpoint.
+  2. Add failing unit tests for branch validation rules and markdown/sqlite projection mapping.
+  3. Implement backend model/store/service/server/openapi/sqlc updates.
+  4. Add failing CLI tests for create `--branch` and explicit branch update command.
+  5. Implement CLI command/flags and primer/help updates.
+  6. Add failing Swift/Web UI tests for branch visibility on cards.
+  7. Implement UI rendering + generated client updates.
+  8. Run full backend + swift + web e2e test suites.
+- Checklist:
+  - [ ] Create dedicated git worktree for feature branch.
+  - [ ] Move kanban card `#22` to `Doing`.
+  - [ ] Add failing backend tests for branch create/update behavior.
+  - [ ] Add failing unit tests for branch validation and projection mapping.
+  - [ ] Implement backend branch field end-to-end (markdown/sqlite/api/openapi/sqlc).
+  - [ ] Add failing CLI tests for branch create/update commands.
+  - [ ] Implement CLI branch support (`create --branch` + explicit update command).
+  - [ ] Add failing Swift/Web tests for branch visibility.
+  - [ ] Implement Swift/Web branch rendering on cards.
+  - [ ] Run full tests until green.
+  - [ ] Move kanban card `#22` to `Review` and stop for user review.
+
 ### Active follow-up: macOS board layout/readability polish
 - Goal: fix board ergonomics in `/Users/simonjohansson/src/kanban/apps/kanban-macos` so lanes start at top, scale with window width, and card titles are readable.
 - User-reported issues:
