@@ -29,6 +29,10 @@
   onDestroy(() => {
     modalElement = null;
   });
+
+  function renderText(body: string): string {
+    return body.replace(/\\n/g, '\n');
+  }
 </script>
 
 <div class="layer">
@@ -55,12 +59,12 @@
         <section>
           <h3>Description</h3>
           <div data-testid="card-details-description">
-            {#if card.description.length === 0}
+            {#if !card.description || card.description.length === 0}
               <p class="empty">No description</p>
             {:else}
-              {#each card.description as entry}
+              {#each card.description ?? [] as entry}
                 <article class="event">
-                  <p>{entry.body}</p>
+                  <p>{renderText(entry.body)}</p>
                 </article>
               {/each}
             {/if}
@@ -70,12 +74,12 @@
         <section>
           <h3>Comments</h3>
           <div data-testid="card-details-comments">
-            {#if card.comments.length === 0}
+            {#if !card.comments || card.comments.length === 0}
               <p class="empty">No comments</p>
             {:else}
-              {#each card.comments as entry}
+              {#each card.comments ?? [] as entry}
                 <article class="event">
-                  <p>{entry.body}</p>
+                  <p>{renderText(entry.body)}</p>
                 </article>
               {/each}
             {/if}

@@ -64,13 +64,13 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
                 description: body.description.map {
                     KanbanCardTextEvent(
                         timestamp: Self.formatTimestamp($0.timestamp),
-                        body: $0.body
+                        body: Self.normalizeEscapedNewlines($0.body)
                     )
                 },
                 comments: body.comments.map {
                     KanbanCardTextEvent(
                         timestamp: Self.formatTimestamp($0.timestamp),
-                        body: $0.body
+                        body: Self.normalizeEscapedNewlines($0.body)
                     )
                 }
             )
@@ -83,6 +83,10 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.string(from: date)
+    }
+
+    private static func normalizeEscapedNewlines(_ text: String) -> String {
+        text.replacingOccurrences(of: "\\n", with: "\n")
     }
 }
 

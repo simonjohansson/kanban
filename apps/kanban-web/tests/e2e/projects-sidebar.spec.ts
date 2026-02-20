@@ -203,7 +203,7 @@ test('opens card details popup with deep links and close behaviors', async ({ pa
   const firstCommentResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/comments', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ body: 'First comment body' }),
+    body: JSON.stringify({ body: 'First comment line 1\\nFirst comment line 2' }),
   });
   expect(firstCommentResponse.status).toBe(200);
 
@@ -225,7 +225,9 @@ test('opens card details popup with deep links and close behaviors', async ({ pa
   await expect(page.getByTestId('card-details-title')).toHaveText('Card One');
   await expect(page.getByTestId('card-details-branch')).toContainText('feature/card-one');
   await expect(page.getByTestId('card-details-description')).toContainText('First description body');
-  await expect(page.getByTestId('card-details-comments')).toContainText('First comment body');
+  await expect(page.getByTestId('card-details-comments')).toContainText('First comment line 1');
+  await expect(page.getByTestId('card-details-comments')).toContainText('First comment line 2');
+  await expect(page.getByTestId('card-details-comments')).not.toContainText('\\n');
   await expect(page).toHaveURL(/\/card\/modal-project\/1$/);
 
   await page.getByTestId('card-item').filter({ hasText: 'Card Two' }).click();

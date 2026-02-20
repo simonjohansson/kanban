@@ -139,7 +139,7 @@ struct SidebarE2ETests {
             status: "Todo",
             branch: "feature/swift-modal-two"
         )
-        try await harness.commentOnCard(projectSlug: projectSlug, cardNumber: firstCard, body: "First modal comment")
+        try await harness.commentOnCard(projectSlug: projectSlug, cardNumber: firstCard, body: "First modal line 1\\nFirst modal line 2")
         try await harness.commentOnCard(projectSlug: projectSlug, cardNumber: secondCard, body: "Second modal comment")
         _ = try await harness.waitForLaneContains(status: "Todo", title: "Swift Modal Card One")
         _ = try await harness.waitForLaneContains(status: "Todo", title: "Swift Modal Card Two")
@@ -149,7 +149,7 @@ struct SidebarE2ETests {
             title: "Swift Modal Card One",
             branch: "feature/swift-modal-one",
             descriptionBody: "Swift Modal Card One",
-            commentBody: "First modal comment"
+            commentBody: "First modal line 1\nFirst modal line 2"
         )
 
         try harness.clickCard(number: secondCard)
@@ -168,7 +168,7 @@ struct SidebarE2ETests {
             title: "Swift Modal Card One",
             branch: "feature/swift-modal-one",
             descriptionBody: "Swift Modal Card One",
-            commentBody: "First modal comment"
+            commentBody: "First modal line 1\nFirst modal line 2"
         )
         try harness.closeCardDetails(method: "escape")
         _ = try await harness.waitForCardDetailsClosed()
@@ -178,7 +178,7 @@ struct SidebarE2ETests {
             title: "Swift Modal Card One",
             branch: "feature/swift-modal-one",
             descriptionBody: "Swift Modal Card One",
-            commentBody: "First modal comment"
+            commentBody: "First modal line 1\nFirst modal line 2"
         )
         try harness.closeCardDetails(method: "outside")
         _ = try await harness.waitForCardDetailsClosed()

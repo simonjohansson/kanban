@@ -174,3 +174,42 @@ func TestCardBranchCreateAndUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "feature/card-branch-v2", branch)
 }
+
+func TestCardResponsesUseEmptyCollectionsWhenUnset(t *testing.T) {
+	t.Parallel()
+
+	_, _, httpServer := newTestServer(t)
+
+	createProjectResp := doJSON(t, httpServer.URL+"/projects", http.MethodPost, map[string]string{"name": "Null Safety"})
+	require.Equal(t, http.StatusCreated, createProjectResp.StatusCode)
+
+	createCardResp := doJSON(t, httpServer.URL+"/projects/null-safety/cards", http.MethodPost, map[string]string{
+		"title":  "No Optional Data",
+		"status": "Todo",
+	})
+	require.Equal(t, http.StatusCreated, createCardResp.StatusCode)
+	createCardBody := decodeMap(t, createCardResp.Body)
+	require.Contains(t, createCardBody, "branch")
+	require.Equal(t, "", createCardBody["branch"])
+	require.Len(t, createCardBody["description"].([]any), 0)
+	require.Len(t, createCardBody["comments"].([]any), 0)
+	require.Len(t, createCardBody["history"].([]any), 1)
+
+	getCardResp := doJSON(t, httpServer.URL+"/projects/null-safety/cards/1", http.MethodGet, nil)
+	require.Equal(t, http.StatusOK, getCardResp.StatusCode)
+	getCardBody := decodeMap(t, getCardResp.Body)
+	require.Contains(t, getCardBody, "branch")
+	require.Equal(t, "", getCardBody["branch"])
+	require.Len(t, getCardBody["description"].([]any), 0)
+	require.Len(t, getCardBody["comments"].([]any), 0)
+	require.Len(t, getCardBody["history"].([]any), 1)
+
+	listCardsResp := doJSON(t, httpServer.URL+"/projects/null-safety/cards", http.MethodGet, nil)
+	require.Equal(t, http.StatusOK, listCardsResp.StatusCode)
+	listCardsBody := decodeMap(t, listCardsResp.Body)
+	cards := listCardsBody["cards"].([]any)
+	require.Len(t, cards, 1)
+	summary := cards[0].(map[string]any)
+	require.Contains(t, summary, "branch")
+	require.Equal(t, "", summary["branch"])
+}
