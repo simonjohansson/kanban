@@ -21,6 +21,7 @@ import (
 type Card struct {
 	// Schema A URL to the JSON Schema for this object.
 	Schema      *string        `json:"$schema,omitempty"`
+	Branch      *string        `json:"branch,omitempty"`
 	Comments    []TextEvent    `json:"comments"`
 	CreatedAt   time.Time      `json:"created_at"`
 	Deleted     bool           `json:"deleted"`
@@ -36,6 +37,7 @@ type Card struct {
 
 // CardSummary defines model for CardSummary.
 type CardSummary struct {
+	Branch        *string   `json:"branch,omitempty"`
 	CommentsCount int64     `json:"comments_count"`
 	CreatedAt     time.Time `json:"created_at"`
 	Deleted       bool      `json:"deleted"`
@@ -48,10 +50,18 @@ type CardSummary struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+// ClientConfigOutputBody defines model for ClientConfigOutputBody.
+type ClientConfigOutputBody struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema    *string `json:"$schema,omitempty"`
+	ServerUrl string  `json:"server_url"`
+}
+
 // CreateCardRequest defines model for CreateCardRequest.
 type CreateCardRequest struct {
 	// Schema A URL to the JSON Schema for this object.
 	Schema      *string `json:"$schema,omitempty"`
+	Branch      *string `json:"branch,omitempty"`
 	Description *string `json:"description,omitempty"`
 	Status      string  `json:"status"`
 	Title       string  `json:"title"`
@@ -166,6 +176,13 @@ type RebuildProjectionOutputBody struct {
 	ProjectsRebuilt int64   `json:"projects_rebuilt"`
 }
 
+// SetCardBranchRequest defines model for SetCardBranchRequest.
+type SetCardBranchRequest struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+	Branch string  `json:"branch"`
+}
+
 // TextBodyRequest defines model for TextBodyRequest.
 type TextBodyRequest struct {
 	// Schema A URL to the JSON Schema for this object.
@@ -194,6 +211,9 @@ type CreateProjectJSONRequestBody = CreateProjectRequest
 
 // CreateCardJSONRequestBody defines body for CreateCard for application/json ContentType.
 type CreateCardJSONRequestBody = CreateCardRequest
+
+// SetCardBranchJSONRequestBody defines body for SetCardBranch for application/json ContentType.
+type SetCardBranchJSONRequestBody = SetCardBranchRequest
 
 // CommentCardJSONRequestBody defines body for CommentCard for application/json ContentType.
 type CommentCardJSONRequestBody = TextBodyRequest
@@ -280,6 +300,9 @@ type ClientInterface interface {
 	// RebuildProjection request
 	RebuildProjection(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetClientConfig request
+	GetClientConfig(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetHealth request
 	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -308,6 +331,11 @@ type ClientInterface interface {
 	// GetCard request
 	GetCard(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// SetCardBranchWithBody request with any body
+	SetCardBranchWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SetCardBranch(ctx context.Context, project string, number int64, body SetCardBranchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CommentCardWithBody request with any body
 	CommentCardWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -329,6 +357,18 @@ type ClientInterface interface {
 
 func (c *Client) RebuildProjection(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRebuildProjectionRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetClientConfig(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetClientConfigRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -459,6 +499,30 @@ func (c *Client) GetCard(ctx context.Context, project string, number int64, reqE
 	return c.Client.Do(req)
 }
 
+func (c *Client) SetCardBranchWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetCardBranchRequestWithBody(c.Server, project, number, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetCardBranch(ctx context.Context, project string, number int64, body SetCardBranchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetCardBranchRequest(c.Server, project, number, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) CommentCardWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCommentCardRequestWithBody(c.Server, project, number, contentType, body)
 	if err != nil {
@@ -563,6 +627,33 @@ func NewRebuildProjectionRequest(server string) (*http.Request, error) {
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetClientConfigRequest generates requests for GetClientConfig
+func NewGetClientConfigRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/client-config")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -905,6 +996,60 @@ func NewGetCardRequest(server string, project string, number int64) (*http.Reque
 	return req, nil
 }
 
+// NewSetCardBranchRequest calls the generic SetCardBranch builder with application/json body
+func NewSetCardBranchRequest(server string, project string, number int64, body SetCardBranchJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetCardBranchRequestWithBody(server, project, number, "application/json", bodyReader)
+}
+
+// NewSetCardBranchRequestWithBody generates requests for SetCardBranch with any type of body
+func NewSetCardBranchRequestWithBody(server string, project string, number int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/branch", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewCommentCardRequest calls the generic CommentCard builder with application/json body
 func NewCommentCardRequest(server string, project string, number int64, body CommentCardJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1140,6 +1285,9 @@ type ClientWithResponsesInterface interface {
 	// RebuildProjectionWithResponse request
 	RebuildProjectionWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*RebuildProjectionResponse, error)
 
+	// GetClientConfigWithResponse request
+	GetClientConfigWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetClientConfigResponse, error)
+
 	// GetHealthWithResponse request
 	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
 
@@ -1167,6 +1315,11 @@ type ClientWithResponsesInterface interface {
 
 	// GetCardWithResponse request
 	GetCardWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*GetCardResponse, error)
+
+	// SetCardBranchWithBodyWithResponse request with any body
+	SetCardBranchWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCardBranchResponse, error)
+
+	SetCardBranchWithResponse(ctx context.Context, project string, number int64, body SetCardBranchJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCardBranchResponse, error)
 
 	// CommentCardWithBodyWithResponse request with any body
 	CommentCardWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CommentCardResponse, error)
@@ -1204,6 +1357,29 @@ func (r RebuildProjectionResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RebuildProjectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetClientConfigResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *ClientConfigOutputBody
+	ApplicationproblemJSONDefault *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r GetClientConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetClientConfigResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1408,6 +1584,32 @@ func (r GetCardResponse) StatusCode() int {
 	return 0
 }
 
+type SetCardBranchResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Card
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r SetCardBranchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetCardBranchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type CommentCardResponse struct {
 	Body                      []byte
 	HTTPResponse              *http.Response
@@ -1516,6 +1718,15 @@ func (c *ClientWithResponses) RebuildProjectionWithResponse(ctx context.Context,
 	return ParseRebuildProjectionResponse(rsp)
 }
 
+// GetClientConfigWithResponse request returning *GetClientConfigResponse
+func (c *ClientWithResponses) GetClientConfigWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetClientConfigResponse, error) {
+	rsp, err := c.GetClientConfig(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetClientConfigResponse(rsp)
+}
+
 // GetHealthWithResponse request returning *GetHealthResponse
 func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error) {
 	rsp, err := c.GetHealth(ctx, reqEditors...)
@@ -1602,6 +1813,23 @@ func (c *ClientWithResponses) GetCardWithResponse(ctx context.Context, project s
 		return nil, err
 	}
 	return ParseGetCardResponse(rsp)
+}
+
+// SetCardBranchWithBodyWithResponse request with arbitrary body returning *SetCardBranchResponse
+func (c *ClientWithResponses) SetCardBranchWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCardBranchResponse, error) {
+	rsp, err := c.SetCardBranchWithBody(ctx, project, number, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetCardBranchResponse(rsp)
+}
+
+func (c *ClientWithResponses) SetCardBranchWithResponse(ctx context.Context, project string, number int64, body SetCardBranchJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCardBranchResponse, error) {
+	rsp, err := c.SetCardBranch(ctx, project, number, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetCardBranchResponse(rsp)
 }
 
 // CommentCardWithBodyWithResponse request with arbitrary body returning *CommentCardResponse
@@ -1691,6 +1919,39 @@ func ParseRebuildProjectionResponse(rsp *http.Response) (*RebuildProjectionRespo
 			return nil, err
 		}
 		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetClientConfigResponse parses an HTTP response from a GetClientConfigWithResponse call
+func ParseGetClientConfigResponse(rsp *http.Response) (*GetClientConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetClientConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ClientConfigOutputBody
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
 
 	}
 
@@ -2014,6 +2275,60 @@ func ParseGetCardResponse(rsp *http.Response) (*GetCardResponse, error) {
 	}
 
 	response := &GetCardResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Card
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetCardBranchResponse parses an HTTP response from a SetCardBranchWithResponse call
+func ParseSetCardBranchResponse(rsp *http.Response) (*SetCardBranchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetCardBranchResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

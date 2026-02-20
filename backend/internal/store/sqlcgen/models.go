@@ -13,6 +13,7 @@ type Card struct {
 	ProjectSlug   string
 	Number        int64
 	Title         string
+	Branch        sql.NullString
 	Status        string
 	Deleted       int64
 	CreatedAt     string

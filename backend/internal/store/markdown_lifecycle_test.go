@@ -31,9 +31,10 @@ func TestMarkdownStoreProjectAndCardLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Alpha Project", loadedProject.Name)
 
-	card, err := s.CreateCard("alpha-project", "Task A", "first description", "Todo")
+	card, err := s.CreateCard("alpha-project", "Task A", "first description", "feature/task-a", "Todo")
 	require.NoError(t, err)
 	require.Equal(t, "alpha-project/card-1", card.ID)
+	require.Equal(t, "feature/task-a", card.Branch)
 	require.Equal(t, "Todo", card.Status)
 	require.Len(t, card.Description, 1)
 	require.Len(t, card.History, 1)
@@ -56,7 +57,7 @@ func TestMarkdownStoreProjectAndCardLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, softDeleted.Deleted)
 
-	card2, err := s.CreateCard("alpha-project", "Task B", "", "Todo")
+	card2, err := s.CreateCard("alpha-project", "Task B", "", "", "Todo")
 	require.NoError(t, err)
 	require.Equal(t, 2, card2.Number)
 
@@ -87,7 +88,7 @@ func TestMarkdownStoreValidationAndParsingHelpers(t *testing.T) {
 	_, err = s.CreateProject("   ", "", "")
 	require.ErrorContains(t, err, "name is required")
 
-	_, err = s.CreateCard("missing", "Task", "", "Todo")
+	_, err = s.CreateCard("missing", "Task", "", "", "Todo")
 	require.Error(t, err)
 	require.True(t, errors.Is(err, os.ErrNotExist))
 
@@ -95,13 +96,16 @@ func TestMarkdownStoreValidationAndParsingHelpers(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "valid", project.Slug)
 
-	_, err = s.CreateCard("valid", "", "", "Todo")
+	_, err = s.CreateCard("valid", "", "", "", "Todo")
 	require.ErrorContains(t, err, "title is required")
 
-	_, err = s.CreateCard("valid", "Task", "", "Blocked")
+	_, err = s.CreateCard("valid", "Task", "", "", "Blocked")
 	require.ErrorContains(t, err, "invalid status")
 
-	card, err := s.CreateCard("valid", "Task", "", "Todo")
+	_, err = s.CreateCard("valid", "Task", "", "bad branch", "Todo")
+	require.ErrorContains(t, err, "invalid branch name")
+
+	card, err := s.CreateCard("valid", "Task", "", "", "Todo")
 	require.NoError(t, err)
 	require.Equal(t, 1, card.Number)
 
@@ -159,7 +163,7 @@ func TestListProjectCardsSkipsInvalidCardFilenames(t *testing.T) {
 
 	_, err = s.CreateProject("Alpha", "", "")
 	require.NoError(t, err)
-	_, err = s.CreateCard("alpha", "Task", "", "Todo")
+	_, err = s.CreateCard("alpha", "Task", "", "", "Todo")
 	require.NoError(t, err)
 
 	projectDir := filepath.Join(root, "projects", "alpha")

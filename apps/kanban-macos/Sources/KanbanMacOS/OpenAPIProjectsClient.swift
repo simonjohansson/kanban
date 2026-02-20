@@ -40,6 +40,7 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
                     number: Int($0.number),
                     projectSlug: $0.project,
                     title: $0.title,
+                    branch: $0.branch,
                     status: $0.status
                 )
             }

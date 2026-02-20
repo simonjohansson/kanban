@@ -20,6 +20,23 @@ paths:
                         application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ErrorModel'
+    /client-config:
+        get:
+            summary: Get client runtime config
+            operationId: getClientConfig
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ClientConfigOutputBody'
+                default:
+                    description: Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
     /health:
         get:
             summary: Get health
@@ -301,6 +318,59 @@ paths:
                         application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/branch:
+        patch:
+            summary: Set card branch metadata
+            operationId: setCardBranch
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetCardBranchRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Card'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
     /projects/{project}/cards/{number}/comments:
         post:
             summary: Append card comment
@@ -481,6 +551,8 @@ components:
                     examples:
                         - https://example.com/schemas/Card.json
                     readOnly: true
+                branch:
+                    type: string
                 comments:
                     type: array
                     items:
@@ -528,6 +600,8 @@ components:
             type: object
             additionalProperties: false
             properties:
+                branch:
+                    type: string
                 comments_count:
                     type: integer
                     format: int64
@@ -564,6 +638,21 @@ components:
                 - updated_at
                 - comments_count
                 - history_count
+        ClientConfigOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/ClientConfigOutputBody.json
+                    readOnly: true
+                server_url:
+                    type: string
+            required:
+                - server_url
         CreateCardRequest:
             type: object
             additionalProperties: false
@@ -575,6 +664,8 @@ components:
                     examples:
                         - https://example.com/schemas/CreateCardRequest.json
                     readOnly: true
+                branch:
+                    type: string
                 description:
                     type: string
                 status:
@@ -811,6 +902,21 @@ components:
             required:
                 - projects_rebuilt
                 - cards_rebuilt
+        SetCardBranchRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/SetCardBranchRequest.json
+                    readOnly: true
+                branch:
+                    type: string
+            required:
+                - branch
         TextBodyRequest:
             type: object
             additionalProperties: false

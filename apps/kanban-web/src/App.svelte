@@ -210,7 +210,12 @@
             <h2>{lane}</h2>
             <div class="lane-cards">
               {#each cardsByLane[lane] as card (card.id)}
-                <article class="card" data-testid="card-item">{card.title}</article>
+                <article class="card" data-testid="card-item">
+                  <div class="card-title">{card.title}</div>
+                  {#if card.branch?.trim()}
+                    <div class="card-branch">{card.branch.trim()}</div>
+                  {/if}
+                </article>
               {/each}
             </div>
           </section>
@@ -367,6 +372,19 @@
     color: #111827;
     font-size: 0.9rem;
     overflow-wrap: anywhere;
+    display: grid;
+    gap: 6px;
+  }
+
+  .card-title {
+    line-height: 1.2;
+  }
+
+  .card-branch {
+    font-size: 0.78rem;
+    line-height: 1.2;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+    color: #4b5563;
   }
 
   .alert {

@@ -132,18 +132,26 @@ struct MainSplitView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(cards) { card in
-                    Text(card.title)
-                        .font(.system(size: zoom.scaled(13)))
-                        .foregroundStyle(BoardPresentation.cardTitleColor)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, zoom.scaled(10))
-                        .padding(.vertical, zoom.scaled(8))
-                        .background(BoardPresentation.cardBackgroundColor)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    VStack(alignment: .leading, spacing: zoom.scaled(4)) {
+                        Text(card.title)
+                            .font(.system(size: zoom.scaled(13), weight: .medium))
+                            .foregroundStyle(BoardPresentation.cardTitleColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if let branch = card.branch?.trimmingCharacters(in: .whitespacesAndNewlines), !branch.isEmpty {
+                            Text(branch)
+                                .font(.system(size: zoom.scaled(11), design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .padding(.horizontal, zoom.scaled(10))
+                    .padding(.vertical, zoom.scaled(8))
+                    .background(BoardPresentation.cardBackgroundColor)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -158,7 +166,8 @@ struct MainSplitView: View {
         sidebarProbe.write(
             projects: viewModel.projects,
             selectedProjectSlug: selectedProjectID,
-            cardsByStatus: viewModel.cardsByStatusMap()
+            cardsByStatus: viewModel.cardsByStatusMap(),
+            cardsByStatusDetailed: viewModel.cardsByStatusDetailedMap()
         )
     }
 }

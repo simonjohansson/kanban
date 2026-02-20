@@ -15,9 +15,10 @@ type MarkdownStore interface {
 	ListProjects() ([]model.Project, error)
 	GetProject(slug string) (model.Project, error)
 	DeleteProject(slug string) error
-	CreateCard(projectSlug, title, description, status string) (model.Card, error)
+	CreateCard(projectSlug, title, description, branch, status string) (model.Card, error)
 	GetCard(projectSlug string, number int) (model.Card, error)
 	MoveCard(projectSlug string, number int, status string) (model.Card, error)
+	SetCardBranch(projectSlug string, number int, branch string) (model.Card, error)
 	AddComment(projectSlug string, number int, body string) (model.Card, error)
 	AppendDescription(projectSlug string, number int, body string) (model.Card, error)
 	DeleteCard(projectSlug string, number int, hard bool) (model.Card, error)
@@ -108,8 +109,8 @@ func (s *Service) DeleteProject(slug string) error {
 	return nil
 }
 
-func (s *Service) CreateCard(projectSlug, title, description, status string) (model.Card, error) {
-	card, err := s.store.CreateCard(projectSlug, title, description, status)
+func (s *Service) CreateCard(projectSlug, title, description, branch, status string) (model.Card, error) {
+	card, err := s.store.CreateCard(projectSlug, title, description, branch, status)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return model.Card{}, newError(CodeValidation, "project not found", err)
@@ -129,6 +130,28 @@ func (s *Service) CreateCard(projectSlug, title, description, status string) (mo
 	s.logger.Info("card created", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number)
 	s.publish(model.Event{
 		Type:      "card.created",
+		Project:   card.ProjectSlug,
+		CardID:    card.ID,
+		CardNum:   card.Number,
+		Timestamp: time.Now().UTC(),
+	})
+	return card, nil
+}
+
+func (s *Service) SetCardBranch(projectSlug string, number int, branch string) (model.Card, error) {
+	card, err := s.store.SetCardBranch(projectSlug, number, branch)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return model.Card{}, newError(CodeNotFound, "card not found", err)
+		}
+		return model.Card{}, newError(CodeValidation, err.Error(), err)
+	}
+	if err := s.projection.UpsertCard(card); err != nil {
+		return model.Card{}, newError(CodeInternal, "projection sync failed", err)
+	}
+	s.logger.Info("card branch updated", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "branch", card.Branch)
+	s.publish(model.Event{
+		Type:      "card.branch.updated",
 		Project:   card.ProjectSlug,
 		CardID:    card.ID,
 		CardNum:   card.Number,

@@ -85,7 +85,7 @@ test('shows 4 lanes and reflects cards across project switching and moves', asyn
   const createAlphaCardResponse = await fetch('http://127.0.0.1:18080/projects/alpha-project/cards', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ title: 'Alpha Task', description: 'alpha', status: 'Todo' }),
+    body: JSON.stringify({ title: 'Alpha Task', description: 'alpha', branch: 'feature/alpha-task', status: 'Todo' }),
   });
   expect(createAlphaCardResponse.status).toBe(201);
 
@@ -98,6 +98,7 @@ test('shows 4 lanes and reflects cards across project switching and moves', asyn
 
   await page.getByTestId('project-item').filter({ hasText: 'Alpha Project' }).click();
   await expect(page.getByTestId('lane-Todo')).toContainText('Alpha Task');
+  await expect(page.getByTestId('lane-Todo')).toContainText('feature/alpha-task');
   await expect(page.getByTestId('lane-Doing')).not.toContainText('Alpha Task');
   await expect(page.getByTestId('lane-Review')).not.toContainText('Alpha Task');
   await expect(page.getByTestId('lane-Done')).not.toContainText('Alpha Task');

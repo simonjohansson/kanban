@@ -63,8 +63,18 @@ struct SidebarE2ETests {
         try harness.clickProject(slug: firstSlug)
         _ = try await harness.waitForSelectedProject(slug: firstSlug)
 
-        let firstCardNumber = try await harness.createCard(projectSlug: firstSlug, title: "Swift First Card", status: "Todo")
+        let firstCardNumber = try await harness.createCard(
+            projectSlug: firstSlug,
+            title: "Swift First Card",
+            status: "Todo",
+            branch: "feature/swift-first-card"
+        )
         _ = try await harness.waitForLaneContains(status: "Todo", title: "Swift First Card")
+        _ = try await harness.waitForLaneContainsBranch(
+            status: "Todo",
+            title: "Swift First Card",
+            branch: "feature/swift-first-card"
+        )
 
         try harness.clickProject(slug: secondSlug)
         _ = try await harness.waitForSelectedProject(slug: secondSlug)
@@ -90,12 +100,19 @@ private struct SidebarState: Codable {
     let projects: [String]
     let selectedProjectSlug: String?
     let cardsByStatus: [String: [String]]?
+    let cardsByStatusDetailed: [String: [SidebarCardState]]?
 
     enum CodingKeys: String, CodingKey {
         case projects
         case selectedProjectSlug = "selected_project_slug"
         case cardsByStatus = "cards_by_status"
+        case cardsByStatusDetailed = "cards_by_status_detailed"
     }
+}
+
+private struct SidebarCardState: Codable {
+    let title: String
+    let branch: String?
 }
 
 private final class E2EHarness {
@@ -297,6 +314,21 @@ private final class E2EHarness {
         throw HarnessError.timeout("lane \(status) did not contain card \(title)")
     }
 
+    func waitForLaneContainsBranch(status: String, title: String, branch: String) async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(20)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before lane branch update")
+            }
+            if let state = try readSidebarState(),
+               state.cardsByStatusDetailed?[status]?.contains(where: { $0.title == title && $0.branch == branch }) == true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("lane \(status) did not contain card \(title) with branch \(branch)")
+    }
+
     func waitForBoardEmpty() async throws -> SidebarState {
         let deadline = Date().addingTimeInterval(12)
         while Date() < deadline {
@@ -317,16 +349,19 @@ private final class E2EHarness {
         throw HarnessError.timeout("board was not empty")
     }
 
-    func createCard(projectSlug: String, title: String, status: String) async throws -> Int {
+    func createCard(projectSlug: String, title: String, status: String, branch: String? = nil) async throws -> Int {
         let url = serverURL.appendingPathComponent("projects/\(projectSlug)/cards")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "content-type")
-        let payload: [String: String] = [
+        var payload: [String: String] = [
             "title": title,
             "description": title,
             "status": status,
         ]
+        if let branch, !branch.isEmpty {
+            payload["branch"] = branch
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await URLSession.shared.data(for: request)

@@ -61,6 +61,7 @@ func (p *SQLiteProjection) UpsertCard(card model.Card) error {
 		ProjectSlug:   card.ProjectSlug,
 		Number:        int64(card.Number),
 		Title:         card.Title,
+		Branch:        nullableString(card.Branch),
 		Status:        card.Status,
 		Deleted:       boolToInt(card.Deleted),
 		CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
@@ -148,6 +149,7 @@ func (p *SQLiteProjection) RebuildFromMarkdown(projects []model.Project, cards [
 			ProjectSlug:   card.ProjectSlug,
 			Number:        int64(card.Number),
 			Title:         card.Title,
+			Branch:        nullableString(card.Branch),
 			Status:        card.Status,
 			Deleted:       boolToInt(card.Deleted),
 			CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
@@ -170,6 +172,7 @@ func mapCardSummaryRowsFromActive(rows []sqlcgen.Card) ([]model.CardSummary, err
 			row.ProjectSlug,
 			row.Number,
 			row.Title,
+			row.Branch,
 			row.Status,
 			row.Deleted,
 			row.CreatedAt,
@@ -193,6 +196,7 @@ func mapCardSummaryRowsFromAll(rows []sqlcgen.Card) ([]model.CardSummary, error)
 			row.ProjectSlug,
 			row.Number,
 			row.Title,
+			row.Branch,
 			row.Status,
 			row.Deleted,
 			row.CreatedAt,
@@ -208,7 +212,7 @@ func mapCardSummaryRowsFromAll(rows []sqlcgen.Card) ([]model.CardSummary, error)
 	return cards, nil
 }
 
-func cardSummaryFromRaw(id, projectSlug string, number int64, title, status string, deleted int64, created, updated string, commentsCount, historyCount int64) (model.CardSummary, error) {
+func cardSummaryFromRaw(id, projectSlug string, number int64, title string, branch sql.NullString, status string, deleted int64, created, updated string, commentsCount, historyCount int64) (model.CardSummary, error) {
 	createdAt, err := time.Parse(time.RFC3339, created)
 	if err != nil {
 		return model.CardSummary{}, err
@@ -222,6 +226,7 @@ func cardSummaryFromRaw(id, projectSlug string, number int64, title, status stri
 		ProjectSlug:   projectSlug,
 		Number:        int(number),
 		Title:         title,
+		Branch:        branch.String,
 		Status:        status,
 		Deleted:       deleted == 1,
 		CreatedAt:     createdAt,
