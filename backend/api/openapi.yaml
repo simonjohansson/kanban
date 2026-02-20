@@ -1,442 +1,797 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Kanban Backend API
-  version: 0.1.0
-  description: |
-    Source-of-truth is markdown files on disk. SQLite is a rebuildable projection.
-servers:
-  - url: http://127.0.0.1:8080
+    title: Kanban Backend API
+    version: 1.0.0
 paths:
-  /health:
-    get:
-      summary: Health check
-      operationId: health
-      responses:
-        '200':
-          description: Server is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
+    /admin/rebuild:
+        post:
+            summary: Rebuild SQLite projection from markdown
+            operationId: rebuildProjection
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RebuildProjectionOutputBody'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /health:
+        get:
+            summary: Get health
+            operationId: get-health
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HealthOutputBody'
+                default:
+                    description: Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects:
+        get:
+            summary: List projects
+            operationId: listProjects
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListProjectsOutputBody'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+        post:
+            summary: Create project
+            operationId: createProject
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateProjectRequest'
+                required: true
+            responses:
+                "201":
+                    description: Created
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Project'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "409":
+                    description: Conflict
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards:
+        get:
+            summary: List cards
+            operationId: listCards
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: include_deleted
+                  in: query
+                  explode: false
+                  schema:
                     type: boolean
-  /openapi.yaml:
-    get:
-      summary: OpenAPI specification
-      operationId: getOpenAPIYaml
-      responses:
-        '200':
-          description: OpenAPI YAML document
-          content:
-            application/yaml:
-              schema:
-                type: string
-  /projects:
-    post:
-      summary: Create project
-      operationId: createProject
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateProjectRequest'
-      responses:
-        '201':
-          description: Created project
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: Project already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    get:
-      summary: List projects
-      operationId: listProjects
-      responses:
-        '200':
-          description: List of projects
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  projects:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Project'
-  /projects/{project}/cards:
-    post:
-      summary: Create card
-      operationId: createCard
-      parameters:
-        - $ref: '#/components/parameters/ProjectSlug'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCardRequest'
-      responses:
-        '201':
-          description: Created card
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    get:
-      summary: List cards
-      operationId: listCards
-      parameters:
-        - $ref: '#/components/parameters/ProjectSlug'
-        - name: include_deleted
-          in: query
-          required: false
-          schema:
-            type: boolean
-      responses:
-        '200':
-          description: List of cards
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  cards:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/CardSummary'
-  /projects/{project}/cards/{number}:
-    get:
-      summary: Get card
-      operationId: getCard
-      parameters:
-        - $ref: '#/components/parameters/ProjectSlug'
-        - $ref: '#/components/parameters/CardNumber'
-      responses:
-        '200':
-          description: Card details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-        '404':
-          description: Card not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    delete:
-      summary: Delete card
-      operationId: deleteCard
-      parameters:
-        - $ref: '#/components/parameters/ProjectSlug'
-        - $ref: '#/components/parameters/CardNumber'
-        - name: hard
-          in: query
-          required: false
-          schema:
-            type: boolean
-      responses:
-        '200':
-          description: Deleted card state/event
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-        '404':
-          description: Card not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /projects/{project}/cards/{number}/move:
-    patch:
-      summary: Move card
-      operationId: moveCard
-      parameters:
-        - $ref: '#/components/parameters/ProjectSlug'
-        - $ref: '#/components/parameters/CardNumber'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MoveCardRequest'
-      responses:
-        '200':
-          description: Updated card
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-  /projects/{project}/cards/{number}/comments:
-    post:
-      summary: Append comment
-      operationId: addComment
-      parameters:
-        - $ref: '#/components/parameters/ProjectSlug'
-        - $ref: '#/components/parameters/CardNumber'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TextBodyRequest'
-      responses:
-        '200':
-          description: Updated card
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-  /projects/{project}/cards/{number}/description:
-    patch:
-      summary: Append description entry
-      operationId: appendDescription
-      parameters:
-        - $ref: '#/components/parameters/ProjectSlug'
-        - $ref: '#/components/parameters/CardNumber'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TextBodyRequest'
-      responses:
-        '200':
-          description: Updated card
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Card'
-  /admin/rebuild:
-    post:
-      summary: Rebuild SQLite projection from markdown
-      operationId: rebuildProjection
-      responses:
-        '200':
-          description: Projection rebuilt
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  projects_rebuilt:
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListCardsOutputBody'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+        post:
+            summary: Create card
+            operationId: createCard
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateCardRequest'
+                required: true
+            responses:
+                "201":
+                    description: Created
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Card'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}:
+        get:
+            summary: Get card
+            operationId: getCard
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
                     type: integer
-                  cards_rebuilt:
+                    format: int64
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Card'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+        delete:
+            summary: Delete card
+            operationId: deleteCard
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
                     type: integer
-  /ws:
-    get:
-      summary: Websocket event stream
-      description: |
-        Subscribe to project/card events. Optional `project` query param filters by project slug.
-      operationId: websocketEvents
-      responses:
-        '101':
-          description: Switching protocols to websocket
+                    format: int64
+                - name: hard
+                  in: query
+                  explode: false
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Card'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/comments:
+        post:
+            summary: Append card comment
+            operationId: commentCard
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TextBodyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Card'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/description:
+        patch:
+            summary: Append card description entry
+            operationId: appendDescription
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TextBodyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Card'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/move:
+        patch:
+            summary: Move card
+            operationId: moveCard
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/MoveCardRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Card'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /ws:
+        get:
+            summary: Websocket event stream
+            description: Subscribe to project/card events. Optional project query param filters by project slug.
+            operationId: websocketEvents
+            responses:
+                "101":
+                    description: Switching protocols to websocket
 components:
-  parameters:
-    ProjectSlug:
-      name: project
-      in: path
-      required: true
-      schema:
-        type: string
-    CardNumber:
-      name: number
-      in: path
-      required: true
-      schema:
-        type: integer
-        minimum: 1
-  schemas:
-    CreateProjectRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-        local_path:
-          type: string
-        remote_url:
-          type: string
-    Project:
-      type: object
-      required: [name, slug, created_at, updated_at, next_card_seq]
-      properties:
-        name:
-          type: string
-        slug:
-          type: string
-        local_path:
-          type: string
-        remote_url:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        next_card_seq:
-          type: integer
-    CreateCardRequest:
-      type: object
-      required: [title, status]
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        status:
-          type: string
-          enum: [Todo, Doing, Review, Done]
-        column:
-          type: string
-    MoveCardRequest:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [Todo, Doing, Review, Done]
-        column:
-          type: string
-    TextBodyRequest:
-      type: object
-      required: [body]
-      properties:
-        body:
-          type: string
-    TextEvent:
-      type: object
-      required: [timestamp, body]
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-        body:
-          type: string
-    HistoryEvent:
-      type: object
-      required: [timestamp, type, details]
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-        type:
-          type: string
-        details:
-          type: string
-    Card:
-      type: object
-      required:
-        - id
-        - project
-        - number
-        - title
-        - status
-        - column
-        - deleted
-        - created_at
-        - updated_at
-        - description
-        - comments
-        - history
-      properties:
-        id:
-          type: string
-        project:
-          type: string
-        number:
-          type: integer
-        title:
-          type: string
-        status:
-          type: string
-          enum: [Todo, Doing, Review, Done]
-        column:
-          type: string
-        deleted:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        description:
-          type: array
-          items:
-            $ref: '#/components/schemas/TextEvent'
-        comments:
-          type: array
-          items:
-            $ref: '#/components/schemas/TextEvent'
-        history:
-          type: array
-          items:
-            $ref: '#/components/schemas/HistoryEvent'
-    CardSummary:
-      type: object
-      required:
-        - id
-        - project
-        - number
-        - title
-        - status
-        - column
-        - deleted
-        - created_at
-        - updated_at
-        - comments_count
-        - history_count
-      properties:
-        id:
-          type: string
-        project:
-          type: string
-        number:
-          type: integer
-        title:
-          type: string
-        status:
-          type: string
-        column:
-          type: string
-        deleted:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        comments_count:
-          type: integer
-        history_count:
-          type: integer
-    ErrorResponse:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: string
+    schemas:
+        Card:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/Card.json
+                    readOnly: true
+                column:
+                    type: string
+                comments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/TextEvent'
+                created_at:
+                    type: string
+                    format: date-time
+                deleted:
+                    type: boolean
+                description:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/TextEvent'
+                history:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/HistoryEvent'
+                id:
+                    type: string
+                number:
+                    type: integer
+                    format: int64
+                project:
+                    type: string
+                status:
+                    type: string
+                title:
+                    type: string
+                updated_at:
+                    type: string
+                    format: date-time
+            required:
+                - id
+                - project
+                - number
+                - title
+                - status
+                - column
+                - deleted
+                - created_at
+                - updated_at
+                - description
+                - comments
+                - history
+        CardSummary:
+            type: object
+            additionalProperties: false
+            properties:
+                column:
+                    type: string
+                comments_count:
+                    type: integer
+                    format: int64
+                created_at:
+                    type: string
+                    format: date-time
+                deleted:
+                    type: boolean
+                history_count:
+                    type: integer
+                    format: int64
+                id:
+                    type: string
+                number:
+                    type: integer
+                    format: int64
+                project:
+                    type: string
+                status:
+                    type: string
+                title:
+                    type: string
+                updated_at:
+                    type: string
+                    format: date-time
+            required:
+                - id
+                - project
+                - number
+                - title
+                - status
+                - column
+                - deleted
+                - created_at
+                - updated_at
+                - comments_count
+                - history_count
+        CreateCardRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/CreateCardRequest.json
+                    readOnly: true
+                column:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                title:
+                    type: string
+            required:
+                - title
+                - status
+        CreateProjectRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/CreateProjectRequest.json
+                    readOnly: true
+                local_path:
+                    type: string
+                name:
+                    type: string
+                remote_url:
+                    type: string
+            required:
+                - name
+        ErrorDetail:
+            type: object
+            additionalProperties: false
+            properties:
+                location:
+                    type: string
+                    description: Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
+                message:
+                    type: string
+                    description: Error message text
+                value:
+                    description: The value at the given location
+        ErrorModel:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/ErrorModel.json
+                    readOnly: true
+                detail:
+                    type: string
+                    description: A human-readable explanation specific to this occurrence of the problem.
+                    examples:
+                        - Property foo is required but is missing.
+                errors:
+                    type: array
+                    description: Optional list of individual error details
+                    items:
+                        $ref: '#/components/schemas/ErrorDetail'
+                instance:
+                    type: string
+                    description: A URI reference that identifies the specific occurrence of the problem.
+                    format: uri
+                    examples:
+                        - https://example.com/error-log/abc123
+                status:
+                    type: integer
+                    description: HTTP status code
+                    format: int64
+                    examples:
+                        - 400
+                title:
+                    type: string
+                    description: A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+                    examples:
+                        - Bad Request
+                type:
+                    type: string
+                    description: A URI reference to human-readable documentation for the error.
+                    format: uri
+                    default: about:blank
+                    examples:
+                        - https://example.com/errors/example
+        HealthOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/HealthOutputBody.json
+                    readOnly: true
+                ok:
+                    type: boolean
+            required:
+                - ok
+        HistoryEvent:
+            type: object
+            additionalProperties: false
+            properties:
+                details:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                type:
+                    type: string
+            required:
+                - timestamp
+                - type
+                - details
+        ListCardsOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/ListCardsOutputBody.json
+                    readOnly: true
+                cards:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CardSummary'
+            required:
+                - cards
+        ListProjectsOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/ListProjectsOutputBody.json
+                    readOnly: true
+                projects:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Project'
+            required:
+                - projects
+        MoveCardRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/MoveCardRequest.json
+                    readOnly: true
+                column:
+                    type: string
+                status:
+                    type: string
+            required:
+                - status
+        Project:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/Project.json
+                    readOnly: true
+                created_at:
+                    type: string
+                    format: date-time
+                local_path:
+                    type: string
+                name:
+                    type: string
+                next_card_seq:
+                    type: integer
+                    format: int64
+                remote_url:
+                    type: string
+                slug:
+                    type: string
+                updated_at:
+                    type: string
+                    format: date-time
+            required:
+                - name
+                - slug
+                - created_at
+                - updated_at
+                - next_card_seq
+        RebuildProjectionOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/RebuildProjectionOutputBody.json
+                    readOnly: true
+                cards_rebuilt:
+                    type: integer
+                    format: int64
+                projects_rebuilt:
+                    type: integer
+                    format: int64
+            required:
+                - projects_rebuilt
+                - cards_rebuilt
+        TextBodyRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/TextBodyRequest.json
+                    readOnly: true
+                body:
+                    type: string
+            required:
+                - body
+        TextEvent:
+            type: object
+            additionalProperties: false
+            properties:
+                body:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+            required:
+                - timestamp
+                - body

@@ -14,37 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/oapi-codegen/runtime"
-)
-
-// Defines values for CardStatus.
-const (
-	CardStatusDoing  CardStatus = "Doing"
-	CardStatusDone   CardStatus = "Done"
-	CardStatusReview CardStatus = "Review"
-	CardStatusTodo   CardStatus = "Todo"
-)
-
-// Defines values for CreateCardRequestStatus.
-const (
-	CreateCardRequestStatusDoing  CreateCardRequestStatus = "Doing"
-	CreateCardRequestStatusDone   CreateCardRequestStatus = "Done"
-	CreateCardRequestStatusReview CreateCardRequestStatus = "Review"
-	CreateCardRequestStatusTodo   CreateCardRequestStatus = "Todo"
-)
-
-// Defines values for MoveCardRequestStatus.
-const (
-	Doing  MoveCardRequestStatus = "Doing"
-	Done   MoveCardRequestStatus = "Done"
-	Review MoveCardRequestStatus = "Review"
-	Todo   MoveCardRequestStatus = "Todo"
 )
 
 // Card defines model for Card.
 type Card struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema      *string        `json:"$schema,omitempty"`
 	Column      string         `json:"column"`
 	Comments    []TextEvent    `json:"comments"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -52,25 +28,22 @@ type Card struct {
 	Description []TextEvent    `json:"description"`
 	History     []HistoryEvent `json:"history"`
 	Id          string         `json:"id"`
-	Number      int            `json:"number"`
+	Number      int64          `json:"number"`
 	Project     string         `json:"project"`
-	Status      CardStatus     `json:"status"`
+	Status      string         `json:"status"`
 	Title       string         `json:"title"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
-// CardStatus defines model for Card.Status.
-type CardStatus string
-
 // CardSummary defines model for CardSummary.
 type CardSummary struct {
 	Column        string    `json:"column"`
-	CommentsCount int       `json:"comments_count"`
+	CommentsCount int64     `json:"comments_count"`
 	CreatedAt     time.Time `json:"created_at"`
 	Deleted       bool      `json:"deleted"`
-	HistoryCount  int       `json:"history_count"`
+	HistoryCount  int64     `json:"history_count"`
 	Id            string    `json:"id"`
-	Number        int       `json:"number"`
+	Number        int64     `json:"number"`
 	Project       string    `json:"project"`
 	Status        string    `json:"status"`
 	Title         string    `json:"title"`
@@ -79,25 +52,64 @@ type CardSummary struct {
 
 // CreateCardRequest defines model for CreateCardRequest.
 type CreateCardRequest struct {
-	Column      *string                 `json:"column,omitempty"`
-	Description *string                 `json:"description,omitempty"`
-	Status      CreateCardRequestStatus `json:"status"`
-	Title       string                  `json:"title"`
+	// Schema A URL to the JSON Schema for this object.
+	Schema      *string `json:"$schema,omitempty"`
+	Column      *string `json:"column,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Status      string  `json:"status"`
+	Title       string  `json:"title"`
 }
-
-// CreateCardRequestStatus defines model for CreateCardRequest.Status.
-type CreateCardRequestStatus string
 
 // CreateProjectRequest defines model for CreateProjectRequest.
 type CreateProjectRequest struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema    *string `json:"$schema,omitempty"`
 	LocalPath *string `json:"local_path,omitempty"`
 	Name      string  `json:"name"`
 	RemoteUrl *string `json:"remote_url,omitempty"`
 }
 
-// ErrorResponse defines model for ErrorResponse.
-type ErrorResponse struct {
-	Error string `json:"error"`
+// ErrorDetail defines model for ErrorDetail.
+type ErrorDetail struct {
+	// Location Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
+	Location *string `json:"location,omitempty"`
+
+	// Message Error message text
+	Message *string `json:"message,omitempty"`
+
+	// Value The value at the given location
+	Value interface{} `json:"value,omitempty"`
+}
+
+// ErrorModel defines model for ErrorModel.
+type ErrorModel struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+
+	// Detail A human-readable explanation specific to this occurrence of the problem.
+	Detail *string `json:"detail,omitempty"`
+
+	// Errors Optional list of individual error details
+	Errors *[]ErrorDetail `json:"errors,omitempty"`
+
+	// Instance A URI reference that identifies the specific occurrence of the problem.
+	Instance *string `json:"instance,omitempty"`
+
+	// Status HTTP status code
+	Status *int64 `json:"status,omitempty"`
+
+	// Title A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+	Title *string `json:"title,omitempty"`
+
+	// Type A URI reference to human-readable documentation for the error.
+	Type *string `json:"type,omitempty"`
+}
+
+// HealthOutputBody defines model for HealthOutputBody.
+type HealthOutputBody struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+	Ok     bool    `json:"ok"`
 }
 
 // HistoryEvent defines model for HistoryEvent.
@@ -107,29 +119,54 @@ type HistoryEvent struct {
 	Type      string    `json:"type"`
 }
 
-// MoveCardRequest defines model for MoveCardRequest.
-type MoveCardRequest struct {
-	Column *string               `json:"column,omitempty"`
-	Status MoveCardRequestStatus `json:"status"`
+// ListCardsOutputBody defines model for ListCardsOutputBody.
+type ListCardsOutputBody struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string       `json:"$schema,omitempty"`
+	Cards  []CardSummary `json:"cards"`
 }
 
-// MoveCardRequestStatus defines model for MoveCardRequest.Status.
-type MoveCardRequestStatus string
+// ListProjectsOutputBody defines model for ListProjectsOutputBody.
+type ListProjectsOutputBody struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema   *string   `json:"$schema,omitempty"`
+	Projects []Project `json:"projects"`
+}
+
+// MoveCardRequest defines model for MoveCardRequest.
+type MoveCardRequest struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+	Column *string `json:"column,omitempty"`
+	Status string  `json:"status"`
+}
 
 // Project defines model for Project.
 type Project struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema      *string   `json:"$schema,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	LocalPath   *string   `json:"local_path,omitempty"`
 	Name        string    `json:"name"`
-	NextCardSeq int       `json:"next_card_seq"`
+	NextCardSeq int64     `json:"next_card_seq"`
 	RemoteUrl   *string   `json:"remote_url,omitempty"`
 	Slug        string    `json:"slug"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+// RebuildProjectionOutputBody defines model for RebuildProjectionOutputBody.
+type RebuildProjectionOutputBody struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema          *string `json:"$schema,omitempty"`
+	CardsRebuilt    int64   `json:"cards_rebuilt"`
+	ProjectsRebuilt int64   `json:"projects_rebuilt"`
+}
+
 // TextBodyRequest defines model for TextBodyRequest.
 type TextBodyRequest struct {
-	Body string `json:"body"`
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+	Body   string  `json:"body"`
 }
 
 // TextEvent defines model for TextEvent.
@@ -137,12 +174,6 @@ type TextEvent struct {
 	Body      string    `json:"body"`
 	Timestamp time.Time `json:"timestamp"`
 }
-
-// CardNumber defines model for CardNumber.
-type CardNumber = int
-
-// ProjectSlug defines model for ProjectSlug.
-type ProjectSlug = string
 
 // ListCardsParams defines parameters for ListCards.
 type ListCardsParams struct {
@@ -160,8 +191,8 @@ type CreateProjectJSONRequestBody = CreateProjectRequest
 // CreateCardJSONRequestBody defines body for CreateCard for application/json ContentType.
 type CreateCardJSONRequestBody = CreateCardRequest
 
-// AddCommentJSONRequestBody defines body for AddComment for application/json ContentType.
-type AddCommentJSONRequestBody = TextBodyRequest
+// CommentCardJSONRequestBody defines body for CommentCard for application/json ContentType.
+type CommentCardJSONRequestBody = TextBodyRequest
 
 // AppendDescriptionJSONRequestBody defines body for AppendDescription for application/json ContentType.
 type AppendDescriptionJSONRequestBody = TextBodyRequest
@@ -245,11 +276,8 @@ type ClientInterface interface {
 	// RebuildProjection request
 	RebuildProjection(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// Health request
-	Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetOpenAPIYaml request
-	GetOpenAPIYaml(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetHealth request
+	GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListProjects request
 	ListProjects(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -260,33 +288,33 @@ type ClientInterface interface {
 	CreateProject(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListCards request
-	ListCards(ctx context.Context, project ProjectSlug, params *ListCardsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListCards(ctx context.Context, project string, params *ListCardsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateCardWithBody request with any body
-	CreateCardWithBody(ctx context.Context, project ProjectSlug, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateCardWithBody(ctx context.Context, project string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateCard(ctx context.Context, project ProjectSlug, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateCard(ctx context.Context, project string, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteCard request
-	DeleteCard(ctx context.Context, project ProjectSlug, number CardNumber, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteCard(ctx context.Context, project string, number int64, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetCard request
-	GetCard(ctx context.Context, project ProjectSlug, number CardNumber, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetCard(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// AddCommentWithBody request with any body
-	AddCommentWithBody(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// CommentCardWithBody request with any body
+	CommentCardWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	AddComment(ctx context.Context, project ProjectSlug, number CardNumber, body AddCommentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CommentCard(ctx context.Context, project string, number int64, body CommentCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AppendDescriptionWithBody request with any body
-	AppendDescriptionWithBody(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AppendDescriptionWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	AppendDescription(ctx context.Context, project ProjectSlug, number CardNumber, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AppendDescription(ctx context.Context, project string, number int64, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MoveCardWithBody request with any body
-	MoveCardWithBody(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	MoveCardWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	MoveCard(ctx context.Context, project ProjectSlug, number CardNumber, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	MoveCard(ctx context.Context, project string, number int64, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// WebsocketEvents request
 	WebsocketEvents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -304,20 +332,8 @@ func (c *Client) RebuildProjection(ctx context.Context, reqEditors ...RequestEdi
 	return c.Client.Do(req)
 }
 
-func (c *Client) Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewHealthRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetOpenAPIYaml(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetOpenAPIYamlRequest(c.Server)
+func (c *Client) GetHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHealthRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +380,7 @@ func (c *Client) CreateProject(ctx context.Context, body CreateProjectJSONReques
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListCards(ctx context.Context, project ProjectSlug, params *ListCardsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) ListCards(ctx context.Context, project string, params *ListCardsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListCardsRequest(c.Server, project, params)
 	if err != nil {
 		return nil, err
@@ -376,7 +392,7 @@ func (c *Client) ListCards(ctx context.Context, project ProjectSlug, params *Lis
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateCardWithBody(ctx context.Context, project ProjectSlug, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CreateCardWithBody(ctx context.Context, project string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateCardRequestWithBody(c.Server, project, contentType, body)
 	if err != nil {
 		return nil, err
@@ -388,7 +404,7 @@ func (c *Client) CreateCardWithBody(ctx context.Context, project ProjectSlug, co
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateCard(ctx context.Context, project ProjectSlug, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) CreateCard(ctx context.Context, project string, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateCardRequest(c.Server, project, body)
 	if err != nil {
 		return nil, err
@@ -400,7 +416,7 @@ func (c *Client) CreateCard(ctx context.Context, project ProjectSlug, body Creat
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteCard(ctx context.Context, project ProjectSlug, number CardNumber, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) DeleteCard(ctx context.Context, project string, number int64, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteCardRequest(c.Server, project, number, params)
 	if err != nil {
 		return nil, err
@@ -412,7 +428,7 @@ func (c *Client) DeleteCard(ctx context.Context, project ProjectSlug, number Car
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetCard(ctx context.Context, project ProjectSlug, number CardNumber, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) GetCard(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetCardRequest(c.Server, project, number)
 	if err != nil {
 		return nil, err
@@ -424,8 +440,8 @@ func (c *Client) GetCard(ctx context.Context, project ProjectSlug, number CardNu
 	return c.Client.Do(req)
 }
 
-func (c *Client) AddCommentWithBody(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddCommentRequestWithBody(c.Server, project, number, contentType, body)
+func (c *Client) CommentCardWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCommentCardRequestWithBody(c.Server, project, number, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -436,8 +452,8 @@ func (c *Client) AddCommentWithBody(ctx context.Context, project ProjectSlug, nu
 	return c.Client.Do(req)
 }
 
-func (c *Client) AddComment(ctx context.Context, project ProjectSlug, number CardNumber, body AddCommentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAddCommentRequest(c.Server, project, number, body)
+func (c *Client) CommentCard(ctx context.Context, project string, number int64, body CommentCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCommentCardRequest(c.Server, project, number, body)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +464,7 @@ func (c *Client) AddComment(ctx context.Context, project ProjectSlug, number Car
 	return c.Client.Do(req)
 }
 
-func (c *Client) AppendDescriptionWithBody(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) AppendDescriptionWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppendDescriptionRequestWithBody(c.Server, project, number, contentType, body)
 	if err != nil {
 		return nil, err
@@ -460,7 +476,7 @@ func (c *Client) AppendDescriptionWithBody(ctx context.Context, project ProjectS
 	return c.Client.Do(req)
 }
 
-func (c *Client) AppendDescription(ctx context.Context, project ProjectSlug, number CardNumber, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) AppendDescription(ctx context.Context, project string, number int64, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppendDescriptionRequest(c.Server, project, number, body)
 	if err != nil {
 		return nil, err
@@ -472,7 +488,7 @@ func (c *Client) AppendDescription(ctx context.Context, project ProjectSlug, num
 	return c.Client.Do(req)
 }
 
-func (c *Client) MoveCardWithBody(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) MoveCardWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMoveCardRequestWithBody(c.Server, project, number, contentType, body)
 	if err != nil {
 		return nil, err
@@ -484,7 +500,7 @@ func (c *Client) MoveCardWithBody(ctx context.Context, project ProjectSlug, numb
 	return c.Client.Do(req)
 }
 
-func (c *Client) MoveCard(ctx context.Context, project ProjectSlug, number CardNumber, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) MoveCard(ctx context.Context, project string, number int64, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMoveCardRequest(c.Server, project, number, body)
 	if err != nil {
 		return nil, err
@@ -535,8 +551,8 @@ func NewRebuildProjectionRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewHealthRequest generates requests for Health
-func NewHealthRequest(server string) (*http.Request, error) {
+// NewGetHealthRequest generates requests for GetHealth
+func NewGetHealthRequest(server string) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -545,33 +561,6 @@ func NewHealthRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/health")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetOpenAPIYamlRequest generates requests for GetOpenAPIYaml
-func NewGetOpenAPIYamlRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/openapi.yaml")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -657,7 +646,7 @@ func NewCreateProjectRequestWithBody(server string, contentType string, body io.
 }
 
 // NewListCardsRequest generates requests for ListCards
-func NewListCardsRequest(server string, project ProjectSlug, params *ListCardsParams) (*http.Request, error) {
+func NewListCardsRequest(server string, project string, params *ListCardsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -687,7 +676,7 @@ func NewListCardsRequest(server string, project ProjectSlug, params *ListCardsPa
 
 		if params.IncludeDeleted != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "include_deleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "include_deleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -713,7 +702,7 @@ func NewListCardsRequest(server string, project ProjectSlug, params *ListCardsPa
 }
 
 // NewCreateCardRequest calls the generic CreateCard builder with application/json body
-func NewCreateCardRequest(server string, project ProjectSlug, body CreateCardJSONRequestBody) (*http.Request, error) {
+func NewCreateCardRequest(server string, project string, body CreateCardJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -724,7 +713,7 @@ func NewCreateCardRequest(server string, project ProjectSlug, body CreateCardJSO
 }
 
 // NewCreateCardRequestWithBody generates requests for CreateCard with any type of body
-func NewCreateCardRequestWithBody(server string, project ProjectSlug, contentType string, body io.Reader) (*http.Request, error) {
+func NewCreateCardRequestWithBody(server string, project string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -760,7 +749,7 @@ func NewCreateCardRequestWithBody(server string, project ProjectSlug, contentTyp
 }
 
 // NewDeleteCardRequest generates requests for DeleteCard
-func NewDeleteCardRequest(server string, project ProjectSlug, number CardNumber, params *DeleteCardParams) (*http.Request, error) {
+func NewDeleteCardRequest(server string, project string, number int64, params *DeleteCardParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -797,7 +786,7 @@ func NewDeleteCardRequest(server string, project ProjectSlug, number CardNumber,
 
 		if params.Hard != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "hard", runtime.ParamLocationQuery, *params.Hard); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "hard", runtime.ParamLocationQuery, *params.Hard); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -823,7 +812,7 @@ func NewDeleteCardRequest(server string, project ProjectSlug, number CardNumber,
 }
 
 // NewGetCardRequest generates requests for GetCard
-func NewGetCardRequest(server string, project ProjectSlug, number CardNumber) (*http.Request, error) {
+func NewGetCardRequest(server string, project string, number int64) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -863,19 +852,19 @@ func NewGetCardRequest(server string, project ProjectSlug, number CardNumber) (*
 	return req, nil
 }
 
-// NewAddCommentRequest calls the generic AddComment builder with application/json body
-func NewAddCommentRequest(server string, project ProjectSlug, number CardNumber, body AddCommentJSONRequestBody) (*http.Request, error) {
+// NewCommentCardRequest calls the generic CommentCard builder with application/json body
+func NewCommentCardRequest(server string, project string, number int64, body CommentCardJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewAddCommentRequestWithBody(server, project, number, "application/json", bodyReader)
+	return NewCommentCardRequestWithBody(server, project, number, "application/json", bodyReader)
 }
 
-// NewAddCommentRequestWithBody generates requests for AddComment with any type of body
-func NewAddCommentRequestWithBody(server string, project ProjectSlug, number CardNumber, contentType string, body io.Reader) (*http.Request, error) {
+// NewCommentCardRequestWithBody generates requests for CommentCard with any type of body
+func NewCommentCardRequestWithBody(server string, project string, number int64, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -918,7 +907,7 @@ func NewAddCommentRequestWithBody(server string, project ProjectSlug, number Car
 }
 
 // NewAppendDescriptionRequest calls the generic AppendDescription builder with application/json body
-func NewAppendDescriptionRequest(server string, project ProjectSlug, number CardNumber, body AppendDescriptionJSONRequestBody) (*http.Request, error) {
+func NewAppendDescriptionRequest(server string, project string, number int64, body AppendDescriptionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -929,7 +918,7 @@ func NewAppendDescriptionRequest(server string, project ProjectSlug, number Card
 }
 
 // NewAppendDescriptionRequestWithBody generates requests for AppendDescription with any type of body
-func NewAppendDescriptionRequestWithBody(server string, project ProjectSlug, number CardNumber, contentType string, body io.Reader) (*http.Request, error) {
+func NewAppendDescriptionRequestWithBody(server string, project string, number int64, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -972,7 +961,7 @@ func NewAppendDescriptionRequestWithBody(server string, project ProjectSlug, num
 }
 
 // NewMoveCardRequest calls the generic MoveCard builder with application/json body
-func NewMoveCardRequest(server string, project ProjectSlug, number CardNumber, body MoveCardJSONRequestBody) (*http.Request, error) {
+func NewMoveCardRequest(server string, project string, number int64, body MoveCardJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
@@ -983,7 +972,7 @@ func NewMoveCardRequest(server string, project ProjectSlug, number CardNumber, b
 }
 
 // NewMoveCardRequestWithBody generates requests for MoveCard with any type of body
-func NewMoveCardRequestWithBody(server string, project ProjectSlug, number CardNumber, contentType string, body io.Reader) (*http.Request, error) {
+func NewMoveCardRequestWithBody(server string, project string, number int64, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1098,11 +1087,8 @@ type ClientWithResponsesInterface interface {
 	// RebuildProjectionWithResponse request
 	RebuildProjectionWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*RebuildProjectionResponse, error)
 
-	// HealthWithResponse request
-	HealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthResponse, error)
-
-	// GetOpenAPIYamlWithResponse request
-	GetOpenAPIYamlWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetOpenAPIYamlResponse, error)
+	// GetHealthWithResponse request
+	GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error)
 
 	// ListProjectsWithResponse request
 	ListProjectsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProjectsResponse, error)
@@ -1113,45 +1099,43 @@ type ClientWithResponsesInterface interface {
 	CreateProjectWithResponse(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateProjectResponse, error)
 
 	// ListCardsWithResponse request
-	ListCardsWithResponse(ctx context.Context, project ProjectSlug, params *ListCardsParams, reqEditors ...RequestEditorFn) (*ListCardsResponse, error)
+	ListCardsWithResponse(ctx context.Context, project string, params *ListCardsParams, reqEditors ...RequestEditorFn) (*ListCardsResponse, error)
 
 	// CreateCardWithBodyWithResponse request with any body
-	CreateCardWithBodyWithResponse(ctx context.Context, project ProjectSlug, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCardResponse, error)
+	CreateCardWithBodyWithResponse(ctx context.Context, project string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCardResponse, error)
 
-	CreateCardWithResponse(ctx context.Context, project ProjectSlug, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCardResponse, error)
+	CreateCardWithResponse(ctx context.Context, project string, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCardResponse, error)
 
 	// DeleteCardWithResponse request
-	DeleteCardWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*DeleteCardResponse, error)
+	DeleteCardWithResponse(ctx context.Context, project string, number int64, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*DeleteCardResponse, error)
 
 	// GetCardWithResponse request
-	GetCardWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, reqEditors ...RequestEditorFn) (*GetCardResponse, error)
+	GetCardWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*GetCardResponse, error)
 
-	// AddCommentWithBodyWithResponse request with any body
-	AddCommentWithBodyWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCommentResponse, error)
+	// CommentCardWithBodyWithResponse request with any body
+	CommentCardWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CommentCardResponse, error)
 
-	AddCommentWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, body AddCommentJSONRequestBody, reqEditors ...RequestEditorFn) (*AddCommentResponse, error)
+	CommentCardWithResponse(ctx context.Context, project string, number int64, body CommentCardJSONRequestBody, reqEditors ...RequestEditorFn) (*CommentCardResponse, error)
 
 	// AppendDescriptionWithBodyWithResponse request with any body
-	AppendDescriptionWithBodyWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error)
+	AppendDescriptionWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error)
 
-	AppendDescriptionWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error)
+	AppendDescriptionWithResponse(ctx context.Context, project string, number int64, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error)
 
 	// MoveCardWithBodyWithResponse request with any body
-	MoveCardWithBodyWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MoveCardResponse, error)
+	MoveCardWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MoveCardResponse, error)
 
-	MoveCardWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*MoveCardResponse, error)
+	MoveCardWithResponse(ctx context.Context, project string, number int64, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*MoveCardResponse, error)
 
 	// WebsocketEventsWithResponse request
 	WebsocketEventsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*WebsocketEventsResponse, error)
 }
 
 type RebuildProjectionResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		CardsRebuilt    *int `json:"cards_rebuilt,omitempty"`
-		ProjectsRebuilt *int `json:"projects_rebuilt,omitempty"`
-	}
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *RebuildProjectionOutputBody
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1170,16 +1154,15 @@ func (r RebuildProjectionResponse) StatusCode() int {
 	return 0
 }
 
-type HealthResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		Ok *bool `json:"ok,omitempty"`
-	}
+type GetHealthResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *HealthOutputBody
+	ApplicationproblemJSONDefault *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
-func (r HealthResponse) Status() string {
+func (r GetHealthResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1187,29 +1170,7 @@ func (r HealthResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r HealthResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetOpenAPIYamlResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	YAML200      *string
-}
-
-// Status returns HTTPResponse.Status
-func (r GetOpenAPIYamlResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetOpenAPIYamlResponse) StatusCode() int {
+func (r GetHealthResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1217,11 +1178,10 @@ func (r GetOpenAPIYamlResponse) StatusCode() int {
 }
 
 type ListProjectsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		Projects *[]Project `json:"projects,omitempty"`
-	}
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *ListProjectsOutputBody
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1241,11 +1201,13 @@ func (r ListProjectsResponse) StatusCode() int {
 }
 
 type CreateProjectResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *Project
-	JSON400      *ErrorResponse
-	JSON409      *ErrorResponse
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON201                   *Project
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON409 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1265,11 +1227,11 @@ func (r CreateProjectResponse) StatusCode() int {
 }
 
 type ListCardsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		Cards *[]CardSummary `json:"cards,omitempty"`
-	}
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *ListCardsOutputBody
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1289,10 +1251,12 @@ func (r ListCardsResponse) StatusCode() int {
 }
 
 type CreateCardResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *Card
-	JSON400      *ErrorResponse
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON201                   *Card
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1312,10 +1276,13 @@ func (r CreateCardResponse) StatusCode() int {
 }
 
 type DeleteCardResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Card
-	JSON404      *ErrorResponse
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Card
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1335,10 +1302,13 @@ func (r DeleteCardResponse) StatusCode() int {
 }
 
 type GetCardResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Card
-	JSON404      *ErrorResponse
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Card
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1357,14 +1327,18 @@ func (r GetCardResponse) StatusCode() int {
 	return 0
 }
 
-type AddCommentResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Card
+type CommentCardResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Card
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
-func (r AddCommentResponse) Status() string {
+func (r CommentCardResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -1372,7 +1346,7 @@ func (r AddCommentResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r AddCommentResponse) StatusCode() int {
+func (r CommentCardResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1380,9 +1354,13 @@ func (r AddCommentResponse) StatusCode() int {
 }
 
 type AppendDescriptionResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Card
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Card
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1402,9 +1380,13 @@ func (r AppendDescriptionResponse) StatusCode() int {
 }
 
 type MoveCardResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *Card
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Card
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
@@ -1453,22 +1435,13 @@ func (c *ClientWithResponses) RebuildProjectionWithResponse(ctx context.Context,
 	return ParseRebuildProjectionResponse(rsp)
 }
 
-// HealthWithResponse request returning *HealthResponse
-func (c *ClientWithResponses) HealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthResponse, error) {
-	rsp, err := c.Health(ctx, reqEditors...)
+// GetHealthWithResponse request returning *GetHealthResponse
+func (c *ClientWithResponses) GetHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthResponse, error) {
+	rsp, err := c.GetHealth(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseHealthResponse(rsp)
-}
-
-// GetOpenAPIYamlWithResponse request returning *GetOpenAPIYamlResponse
-func (c *ClientWithResponses) GetOpenAPIYamlWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetOpenAPIYamlResponse, error) {
-	rsp, err := c.GetOpenAPIYaml(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetOpenAPIYamlResponse(rsp)
+	return ParseGetHealthResponse(rsp)
 }
 
 // ListProjectsWithResponse request returning *ListProjectsResponse
@@ -1498,7 +1471,7 @@ func (c *ClientWithResponses) CreateProjectWithResponse(ctx context.Context, bod
 }
 
 // ListCardsWithResponse request returning *ListCardsResponse
-func (c *ClientWithResponses) ListCardsWithResponse(ctx context.Context, project ProjectSlug, params *ListCardsParams, reqEditors ...RequestEditorFn) (*ListCardsResponse, error) {
+func (c *ClientWithResponses) ListCardsWithResponse(ctx context.Context, project string, params *ListCardsParams, reqEditors ...RequestEditorFn) (*ListCardsResponse, error) {
 	rsp, err := c.ListCards(ctx, project, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1507,7 +1480,7 @@ func (c *ClientWithResponses) ListCardsWithResponse(ctx context.Context, project
 }
 
 // CreateCardWithBodyWithResponse request with arbitrary body returning *CreateCardResponse
-func (c *ClientWithResponses) CreateCardWithBodyWithResponse(ctx context.Context, project ProjectSlug, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCardResponse, error) {
+func (c *ClientWithResponses) CreateCardWithBodyWithResponse(ctx context.Context, project string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCardResponse, error) {
 	rsp, err := c.CreateCardWithBody(ctx, project, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1515,7 +1488,7 @@ func (c *ClientWithResponses) CreateCardWithBodyWithResponse(ctx context.Context
 	return ParseCreateCardResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateCardWithResponse(ctx context.Context, project ProjectSlug, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCardResponse, error) {
+func (c *ClientWithResponses) CreateCardWithResponse(ctx context.Context, project string, body CreateCardJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCardResponse, error) {
 	rsp, err := c.CreateCard(ctx, project, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1524,7 +1497,7 @@ func (c *ClientWithResponses) CreateCardWithResponse(ctx context.Context, projec
 }
 
 // DeleteCardWithResponse request returning *DeleteCardResponse
-func (c *ClientWithResponses) DeleteCardWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*DeleteCardResponse, error) {
+func (c *ClientWithResponses) DeleteCardWithResponse(ctx context.Context, project string, number int64, params *DeleteCardParams, reqEditors ...RequestEditorFn) (*DeleteCardResponse, error) {
 	rsp, err := c.DeleteCard(ctx, project, number, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1533,7 +1506,7 @@ func (c *ClientWithResponses) DeleteCardWithResponse(ctx context.Context, projec
 }
 
 // GetCardWithResponse request returning *GetCardResponse
-func (c *ClientWithResponses) GetCardWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, reqEditors ...RequestEditorFn) (*GetCardResponse, error) {
+func (c *ClientWithResponses) GetCardWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*GetCardResponse, error) {
 	rsp, err := c.GetCard(ctx, project, number, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1541,25 +1514,25 @@ func (c *ClientWithResponses) GetCardWithResponse(ctx context.Context, project P
 	return ParseGetCardResponse(rsp)
 }
 
-// AddCommentWithBodyWithResponse request with arbitrary body returning *AddCommentResponse
-func (c *ClientWithResponses) AddCommentWithBodyWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCommentResponse, error) {
-	rsp, err := c.AddCommentWithBody(ctx, project, number, contentType, body, reqEditors...)
+// CommentCardWithBodyWithResponse request with arbitrary body returning *CommentCardResponse
+func (c *ClientWithResponses) CommentCardWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CommentCardResponse, error) {
+	rsp, err := c.CommentCardWithBody(ctx, project, number, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseAddCommentResponse(rsp)
+	return ParseCommentCardResponse(rsp)
 }
 
-func (c *ClientWithResponses) AddCommentWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, body AddCommentJSONRequestBody, reqEditors ...RequestEditorFn) (*AddCommentResponse, error) {
-	rsp, err := c.AddComment(ctx, project, number, body, reqEditors...)
+func (c *ClientWithResponses) CommentCardWithResponse(ctx context.Context, project string, number int64, body CommentCardJSONRequestBody, reqEditors ...RequestEditorFn) (*CommentCardResponse, error) {
+	rsp, err := c.CommentCard(ctx, project, number, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseAddCommentResponse(rsp)
+	return ParseCommentCardResponse(rsp)
 }
 
 // AppendDescriptionWithBodyWithResponse request with arbitrary body returning *AppendDescriptionResponse
-func (c *ClientWithResponses) AppendDescriptionWithBodyWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error) {
+func (c *ClientWithResponses) AppendDescriptionWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error) {
 	rsp, err := c.AppendDescriptionWithBody(ctx, project, number, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1567,7 +1540,7 @@ func (c *ClientWithResponses) AppendDescriptionWithBodyWithResponse(ctx context.
 	return ParseAppendDescriptionResponse(rsp)
 }
 
-func (c *ClientWithResponses) AppendDescriptionWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error) {
+func (c *ClientWithResponses) AppendDescriptionWithResponse(ctx context.Context, project string, number int64, body AppendDescriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppendDescriptionResponse, error) {
 	rsp, err := c.AppendDescription(ctx, project, number, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1576,7 +1549,7 @@ func (c *ClientWithResponses) AppendDescriptionWithResponse(ctx context.Context,
 }
 
 // MoveCardWithBodyWithResponse request with arbitrary body returning *MoveCardResponse
-func (c *ClientWithResponses) MoveCardWithBodyWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MoveCardResponse, error) {
+func (c *ClientWithResponses) MoveCardWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MoveCardResponse, error) {
 	rsp, err := c.MoveCardWithBody(ctx, project, number, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1584,7 +1557,7 @@ func (c *ClientWithResponses) MoveCardWithBodyWithResponse(ctx context.Context, 
 	return ParseMoveCardResponse(rsp)
 }
 
-func (c *ClientWithResponses) MoveCardWithResponse(ctx context.Context, project ProjectSlug, number CardNumber, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*MoveCardResponse, error) {
+func (c *ClientWithResponses) MoveCardWithResponse(ctx context.Context, project string, number int64, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*MoveCardResponse, error) {
 	rsp, err := c.MoveCard(ctx, project, number, body, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1616,68 +1589,51 @@ func ParseRebuildProjectionResponse(rsp *http.Response) (*RebuildProjectionRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			CardsRebuilt    *int `json:"cards_rebuilt,omitempty"`
-			ProjectsRebuilt *int `json:"projects_rebuilt,omitempty"`
-		}
+		var dest RebuildProjectionOutputBody
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
 	return response, nil
 }
 
-// ParseHealthResponse parses an HTTP response from a HealthWithResponse call
-func ParseHealthResponse(rsp *http.Response) (*HealthResponse, error) {
+// ParseGetHealthResponse parses an HTTP response from a GetHealthWithResponse call
+func ParseGetHealthResponse(rsp *http.Response) (*GetHealthResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &HealthResponse{
+	response := &GetHealthResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Ok *bool `json:"ok,omitempty"`
-		}
+		var dest HealthOutputBody
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
-	}
-
-	return response, nil
-}
-
-// ParseGetOpenAPIYamlResponse parses an HTTP response from a GetOpenAPIYamlWithResponse call
-func ParseGetOpenAPIYamlResponse(rsp *http.Response) (*GetOpenAPIYamlResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetOpenAPIYamlResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "yaml") && rsp.StatusCode == 200:
-		var dest string
-		if err := yaml.Unmarshal(bodyBytes, &dest); err != nil {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.YAML200 = &dest
+		response.ApplicationproblemJSONDefault = &dest
 
 	}
 
@@ -1699,13 +1655,18 @@ func ParseListProjectsResponse(rsp *http.Response) (*ListProjectsResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Projects *[]Project `json:"projects,omitempty"`
-		}
+		var dest ListProjectsOutputBody
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
@@ -1734,18 +1695,32 @@ func ParseCreateProjectResponse(rsp *http.Response) (*CreateProjectResponse, err
 		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest ErrorResponse
+		var dest ErrorModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON400 = &dest
+		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest ErrorResponse
+		var dest ErrorModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON409 = &dest
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
@@ -1767,13 +1742,25 @@ func ParseListCardsResponse(rsp *http.Response) (*ListCardsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Cards *[]CardSummary `json:"cards,omitempty"`
-		}
+		var dest ListCardsOutputBody
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
@@ -1802,11 +1789,25 @@ func ParseCreateCardResponse(rsp *http.Response) (*CreateCardResponse, error) {
 		response.JSON201 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest ErrorResponse
+		var dest ErrorModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON400 = &dest
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
@@ -1834,12 +1835,33 @@ func ParseDeleteCardResponse(rsp *http.Response) (*DeleteCardResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest ErrorResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON404 = &dest
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
@@ -1867,27 +1889,48 @@ func ParseGetCardResponse(rsp *http.Response) (*GetCardResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest ErrorResponse
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON404 = &dest
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
 	return response, nil
 }
 
-// ParseAddCommentResponse parses an HTTP response from a AddCommentWithResponse call
-func ParseAddCommentResponse(rsp *http.Response) (*AddCommentResponse, error) {
+// ParseCommentCardResponse parses an HTTP response from a CommentCardWithResponse call
+func ParseCommentCardResponse(rsp *http.Response) (*CommentCardResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &AddCommentResponse{
+	response := &CommentCardResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -1899,6 +1942,34 @@ func ParseAddCommentResponse(rsp *http.Response) (*AddCommentResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 
@@ -1926,6 +1997,34 @@ func ParseAppendDescriptionResponse(rsp *http.Response) (*AppendDescriptionRespo
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
 	}
 
 	return response, nil
@@ -1951,6 +2050,34 @@ func ParseMoveCardResponse(rsp *http.Response) (*MoveCardResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
 
 	}
 

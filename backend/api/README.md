@@ -1,6 +1,14 @@
 # OpenAPI
 
-The backend contract lives in `/Users/simonjohansson/src/kanban/backend/api/openapi.yaml` and is served by the backend at `GET /openapi.yaml`.
+The backend contract is generated from Huma-registered API operations and served by the backend at `GET /openapi.yaml`.
+The checked-in spec snapshot lives at `/Users/simonjohansson/src/kanban/backend/api/openapi.yaml`.
+
+## Sync From API
+
+```bash
+cd /Users/simonjohansson/src/kanban/backend
+make openapi-sync
+```
 
 ## Validate
 
@@ -27,6 +35,6 @@ Use the same OpenAPI file with your preferred generator:
 
 Recommended workflow for all clients:
 1. Update backend routes and tests.
-2. Update `openapi.yaml` in the same PR.
+2. Run `make openapi-sync` and commit the updated `openapi.yaml`.
 3. Regenerate clients.
 4. Run client compile/tests in consuming repos.

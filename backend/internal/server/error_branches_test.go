@@ -66,5 +66,5 @@ func TestAdditionalHandlerBranches(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, moveMissingCard.StatusCode)
 
 	deleteInvalidNumber := doJSON(t, httpServer.URL+"/projects/branches/cards/not-a-number", http.MethodDelete, nil)
-	require.Equal(t, http.StatusBadRequest, deleteInvalidNumber.StatusCode)
+	require.Equal(t, http.StatusUnprocessableEntity, deleteInvalidNumber.StatusCode)
 }

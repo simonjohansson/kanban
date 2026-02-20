@@ -96,7 +96,10 @@ Current MVP scope is backend + API + full end-to-end test harness.
 26. API evolution strategy suggestion.
 - Answer: Add OpenAPI spec and generate clients for CLI/Swift/Web to keep clients in sync as API changes.
 
-## Architecture (MVP)
+27. Backend framework direction.
+- Answer: Migrate backend REST layer to `huma` (no longer MVP-only architecture), keep websocket on native route, and generate OpenAPI from registered operations.
+
+## Architecture
 - Monorepo root: `/Users/simonjohansson/src/kanban`
 - Backend module: `/Users/simonjohansson/src/kanban/backend`
 - Data layout:
@@ -109,7 +112,7 @@ Current MVP scope is backend + API + full end-to-end test harness.
   - derived/upserted from backend operations
   - fully rebuildable from markdown snapshot
 - API transport:
-  - REST JSON + websocket stream for events
+  - REST JSON via `huma` + websocket stream for events
 
 ## Future Enhancements
 - OpenAPI contract for backend API.
@@ -163,6 +166,9 @@ Current MVP scope is backend + API + full end-to-end test harness.
 - [x] Added generated-client e2e flow test at `/Users/simonjohansson/src/kanban/backend/e2e_generated_client_test.go`.
 - [x] Added backend logging (startup/shutdown, HTTP request logs, and operation-level action logs).
 - [x] Added e2e backend log streaming to test output for black-box and generated-client tests.
+- [x] Migrated backend API registration/contract to Huma with chi adapter.
+- [x] Added OpenAPI export command at `/Users/simonjohansson/src/kanban/backend/cmd/export-openapi/main.go`.
+- [x] Updated OpenAPI workflow so `make openapi-sync` exports spec from running API registration.
 - [x] Added integration/e2e tests (in-process + black-box process) with filesystem + sqlite assertions.
 - [x] Full backend test suite is green.
 - [x] Increased backend server package coverage to `83.6%`.

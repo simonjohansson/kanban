@@ -2,6 +2,8 @@
 
 Go backend for the multi-project kanban system.
 
+Framework: `huma` (with `chi` adapter). The OpenAPI document is generated from registered operations and served at `GET /openapi.yaml`.
+
 ## Run
 
 ```bash
@@ -86,3 +88,15 @@ curl -sS "$BASE_URL/projects/demo-project/cards/1"
 - `GET /openapi.yaml`
 - `GET /ws`
 - `POST /admin/rebuild`
+
+## OpenAPI And Client Generation
+
+```bash
+cd /Users/simonjohansson/src/kanban/backend
+make openapi-sync
+make openapi-validate
+make openapi-gen-go-client
+```
+
+Generated client output:
+- `/Users/simonjohansson/src/kanban/backend/internal/gen/client/client.gen.go`

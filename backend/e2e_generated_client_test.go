@@ -31,12 +31,11 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NoError(t, err)
 	ctx := context.Background()
 
-	health, err := client.HealthWithResponse(ctx)
+	health, err := client.GetHealthWithResponse(ctx)
 	require.NoError(t, err)
 	require.Equal(t, 200, health.StatusCode())
 	require.NotNil(t, health.JSON200)
-	require.NotNil(t, health.JSON200.Ok)
-	require.True(t, *health.JSON200.Ok)
+	require.True(t, health.JSON200.Ok)
 
 	localPath := "/tmp/generated-client-demo"
 	remoteURL := "https://example.com/generated-client-demo.git"
@@ -54,13 +53,12 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, listProjects.StatusCode())
 	require.NotNil(t, listProjects.JSON200)
-	require.NotNil(t, listProjects.JSON200.Projects)
-	require.Len(t, *listProjects.JSON200.Projects, 1)
-	require.Equal(t, "generated-client-demo", (*listProjects.JSON200.Projects)[0].Slug)
+	require.Len(t, listProjects.JSON200.Projects, 1)
+	require.Equal(t, "generated-client-demo", listProjects.JSON200.Projects[0].Slug)
 
 	createCard, err := client.CreateCardWithResponse(ctx, "generated-client-demo", genclient.CreateCardRequest{
 		Title:       "Set up generated client e2e test",
-		Status:      genclient.CreateCardRequestStatusTodo,
+		Status:      "Todo",
 		Description: ptr("Initial description"),
 		Column:      ptr("Todo"),
 	})
@@ -69,15 +67,15 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NotNil(t, createCard.JSON201)
 	require.Equal(t, "generated-client-demo/card-1", createCard.JSON201.Id)
 
-	getCard, err := client.GetCardWithResponse(ctx, "generated-client-demo", 1)
+	getCard, err := client.GetCardWithResponse(ctx, "generated-client-demo", int64(1))
 	require.NoError(t, err)
 	require.Equal(t, 200, getCard.StatusCode())
 	require.NotNil(t, getCard.JSON200)
-	require.Equal(t, genclient.CardStatusTodo, getCard.JSON200.Status)
+	require.Equal(t, "Todo", getCard.JSON200.Status)
 	require.Len(t, getCard.JSON200.Description, 1)
 	require.Len(t, getCard.JSON200.Comments, 0)
 
-	addComment, err := client.AddCommentWithResponse(ctx, "generated-client-demo", 1, genclient.TextBodyRequest{
+	addComment, err := client.CommentCardWithResponse(ctx, "generated-client-demo", int64(1), genclient.TextBodyRequest{
 		Body: "This is a generated client comment",
 	})
 	require.NoError(t, err)
@@ -85,7 +83,7 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NotNil(t, addComment.JSON200)
 	require.Len(t, addComment.JSON200.Comments, 1)
 
-	appendDescription, err := client.AppendDescriptionWithResponse(ctx, "generated-client-demo", 1, genclient.TextBodyRequest{
+	appendDescription, err := client.AppendDescriptionWithResponse(ctx, "generated-client-demo", int64(1), genclient.TextBodyRequest{
 		Body: "Append description via generated client",
 	})
 	require.NoError(t, err)
@@ -93,23 +91,22 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NotNil(t, appendDescription.JSON200)
 	require.Len(t, appendDescription.JSON200.Description, 2)
 
-	moveCard, err := client.MoveCardWithResponse(ctx, "generated-client-demo", 1, genclient.MoveCardRequest{
-		Status: genclient.Doing,
+	moveCard, err := client.MoveCardWithResponse(ctx, "generated-client-demo", int64(1), genclient.MoveCardRequest{
+		Status: "Doing",
 		Column: ptr("Doing"),
 	})
 	require.NoError(t, err)
 	require.Equal(t, 200, moveCard.StatusCode())
 	require.NotNil(t, moveCard.JSON200)
-	require.Equal(t, genclient.CardStatusDoing, moveCard.JSON200.Status)
+	require.Equal(t, "Doing", moveCard.JSON200.Status)
 
 	listActiveCards, err := client.ListCardsWithResponse(ctx, "generated-client-demo", nil)
 	require.NoError(t, err)
 	require.Equal(t, 200, listActiveCards.StatusCode())
 	require.NotNil(t, listActiveCards.JSON200)
-	require.NotNil(t, listActiveCards.JSON200.Cards)
-	require.Len(t, *listActiveCards.JSON200.Cards, 1)
+	require.Len(t, listActiveCards.JSON200.Cards, 1)
 
-	softDelete, err := client.DeleteCardWithResponse(ctx, "generated-client-demo", 1, nil)
+	softDelete, err := client.DeleteCardWithResponse(ctx, "generated-client-demo", int64(1), nil)
 	require.NoError(t, err)
 	require.Equal(t, 200, softDelete.StatusCode())
 	require.NotNil(t, softDelete.JSON200)
@@ -119,8 +116,7 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, listWithoutDeleted.StatusCode())
 	require.NotNil(t, listWithoutDeleted.JSON200)
-	require.NotNil(t, listWithoutDeleted.JSON200.Cards)
-	require.Len(t, *listWithoutDeleted.JSON200.Cards, 0)
+	require.Len(t, listWithoutDeleted.JSON200.Cards, 0)
 
 	includeDeleted := true
 	listWithDeleted, err := client.ListCardsWithResponse(ctx, "generated-client-demo", &genclient.ListCardsParams{
@@ -129,11 +125,10 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, listWithDeleted.StatusCode())
 	require.NotNil(t, listWithDeleted.JSON200)
-	require.NotNil(t, listWithDeleted.JSON200.Cards)
-	require.Len(t, *listWithDeleted.JSON200.Cards, 1)
+	require.Len(t, listWithDeleted.JSON200.Cards, 1)
 
 	hardDelete := true
-	hardDeletedResp, err := client.DeleteCardWithResponse(ctx, "generated-client-demo", 1, &genclient.DeleteCardParams{
+	hardDeletedResp, err := client.DeleteCardWithResponse(ctx, "generated-client-demo", int64(1), &genclient.DeleteCardParams{
 		Hard: &hardDelete,
 	})
 	require.NoError(t, err)
@@ -146,15 +141,13 @@ func TestE2EGeneratedClientFlow(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, listAfterHardDelete.StatusCode())
 	require.NotNil(t, listAfterHardDelete.JSON200)
-	require.NotNil(t, listAfterHardDelete.JSON200.Cards)
-	require.Len(t, *listAfterHardDelete.JSON200.Cards, 0)
+	require.Len(t, listAfterHardDelete.JSON200.Cards, 0)
 
 	rebuild, err := client.RebuildProjectionWithResponse(ctx)
 	require.NoError(t, err)
 	require.Equal(t, 200, rebuild.StatusCode())
 	require.NotNil(t, rebuild.JSON200)
-	require.NotNil(t, rebuild.JSON200.ProjectsRebuilt)
-	require.Equal(t, 1, *rebuild.JSON200.ProjectsRebuilt)
+	require.Equal(t, int64(1), rebuild.JSON200.ProjectsRebuilt)
 }
 
 func ptr[T any](v T) *T {

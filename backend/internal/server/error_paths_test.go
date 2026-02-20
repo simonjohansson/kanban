@@ -17,7 +17,7 @@ func TestProjectAndCardErrorPaths(t *testing.T) {
 
 	badJSONProject := doRaw(t, httpServer.URL+"/projects", http.MethodPost, "{", "application/json")
 	require.Equal(t, http.StatusBadRequest, badJSONProject.StatusCode)
-	require.Contains(t, string(readBody(t, badJSONProject.Body)), "invalid json")
+	require.Contains(t, string(readBody(t, badJSONProject.Body)), "unexpected end of JSON input")
 
 	createProject := doJSON(t, httpServer.URL+"/projects", http.MethodPost, map[string]string{"name": "Err Board"})
 	require.Equal(t, http.StatusCreated, createProject.StatusCode)
@@ -29,7 +29,7 @@ func TestProjectAndCardErrorPaths(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, badJSONCard.StatusCode)
 
 	missingStatus := doJSON(t, httpServer.URL+"/projects/err-board/cards", http.MethodPost, map[string]string{"title": "No status"})
-	require.Equal(t, http.StatusBadRequest, missingStatus.StatusCode)
+	require.Equal(t, http.StatusUnprocessableEntity, missingStatus.StatusCode)
 
 	createCard := doJSON(t, httpServer.URL+"/projects/err-board/cards", http.MethodPost, map[string]string{
 		"title":  "Happy path",
@@ -38,7 +38,7 @@ func TestProjectAndCardErrorPaths(t *testing.T) {
 	require.Equal(t, http.StatusCreated, createCard.StatusCode)
 
 	invalidCardNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/abc", http.MethodGet, nil)
-	require.Equal(t, http.StatusBadRequest, invalidCardNumber.StatusCode)
+	require.Equal(t, http.StatusUnprocessableEntity, invalidCardNumber.StatusCode)
 
 	missingCard := doJSON(t, httpServer.URL+"/projects/err-board/cards/999", http.MethodGet, nil)
 	require.Equal(t, http.StatusNotFound, missingCard.StatusCode)
