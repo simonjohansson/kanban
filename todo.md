@@ -761,5 +761,17 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
 - [x] Fixed `kb watch` interrupt handling so Ctrl-C reliably exits immediately (added regression test).
 - [x] Added first macOS Swift app foundation at `/Users/simonjohansson/src/kanban/apps/kanban-macos` with generated OpenAPI client, sidebar project list, and websocket-triggered refresh flow.
 
+### Active task: Architecture diagrams for backend/cli, frontend, and macOS app
+- Context:
+  - User requested Mermaid architecture diagrams covering each app (`backend/cli`, `frontend`, `mac app`) and asked to place the deliverable in `architechture`.
+- Plan:
+  1. Collect concrete runtime component boundaries from each app entrypoint/service layer.
+  2. Create a dedicated architecture doc under `architechture` with Mermaid diagrams for all three apps.
+  3. Validate Mermaid syntax/consistency and update this checklist to done.
+- Checklist:
+  - [x] (done) Capture app-specific architecture components and data-flow edges.
+  - [x] (done) Create `architechture/architecture.md` with Mermaid diagrams for backend/cli, frontend, and macOS app.
+  - [x] (done) Verify diagram syntax/readability and finalize task notes.
+
 ## Open Questions
 - None currently blocking implementation.
