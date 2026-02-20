@@ -7,13 +7,13 @@ test:
 	go test ./... -count=1
 
 test-e2e:
-	go test ./... -count=1 -run 'TestE2EBlackBoxServerProcess|TestE2EGeneratedClientFlow'
+	go test ./... -count=1 -run 'TestE2EBlackBoxServerProcess|TestE2EGeneratedClientFlow|TestKanbanShowsHelpByDefault|TestKanbanPrimerCommandSupportsJSON|TestKanbanProjectAndCardFlowCallsBackend|TestKanbanWatchExitsOnInterrupt'
 
 test-e2e-verbose:
-	go test -v ./... -count=1 -run 'TestE2EBlackBoxServerProcess|TestE2EGeneratedClientFlow'
+	go test -v ./... -count=1 -run 'TestE2EBlackBoxServerProcess|TestE2EGeneratedClientFlow|TestKanbanShowsHelpByDefault|TestKanbanPrimerCommandSupportsJSON|TestKanbanProjectAndCardFlowCallsBackend|TestKanbanWatchExitsOnInterrupt'
 
 test-no-e2e:
-	go test ./... -count=1 -skip 'TestE2EBlackBoxServerProcess|TestE2EGeneratedClientFlow'
+	go test ./... -count=1 -skip 'TestE2EBlackBoxServerProcess|TestE2EGeneratedClientFlow|TestKanbanShowsHelpByDefault|TestKanbanPrimerCommandSupportsJSON|TestKanbanProjectAndCardFlowCallsBackend|TestKanbanWatchExitsOnInterrupt'
 
 sqlc-generate:
 	go run github.com/sqlc-dev/sqlc/cmd/sqlc@latest generate -f sqlc.yaml

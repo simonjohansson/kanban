@@ -24,9 +24,9 @@ import (
 func TestE2EBlackBoxServerProcess(t *testing.T) {
 	dataDir := t.TempDir()
 	sqlitePath := filepath.Join(dataDir, "projection.db")
-	binaryPath := filepath.Join(t.TempDir(), "kanban-backend")
+	binaryPath := filepath.Join(t.TempDir(), "kanban")
 
-	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/kanban-backend")
+	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/kanban")
 	build.Dir = "/Users/simonjohansson/src/kanban/backend"
 	buildOut, err := build.CombinedOutput()
 	require.NoError(t, err, string(buildOut))
@@ -35,7 +35,7 @@ func TestE2EBlackBoxServerProcess(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	cmd := exec.CommandContext(ctx, binaryPath, "--addr", addr, "--data-dir", dataDir, "--sqlite-path", sqlitePath)
+	cmd := exec.CommandContext(ctx, binaryPath, "serve", "--addr", addr, "--data-dir", dataDir, "--sqlite-path", sqlitePath)
 	stdoutPipe, err := cmd.StdoutPipe()
 	require.NoError(t, err)
 	stderrPipe, err := cmd.StderrPipe()

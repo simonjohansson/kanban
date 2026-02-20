@@ -1,4 +1,4 @@
-package kb
+package kanban
 
 import (
 	"bytes"
@@ -19,6 +19,7 @@ func TestPrimerTextIncludesCoreTemplates(t *testing.T) {
 	require.Contains(t, raw, "DELETE_PROJECT:")
 	require.Contains(t, raw, "LIST_CARDS_WITH_DELETED:")
 	require.Contains(t, raw, "LIST_CARDS => {\"cards\":[")
+	require.Contains(t, raw, "kanban --output json")
 }
 
 func TestPrimerJSONIncludesContractSections(t *testing.T) {
@@ -29,6 +30,8 @@ func TestPrimerJSONIncludesContractSections(t *testing.T) {
 
 	var payload map[string]any
 	require.NoError(t, json.Unmarshal(bytes.TrimSpace(out.Bytes()), &payload))
+
+	require.Equal(t, "kanban", payload["name"])
 
 	commandTemplates, ok := payload["command_templates"].(map[string]any)
 	require.True(t, ok)

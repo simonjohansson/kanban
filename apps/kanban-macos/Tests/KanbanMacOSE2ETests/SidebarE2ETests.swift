@@ -120,10 +120,11 @@ private final class E2EHarness {
         process.arguments = [
             "go",
             "run",
-            "./cmd/kanban-backend/main.go",
-            "-addr", address,
-            "-cards-path", cardsPath.path(percentEncoded: false),
-            "-sqlite-path", sqlitePath.path(percentEncoded: false),
+            "./cmd/kanban",
+            "serve",
+            "--addr", address,
+            "--cards-path", cardsPath.path(percentEncoded: false),
+            "--sqlite-path", sqlitePath.path(percentEncoded: false),
         ]
         process.currentDirectoryURL = backendDirectory
         process.environment = ProcessInfo.processInfo.environment

@@ -1,4 +1,4 @@
-package kb
+package kanban
 
 import (
 	"fmt"

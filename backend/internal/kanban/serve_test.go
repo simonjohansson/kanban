@@ -1,4 +1,4 @@
-package main
+package kanban
 
 import (
 	"os"
@@ -28,4 +28,12 @@ cli:
 	require.Equal(t, "127.0.0.1:9010", defaults.Addr)
 	require.Equal(t, "/tmp/from-config.db", defaults.SQLitePath)
 	require.Equal(t, "/tmp/from-config-cards", defaults.CardsPath)
+}
+
+func TestAddrFromServerURL(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "127.0.0.1:9010", addrFromServerURL("http://127.0.0.1:9010"))
+	require.Equal(t, "example.com:443", addrFromServerURL("https://example.com"))
+	require.Equal(t, defaultListenAddr, addrFromServerURL("not-a-url"))
 }

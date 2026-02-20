@@ -1,4 +1,4 @@
-package kb
+package kanban
 
 import (
 	"context"
@@ -29,23 +29,25 @@ func NewRootCommand(initial Config, stdout, stderr io.Writer) *cobra.Command {
 	}
 
 	root := &cobra.Command{
-		Use:   "kb",
-		Short: "Manage kanban projects and cards over HTTP.",
-		Long: strings.TrimSpace(`kb is a non-interactive CLI for managing kanban projects and cards
-against the Kanban backend API.
+		Use:   "kanban",
+		Short: "Run the Kanban server and manage projects/cards over HTTP.",
+		Long: strings.TrimSpace(`kanban is a unified binary for:
+- starting the Kanban backend server
+- managing projects and cards over the Kanban HTTP API
 
-Use kb help <command> for command-specific examples.
+Use kanban help <command> for command-specific examples.
 
 The CLI is intentionally transport-focused:
 - --server-url selects the backend endpoint
 - --output selects text/json formatting`),
-		Example: strings.TrimSpace(`kb --help
-kb project create --name "Alpha"
-kb proj ls
-kb card create -p alpha -t "Task" -s Todo
-kb cards rm -p alpha -i 1 --hard
-kb watch -p alpha
-kb --output json primer`),
+		Example: strings.TrimSpace(`kanban --help
+kanban serve
+kanban project create --name "Alpha"
+kanban proj ls
+kanban card create -p alpha -t "Task" -s Todo
+kanban cards rm -p alpha -i 1 --hard
+kanban watch -p alpha
+kanban --output json primer`),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
@@ -62,6 +64,7 @@ kb --output json primer`),
 	root.PersistentFlags().StringVar(&flags.serverURL, "server-url", flags.serverURL, "Backend API base URL (e.g. http://127.0.0.1:8080)")
 	root.PersistentFlags().StringVar(&flags.output, "output", flags.output, "Output format: text or json")
 
+	root.AddCommand(newServeCommand(&cfg))
 	root.AddCommand(newPrimerCommand(&cfg, stdout))
 	root.AddCommand(newProjectCommand(&cfg, stdout))
 	root.AddCommand(newCardCommand(&cfg, stdout))
@@ -91,8 +94,8 @@ func newPrimerCommand(cfg *Config, stdout io.Writer) *cobra.Command {
 		Use:   "primer",
 		Short: "Print concise usage guidance.",
 		Long:  "Prints quick command examples and usage conventions for scripting.",
-		Example: strings.TrimSpace(`kb primer
-kb --output json primer`),
+		Example: strings.TrimSpace(`kanban primer
+kanban --output json primer`),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return printPrimer(cfg.Output, stdout)
 		},
@@ -112,8 +115,8 @@ func newProjectCommand(cfg *Config, stdout io.Writer) *cobra.Command {
 		Aliases: []string{"new"},
 		Short:   "Create a project.",
 		Long:    "Create a project with optional repository metadata.",
-		Example: strings.TrimSpace(`kb project create --name "Alpha"
-kb proj new -n "Alpha" --local-path /work/alpha --remote-url git@github.com:org/alpha.git`),
+		Example: strings.TrimSpace(`kanban project create --name "Alpha"
+kanban proj new -n "Alpha" --local-path /work/alpha --remote-url git@github.com:org/alpha.git`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -146,8 +149,8 @@ kb proj new -n "Alpha" --local-path /work/alpha --remote-url git@github.com:org/
 		Aliases: []string{"ls"},
 		Short:   "List projects.",
 		Long:    "List all projects known by the backend.",
-		Example: strings.TrimSpace(`kb project list
-kb proj ls`),
+		Example: strings.TrimSpace(`kanban project list
+kanban proj ls`),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -165,8 +168,8 @@ kb proj ls`),
 		Short:   "Delete a project.",
 		Long:    "Delete a project by slug.",
 		Args:    cobra.ExactArgs(1),
-		Example: strings.TrimSpace(`kb project delete alpha
-kb proj rm alpha`),
+		Example: strings.TrimSpace(`kanban project delete alpha
+kanban proj rm alpha`),
 		RunE: func(_ *cobra.Command, args []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -195,8 +198,8 @@ func newCardCommand(cfg *Config, stdout io.Writer) *cobra.Command {
 		Aliases: []string{"new"},
 		Short:   "Create a card.",
 		Long:    "Create a card in a project with required title and status.",
-		Example: strings.TrimSpace(`kb card create --project alpha --title "Task" --status Todo
-kb cards new -p alpha -t "Task" -s Doing -c Doing`),
+		Example: strings.TrimSpace(`kanban card create --project alpha --title "Task" --status Todo
+kanban cards new -p alpha -t "Task" -s Doing -c Doing`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -238,8 +241,8 @@ kb cards new -p alpha -t "Task" -s Doing -c Doing`),
 		Aliases: []string{"ls"},
 		Short:   "List cards.",
 		Long:    "List cards in a project.",
-		Example: strings.TrimSpace(`kb card list --project alpha
-kb cards ls -p alpha --include-deleted`),
+		Example: strings.TrimSpace(`kanban card list --project alpha
+kanban cards ls -p alpha --include-deleted`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -263,8 +266,8 @@ kb cards ls -p alpha --include-deleted`),
 		Aliases: []string{"show"},
 		Short:   "Get one card.",
 		Long:    "Fetch one card by number from a project.",
-		Example: strings.TrimSpace(`kb card get --project alpha --id 1
-kb cards show -p alpha -i 1 --output json`),
+		Example: strings.TrimSpace(`kanban card get --project alpha --id 1
+kanban cards show -p alpha -i 1 --output json`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -287,8 +290,8 @@ kb cards show -p alpha -i 1 --output json`),
 		Use:   "move",
 		Short: "Move a card.",
 		Long:  "Update card status and optionally column.",
-		Example: strings.TrimSpace(`kb card move --project alpha --id 1 --status Doing
-kb cards move -p alpha -i 1 -s Review -c Review`),
+		Example: strings.TrimSpace(`kanban card move --project alpha --id 1 --status Doing
+kanban cards move -p alpha -i 1 -s Review -c Review`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -322,8 +325,8 @@ kb cards move -p alpha -i 1 -s Review -c Review`),
 		Aliases: []string{"note"},
 		Short:   "Append a comment.",
 		Long:    "Add a comment event to a card.",
-		Example: strings.TrimSpace(`kb card comment --project alpha --id 1 --body "Need review"
-kb cards note -p alpha -i 1 -b "LGTM"`),
+		Example: strings.TrimSpace(`kanban card comment --project alpha --id 1 --body "Need review"
+kanban cards note -p alpha -i 1 -b "LGTM"`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -350,8 +353,8 @@ kb cards note -p alpha -i 1 -b "LGTM"`),
 		Aliases: []string{"desc"},
 		Short:   "Append description text.",
 		Long:    "Append text to the card description event log.",
-		Example: strings.TrimSpace(`kb card describe --project alpha --id 1 --body "Investigated root cause"
-kb cards desc -p alpha -i 1 -b "Added acceptance criteria"`),
+		Example: strings.TrimSpace(`kanban card describe --project alpha --id 1 --body "Investigated root cause"
+kanban cards desc -p alpha -i 1 -b "Added acceptance criteria"`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -378,8 +381,8 @@ kb cards desc -p alpha -i 1 -b "Added acceptance criteria"`),
 		Aliases: []string{"rm", "remove"},
 		Short:   "Delete a card.",
 		Long:    "Soft-delete by default; set --hard for permanent delete.",
-		Example: strings.TrimSpace(`kb card delete --project alpha --id 1
-kb cards rm -p alpha -i 1 --hard`),
+		Example: strings.TrimSpace(`kanban card delete --project alpha --id 1
+kanban cards rm -p alpha -i 1 --hard`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := apiclient.NewClient(cfg.ServerURL)
 			if err != nil {
@@ -411,9 +414,9 @@ func newWatchCommand(cfg *Config, stdout io.Writer) *cobra.Command {
 		Aliases: []string{"events", "stream"},
 		Short:   "Stream realtime events over websocket.",
 		Long:    "Connect to backend websocket and continuously print events until interrupted.",
-		Example: strings.TrimSpace(`kb watch
-kb watch --project alpha
-kb events -p alpha --output json`),
+		Example: strings.TrimSpace(`kanban watch
+kanban watch --project alpha
+kanban events -p alpha --output json`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			project, _ := cmd.Flags().GetString("project")
 			wsURL, err := BuildWebsocketURL(cfg.ServerURL, strings.TrimSpace(project))

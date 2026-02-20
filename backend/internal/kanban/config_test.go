@@ -1,4 +1,4 @@
-package kb
+package kanban
 
 import (
 	"encoding/json"
@@ -61,8 +61,8 @@ func TestParseEnvConfig(t *testing.T) {
 	t.Parallel()
 
 	env := []string{
-		"KB_SERVER_URL=http://env:9999",
-		"KB_OUTPUT=json",
+		"KANBAN_SERVER_URL=http://env:9999",
+		"KANBAN_OUTPUT=json",
 	}
 
 	got := ParseEnvConfig(env)

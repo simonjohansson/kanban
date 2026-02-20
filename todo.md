@@ -290,6 +290,34 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Add/adjust tests for path + namespaced field behavior.
   - [x] Re-run CLI + backend + monorepo tests.
 
+### Active follow-up: Single unified `kanban` binary (backend + CLI)
+- Goal: replace separate backend+CLI executables with one binary named `kanban`.
+- Product decisions:
+  - Root command shows help by default.
+  - `serve` subcommand starts backend server.
+  - Existing CLI operations remain over HTTP via generated OpenAPI client.
+  - Precedence remains `flags > env > config`.
+  - Break immediately to unified binary (no compatibility wrappers).
+  - Update related tooling/docs/tests (including Swift app harness references).
+- Plan:
+  1. Add failing tests for unified command behavior (`kanban` root help and `kanban serve` process flow).
+  2. Port CLI runtime into backend module and rename command surface from `kb` to `kanban`.
+  3. Add `serve` command in same command tree using backend runtime config defaults.
+  4. Switch backend e2e tests/build paths to `cmd/kanban`.
+  5. Move/update CLI unit/e2e tests into backend module.
+  6. Update root Makefile/go.work/docs and Swift e2e harness backend launch command.
+  7. Run full backend + Swift tests.
+- Checklist:
+  - [x] Add failing unified-binary e2e tests in backend for root help and CLI command flows.
+  - [x] Implement `cmd/kanban` entrypoint with root help default.
+  - [x] Implement `serve` subcommand and migrate backend startup logic.
+  - [x] Port CLI command package into backend module and rename to `kanban`.
+  - [x] Update primer/templates/help text from `kb` to `kanban`.
+  - [x] Update backend/Swift test harnesses to start server via `kanban serve`.
+  - [x] Update root Makefile and `go.work` for single-binary workflow.
+  - [x] Remove `cli` module from active monorepo workspace/test flow (`go.work` + root `Makefile`).
+  - [x] Run and pass backend tests + Swift tests/e2e.
+
 ### Active follow-up: macOS Swift app foundation
 - Goal: create a native macOS SwiftUI app with left project pane + empty right pane, backed by API + websocket updates.
 - Location: `/Users/simonjohansson/src/kanban/apps/kanban-macos`

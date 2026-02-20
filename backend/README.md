@@ -9,7 +9,7 @@ SQLite projection queries are generated with `sqlc`.
 
 ```bash
 cd /Users/simonjohansson/src/kanban/backend
-go run ./cmd/kanban-backend --addr 127.0.0.1:8080 --data-dir /tmp/kanban-data --sqlite-path /tmp/kanban-data/projection.db
+go run ./cmd/kanban serve --addr 127.0.0.1:8080 --data-dir /tmp/kanban-data --sqlite-path /tmp/kanban-data/projection.db
 ```
 
 ## Sample API Flow (curl)

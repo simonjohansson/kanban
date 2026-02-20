@@ -1,4 +1,4 @@
-package kb
+package kanban
 
 import (
 	"bytes"
@@ -173,18 +173,18 @@ func printPrimer(output Output, stdout io.Writer) error {
 	}
 
 	commandTemplates := map[string]string{
-		"list_projects":              "kb --output json project ls",
-		"create_project":             "kb --output json project create --name \"$NAME\"",
-		"delete_project":             "kb --output json project rm \"$PROJECT\"",
-		"list_cards":                 "kb --output json card ls -p \"$PROJECT\"",
-		"list_cards_include_deleted": "kb --output json card ls -p \"$PROJECT\" --include-deleted",
-		"create_card":                "kb --output json card create -p \"$PROJECT\" -t \"$TITLE\" -s \"$STATUS\"",
-		"get_card":                   "kb --output json card get -p \"$PROJECT\" -i \"$ID\"",
-		"move_card":                  "kb --output json card move -p \"$PROJECT\" -i \"$ID\" -s \"$STATUS\"",
-		"comment_card":               "kb --output json card comment -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
-		"describe_card":              "kb --output json card desc -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
-		"delete_card":                "kb --output json card rm -p \"$PROJECT\" -i \"$ID\" [--hard]",
-		"watch_events":               "kb --output json watch -p \"$PROJECT\"",
+		"list_projects":              "kanban --output json project ls",
+		"create_project":             "kanban --output json project create --name \"$NAME\"",
+		"delete_project":             "kanban --output json project rm \"$PROJECT\"",
+		"list_cards":                 "kanban --output json card ls -p \"$PROJECT\"",
+		"list_cards_include_deleted": "kanban --output json card ls -p \"$PROJECT\" --include-deleted",
+		"create_card":                "kanban --output json card create -p \"$PROJECT\" -t \"$TITLE\" -s \"$STATUS\"",
+		"get_card":                   "kanban --output json card get -p \"$PROJECT\" -i \"$ID\"",
+		"move_card":                  "kanban --output json card move -p \"$PROJECT\" -i \"$ID\" -s \"$STATUS\"",
+		"comment_card":               "kanban --output json card comment -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
+		"describe_card":              "kanban --output json card desc -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
+		"delete_card":                "kanban --output json card rm -p \"$PROJECT\" -i \"$ID\" [--hard]",
+		"watch_events":               "kanban --output json watch -p \"$PROJECT\"",
 	}
 
 	responseShapes := map[string]any{
@@ -256,7 +256,7 @@ func printPrimer(output Output, stdout io.Writer) error {
 
 	descSemantics := map[string]any{
 		"mode":      "append",
-		"read_via":  "kb --output json card get -p \"$PROJECT\" -i \"$ID\"",
+		"read_via":  "kanban --output json card get -p \"$PROJECT\" -i \"$ID\"",
 		"not_a_get": true,
 	}
 
@@ -288,7 +288,7 @@ func printPrimer(output Output, stdout io.Writer) error {
 
 	if output == OutputJSON {
 		payload := map[string]any{
-			"name":           "kb",
+			"name":           "kanban",
 			"mode":           "machine",
 			"purpose":        "HTTP-only kanban automation client.",
 			"default_output": "json",
@@ -313,9 +313,9 @@ func printPrimer(output Output, stdout io.Writer) error {
 			"watch_event_shape":       watchEventShape,
 			"status_rules":            statusRules,
 			"agent_prompt": strings.Join([]string{
-				"You are an automation agent controlling Kanban through the `kb` CLI.",
+				"You are an automation agent controlling Kanban through the `kanban` CLI.",
 				"Prefer deterministic, scriptable invocations and parse JSON output.",
-				"Use `kb --output json project ls` to discover project slugs before card operations.",
+				"Use `kanban --output json project ls` to discover project slugs before card operations.",
 				"Use only valid card statuses: Todo, Doing, Review, Done.",
 			}, "\n"),
 		}
@@ -325,10 +325,10 @@ func printPrimer(output Output, stdout io.Writer) error {
 	}
 
 	text := strings.Join([]string{
-		"KB AGENT PRIMER (MACHINE MODE)",
+		"KANBAN AGENT PRIMER (MACHINE MODE)",
 		"",
 		"SYSTEM PROMPT",
-		"You are an automation agent controlling the `kb` CLI.",
+		"You are an automation agent controlling the `kanban` CLI.",
 		"Produce deterministic commands and prefer machine-readable output.",
 		"",
 		"EXECUTION RULES",
@@ -340,18 +340,18 @@ func printPrimer(output Output, stdout io.Writer) error {
 		"6. `watch` is long-running and must be interrupted by caller.",
 		"",
 		"COMMAND TEMPLATES",
-		"LIST_PROJECTS: kb --output json project ls",
-		"CREATE_PROJECT: kb --output json project create --name \"$NAME\"",
-		"DELETE_PROJECT: kb --output json project rm \"$PROJECT\"",
-		"LIST_CARDS: kb --output json card ls -p \"$PROJECT\"",
-		"LIST_CARDS_WITH_DELETED: kb --output json card ls -p \"$PROJECT\" --include-deleted",
-		"CREATE_CARD: kb --output json card create -p \"$PROJECT\" -t \"$TITLE\" -s \"$STATUS\"",
-		"GET_CARD: kb --output json card get -p \"$PROJECT\" -i \"$ID\"",
-		"MOVE_CARD: kb --output json card move -p \"$PROJECT\" -i \"$ID\" -s \"$STATUS\"",
-		"COMMENT_CARD: kb --output json card comment -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
-		"DESCRIBE_CARD: kb --output json card desc -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
-		"DELETE_CARD: kb --output json card rm -p \"$PROJECT\" -i \"$ID\" [--hard]",
-		"WATCH_EVENTS: kb --output json watch -p \"$PROJECT\"",
+		"LIST_PROJECTS: kanban --output json project ls",
+		"CREATE_PROJECT: kanban --output json project create --name \"$NAME\"",
+		"DELETE_PROJECT: kanban --output json project rm \"$PROJECT\"",
+		"LIST_CARDS: kanban --output json card ls -p \"$PROJECT\"",
+		"LIST_CARDS_WITH_DELETED: kanban --output json card ls -p \"$PROJECT\" --include-deleted",
+		"CREATE_CARD: kanban --output json card create -p \"$PROJECT\" -t \"$TITLE\" -s \"$STATUS\"",
+		"GET_CARD: kanban --output json card get -p \"$PROJECT\" -i \"$ID\"",
+		"MOVE_CARD: kanban --output json card move -p \"$PROJECT\" -i \"$ID\" -s \"$STATUS\"",
+		"COMMENT_CARD: kanban --output json card comment -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
+		"DESCRIBE_CARD: kanban --output json card desc -p \"$PROJECT\" -i \"$ID\" -b \"$BODY\"",
+		"DELETE_CARD: kanban --output json card rm -p \"$PROJECT\" -i \"$ID\" [--hard]",
+		"WATCH_EVENTS: kanban --output json watch -p \"$PROJECT\"",
 		"",
 		"RESPONSE SHAPES",
 		"CREATE_PROJECT => {\"name\":\"Alpha\",\"slug\":\"alpha\",\"next_card_seq\":1}",
@@ -374,7 +374,7 @@ func printPrimer(output Output, stdout io.Writer) error {
 		"",
 		"DESC SEMANTICS",
 		"- `card desc` appends description text; it does not fetch current description.",
-		"- read full card details via `kb --output json card get -p \"$PROJECT\" -i \"$ID\"`.",
+		"- read full card details via `kanban --output json card get -p \"$PROJECT\" -i \"$ID\"`.",
 		"",
 		"PROJECT COMMAND SUPPORT",
 		"- supported: create, ls, rm",
