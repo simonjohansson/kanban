@@ -3,6 +3,7 @@
 Go backend for the multi-project kanban system.
 
 Framework: `huma` (with `chi` adapter). The OpenAPI document is generated from registered operations and served at `GET /openapi.yaml`.
+SQLite projection queries are generated with `sqlc`.
 
 ## Run
 
@@ -100,3 +101,18 @@ make openapi-gen-go-client
 
 Generated client output:
 - `/Users/simonjohansson/src/kanban/backend/internal/gen/client/client.gen.go`
+
+## SQLC Generation
+
+```bash
+cd /Users/simonjohansson/src/kanban/backend
+make sqlc-generate
+```
+
+Inputs:
+- `/Users/simonjohansson/src/kanban/backend/sqlc.yaml`
+- `/Users/simonjohansson/src/kanban/backend/internal/store/sql/schema.sql`
+- `/Users/simonjohansson/src/kanban/backend/internal/store/sql/queries.sql`
+
+Generated output:
+- `/Users/simonjohansson/src/kanban/backend/internal/store/sqlcgen`

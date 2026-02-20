@@ -1,0 +1,13 @@
+version: "2"
+sql:
+  - engine: "sqlite"
+    schema: "internal/store/sql/schema.sql"
+    queries: "internal/store/sql/queries.sql"
+    gen:
+      go:
+        package: "sqlcgen"
+        out: "internal/store/sqlcgen"
+        sql_package: "database/sql"
+        emit_json_tags: false
+        emit_interface: false
+        emit_empty_slices: true

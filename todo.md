@@ -169,6 +169,7 @@ Current MVP scope is backend + API + full end-to-end test harness.
 - [x] Migrated backend API registration/contract to Huma with chi adapter.
 - [x] Added OpenAPI export command at `/Users/simonjohansson/src/kanban/backend/cmd/export-openapi/main.go`.
 - [x] Updated OpenAPI workflow so `make openapi-sync` exports spec from running API registration.
+- [x] Migrated SQLite projection layer to `sqlc`-generated queries.
 - [x] Added integration/e2e tests (in-process + black-box process) with filesystem + sqlite assertions.
 - [x] Full backend test suite is green.
 - [x] Increased backend server package coverage to `83.6%`.

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sort"
@@ -9,10 +10,12 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/simonjohansson/kanban/backend/internal/model"
+	"github.com/simonjohansson/kanban/backend/internal/store/sqlcgen"
 )
 
 type SQLiteProjection struct {
-	db *sql.DB
+	db      *sql.DB
+	queries *sqlcgen.Queries
 }
 
 func NewSQLiteProjection(path string) (*SQLiteProjection, error) {
@@ -20,7 +23,7 @@ func NewSQLiteProjection(path string) (*SQLiteProjection, error) {
 	if err != nil {
 		return nil, err
 	}
-	projection := &SQLiteProjection{db: db}
+	projection := &SQLiteProjection{db: db, queries: sqlcgen.New(db)}
 	if err := projection.init(); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -33,155 +36,65 @@ func (p *SQLiteProjection) Close() error {
 }
 
 func (p *SQLiteProjection) init() error {
-	_, err := p.db.Exec(`
-CREATE TABLE IF NOT EXISTS projects (
-  slug TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  local_path TEXT,
-  remote_url TEXT,
-  next_card_seq INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS cards (
-  id TEXT PRIMARY KEY,
-  project_slug TEXT NOT NULL,
-  number INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  status TEXT NOT NULL,
-  column_name TEXT NOT NULL,
-  deleted INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  comments_count INTEGER NOT NULL,
-  history_count INTEGER NOT NULL,
-  UNIQUE(project_slug, number)
-);
-`)
-	return err
+	ctx := context.Background()
+	if err := p.queries.InitProjectsTable(ctx); err != nil {
+		return err
+	}
+	return p.queries.InitCardsTable(ctx)
 }
 
 func (p *SQLiteProjection) UpsertProject(project model.Project) error {
-	_, err := p.db.Exec(`
-INSERT INTO projects (slug, name, local_path, remote_url, next_card_seq, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(slug) DO UPDATE SET
-  name = excluded.name,
-  local_path = excluded.local_path,
-  remote_url = excluded.remote_url,
-  next_card_seq = excluded.next_card_seq,
-  created_at = excluded.created_at,
-  updated_at = excluded.updated_at;
-`,
-		project.Slug,
-		project.Name,
-		project.LocalPath,
-		project.RemoteURL,
-		project.NextCardSeq,
-		project.CreatedAt.UTC().Format(time.RFC3339),
-		project.UpdatedAt.UTC().Format(time.RFC3339),
-	)
-	return err
+	return p.queries.UpsertProject(context.Background(), sqlcgen.UpsertProjectParams{
+		Slug:        project.Slug,
+		Name:        project.Name,
+		LocalPath:   nullableString(project.LocalPath),
+		RemoteUrl:   nullableString(project.RemoteURL),
+		NextCardSeq: int64(project.NextCardSeq),
+		CreatedAt:   project.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:   project.UpdatedAt.UTC().Format(time.RFC3339),
+	})
 }
 
 func (p *SQLiteProjection) UpsertCard(card model.Card) error {
-	_, err := p.db.Exec(`
-INSERT INTO cards (
-  id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(id) DO UPDATE SET
-  project_slug = excluded.project_slug,
-  number = excluded.number,
-  title = excluded.title,
-  status = excluded.status,
-  column_name = excluded.column_name,
-  deleted = excluded.deleted,
-  created_at = excluded.created_at,
-  updated_at = excluded.updated_at,
-  comments_count = excluded.comments_count,
-  history_count = excluded.history_count;
-`,
-		card.ID,
-		card.ProjectSlug,
-		card.Number,
-		card.Title,
-		card.Status,
-		card.Column,
-		boolToInt(card.Deleted),
-		card.CreatedAt.UTC().Format(time.RFC3339),
-		card.UpdatedAt.UTC().Format(time.RFC3339),
-		len(card.Comments),
-		len(card.History),
-	)
-	return err
+	return p.queries.UpsertCard(context.Background(), sqlcgen.UpsertCardParams{
+		ID:            card.ID,
+		ProjectSlug:   card.ProjectSlug,
+		Number:        int64(card.Number),
+		Title:         card.Title,
+		Status:        card.Status,
+		ColumnName:    card.Column,
+		Deleted:       boolToInt(card.Deleted),
+		CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:     card.UpdatedAt.UTC().Format(time.RFC3339),
+		CommentsCount: int64(len(card.Comments)),
+		HistoryCount:  int64(len(card.History)),
+	})
 }
 
 func (p *SQLiteProjection) HardDeleteCard(projectSlug string, number int) error {
-	_, err := p.db.Exec(`DELETE FROM cards WHERE project_slug = ? AND number = ?`, projectSlug, number)
-	return err
+	return p.queries.HardDeleteCard(context.Background(), sqlcgen.HardDeleteCardParams{
+		ProjectSlug: projectSlug,
+		Number:      int64(number),
+	})
 }
 
 func (p *SQLiteProjection) ListCards(projectSlug string, includeDeleted bool) ([]model.CardSummary, error) {
-	query := `
-SELECT id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
-FROM cards
-WHERE project_slug = ?`
-	if !includeDeleted {
-		query += ` AND deleted = 0`
+	ctx := context.Background()
+	if includeDeleted {
+		rows, err := p.queries.ListCardsWithDeleted(ctx, projectSlug)
+		if err != nil {
+			return nil, err
+		}
+		return mapCardSummaryRowsFromAll(rows)
 	}
-	query += ` ORDER BY number ASC`
-	rows, err := p.db.Query(query, projectSlug)
+	rows, err := p.queries.ListCardsActive(ctx, projectSlug)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	cards := make([]model.CardSummary, 0)
-	for rows.Next() {
-		var (
-			c       model.CardSummary
-			deleted int
-			created string
-			updated string
-		)
-		if err := rows.Scan(&c.ID, &c.ProjectSlug, &c.Number, &c.Title, &c.Status, &c.Column, &deleted, &created, &updated, &c.CommentsCount, &c.HistoryCount); err != nil {
-			return nil, err
-		}
-		c.Deleted = deleted == 1
-		if c.CreatedAt, err = time.Parse(time.RFC3339, created); err != nil {
-			return nil, err
-		}
-		if c.UpdatedAt, err = time.Parse(time.RFC3339, updated); err != nil {
-			return nil, err
-		}
-		cards = append(cards, c)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return cards, nil
+	return mapCardSummaryRowsFromActive(rows)
 }
 
 func (p *SQLiteProjection) RebuildFromMarkdown(projects []model.Project, cards []model.Card) error {
-	tx, err := p.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-
-	if _, err = tx.Exec(`DELETE FROM cards`); err != nil {
-		return err
-	}
-	if _, err = tx.Exec(`DELETE FROM projects`); err != nil {
-		return err
-	}
-
 	sort.Slice(projects, func(i, j int) bool { return projects[i].Slug < projects[j].Slug })
 	sort.Slice(cards, func(i, j int) bool {
 		if cards[i].ProjectSlug == cards[j].ProjectSlug {
@@ -190,42 +103,52 @@ func (p *SQLiteProjection) RebuildFromMarkdown(projects []model.Project, cards [
 		return cards[i].ProjectSlug < cards[j].ProjectSlug
 	})
 
+	tx, err := p.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	qtx := p.queries.WithTx(tx)
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if err = qtx.DeleteAllCards(context.Background()); err != nil {
+		return err
+	}
+	if err = qtx.DeleteAllProjects(context.Background()); err != nil {
+		return err
+	}
+
 	for _, project := range projects {
-		if _, err = tx.Exec(`
-INSERT INTO projects (slug, name, local_path, remote_url, next_card_seq, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-`,
-			project.Slug,
-			project.Name,
-			project.LocalPath,
-			project.RemoteURL,
-			project.NextCardSeq,
-			project.CreatedAt.UTC().Format(time.RFC3339),
-			project.UpdatedAt.UTC().Format(time.RFC3339),
-		); err != nil {
+		if err = qtx.InsertProject(context.Background(), sqlcgen.InsertProjectParams{
+			Slug:        project.Slug,
+			Name:        project.Name,
+			LocalPath:   nullableString(project.LocalPath),
+			RemoteUrl:   nullableString(project.RemoteURL),
+			NextCardSeq: int64(project.NextCardSeq),
+			CreatedAt:   project.CreatedAt.UTC().Format(time.RFC3339),
+			UpdatedAt:   project.UpdatedAt.UTC().Format(time.RFC3339),
+		}); err != nil {
 			return fmt.Errorf("insert project %s: %w", project.Slug, err)
 		}
 	}
 
 	for _, card := range cards {
-		if _, err = tx.Exec(`
-INSERT INTO cards (
-  id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`,
-			card.ID,
-			card.ProjectSlug,
-			card.Number,
-			card.Title,
-			card.Status,
-			card.Column,
-			boolToInt(card.Deleted),
-			card.CreatedAt.UTC().Format(time.RFC3339),
-			card.UpdatedAt.UTC().Format(time.RFC3339),
-			len(card.Comments),
-			len(card.History),
-		); err != nil {
+		if err = qtx.InsertCard(context.Background(), sqlcgen.InsertCardParams{
+			ID:            card.ID,
+			ProjectSlug:   card.ProjectSlug,
+			Number:        int64(card.Number),
+			Title:         card.Title,
+			Status:        card.Status,
+			ColumnName:    card.Column,
+			Deleted:       boolToInt(card.Deleted),
+			CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
+			UpdatedAt:     card.UpdatedAt.UTC().Format(time.RFC3339),
+			CommentsCount: int64(len(card.Comments)),
+			HistoryCount:  int64(len(card.History)),
+		}); err != nil {
 			return fmt.Errorf("insert card %s: %w", card.ID, err)
 		}
 	}
@@ -233,9 +156,89 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	return tx.Commit()
 }
 
-func boolToInt(v bool) int {
+func mapCardSummaryRowsFromActive(rows []sqlcgen.Card) ([]model.CardSummary, error) {
+	cards := make([]model.CardSummary, 0, len(rows))
+	for _, row := range rows {
+		card, err := cardSummaryFromRaw(
+			row.ID,
+			row.ProjectSlug,
+			row.Number,
+			row.Title,
+			row.Status,
+			row.ColumnName,
+			row.Deleted,
+			row.CreatedAt,
+			row.UpdatedAt,
+			row.CommentsCount,
+			row.HistoryCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+		cards = append(cards, card)
+	}
+	return cards, nil
+}
+
+func mapCardSummaryRowsFromAll(rows []sqlcgen.Card) ([]model.CardSummary, error) {
+	cards := make([]model.CardSummary, 0, len(rows))
+	for _, row := range rows {
+		card, err := cardSummaryFromRaw(
+			row.ID,
+			row.ProjectSlug,
+			row.Number,
+			row.Title,
+			row.Status,
+			row.ColumnName,
+			row.Deleted,
+			row.CreatedAt,
+			row.UpdatedAt,
+			row.CommentsCount,
+			row.HistoryCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+		cards = append(cards, card)
+	}
+	return cards, nil
+}
+
+func cardSummaryFromRaw(id, projectSlug string, number int64, title, status, column string, deleted int64, created, updated string, commentsCount, historyCount int64) (model.CardSummary, error) {
+	createdAt, err := time.Parse(time.RFC3339, created)
+	if err != nil {
+		return model.CardSummary{}, err
+	}
+	updatedAt, err := time.Parse(time.RFC3339, updated)
+	if err != nil {
+		return model.CardSummary{}, err
+	}
+	return model.CardSummary{
+		ID:            id,
+		ProjectSlug:   projectSlug,
+		Number:        int(number),
+		Title:         title,
+		Status:        status,
+		Column:        column,
+		Deleted:       deleted == 1,
+		CreatedAt:     createdAt,
+		UpdatedAt:     updatedAt,
+		CommentsCount: int(commentsCount),
+		HistoryCount:  int(historyCount),
+	}, nil
+}
+
+func boolToInt(v bool) int64 {
 	if v {
 		return 1
 	}
 	return 0
+}
+
+func nullableString(v string) sql.NullString {
+	trimmed := v
+	if trimmed == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: trimmed, Valid: true}
 }
