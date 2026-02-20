@@ -258,6 +258,33 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
 - Checklist:
   - [x] Add/update shared config schema + loader tests (failing first).
   - [x] Wire backend to read shared config defaults from shared path.
+
+### Active follow-up: Swift app e2e UI harness
+- Goal: add a real process-level Swift e2e test that proves sidebar updates from backend state.
+- Requested acceptance flow:
+  1. Start backend on random port with random storage paths.
+  2. Start Swift app and assert initial project list is empty.
+  3. Create a project via API client/CLI.
+  4. Assert the project appears in the app sidebar list.
+- Implementation approach:
+  - Keep SwiftPM setup and add a dedicated e2e test target.
+  - Launch real backend process (`go run`) from test with temp cards/sqlite locations.
+  - Launch real app process from test with isolated HOME/config pointing to backend URL.
+  - Add a small test-only sidebar state probe (env-gated) so tests can assert rendered list model deterministically.
+  - Add make target for running Swift e2e tests directly.
+- Checklist:
+  - [x] Add failing Swift e2e test for initial empty project list.
+  - [x] Add failing Swift e2e test step for create-project then sidebar update.
+  - [x] Implement app env-gated sidebar probe output.
+  - [x] Implement e2e process harness helpers (backend/app lifecycle, random port, temp dirs, log forwarding).
+  - [x] Add make target for swift e2e tests.
+  - [x] Run swift e2e + full swift tests until green.
+  - [x] Force e2e app process to isolated backend via `KANBAN_SERVER_URL` override (avoid using user local backend/config).
+  - [x] Extend e2e flow to create two projects and verify both appear in sidebar.
+  - [x] Extend e2e flow to simulate row click and verify selected project highlight state.
+  - [x] Add failing unit tests for sidebar probe selection command/state payload.
+  - [x] Implement test-only sidebar selection hook used by e2e click simulation.
+  - [x] Re-run Swift unit + e2e tests until green.
   - [x] Wire CLI to read shared config defaults from shared path.
   - [x] Keep precedence behavior with flags/env overriding file values.
   - [x] Add/adjust tests for path + namespaced field behavior.

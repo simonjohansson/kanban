@@ -1,0 +1,65 @@
+import Foundation
+
+struct SidebarStateProbe {
+    let outputURL: URL?
+    let selectionInputURL: URL?
+
+    static func fromEnvironment(environment: [String: String] = ProcessInfo.processInfo.environment) -> Self {
+        let outputURL: URL?
+        if let raw = environment["KANBAN_E2E_SIDEBAR_STATE_PATH"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !raw.isEmpty {
+            outputURL = URL(fileURLWithPath: raw, isDirectory: false)
+        } else {
+            outputURL = nil
+        }
+
+        let selectionInputURL: URL?
+        if let raw = environment["KANBAN_E2E_SIDEBAR_SELECT_PATH"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !raw.isEmpty {
+            selectionInputURL = URL(fileURLWithPath: raw, isDirectory: false)
+        } else {
+            selectionInputURL = nil
+        }
+
+        return SidebarStateProbe(outputURL: outputURL, selectionInputURL: selectionInputURL)
+    }
+
+    func write(projects: [ProjectSummary], selectedProjectSlug: String?) {
+        guard let outputURL else {
+            return
+        }
+
+        let payload = SidebarStateProbePayload(
+            projects: projects.map(\.name),
+            selectedProjectSlug: selectedProjectSlug
+        )
+        guard let raw = try? JSONEncoder().encode(payload) else {
+            return
+        }
+        try? raw.write(to: outputURL, options: [.atomic])
+    }
+
+    func consumeSelectionRequest() -> String? {
+        guard let selectionInputURL else {
+            return nil
+        }
+        guard let raw = try? String(contentsOf: selectionInputURL, encoding: .utf8) else {
+            return nil
+        }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        try? FileManager.default.removeItem(at: selectionInputURL)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+struct SidebarStateProbePayload: Codable, Equatable {
+    let projects: [String]
+    let selectedProjectSlug: String?
+
+    enum CodingKeys: String, CodingKey {
+        case projects
+        case selectedProjectSlug = "selected_project_slug"
+    }
+}

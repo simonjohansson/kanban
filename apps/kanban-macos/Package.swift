@@ -36,5 +36,13 @@ let package = Package(
             name: "KanbanMacOSTests",
             dependencies: ["KanbanMacOS"]
         ),
+        .testTarget(
+            name: "KanbanMacOSE2ETests",
+            dependencies: [
+                "KanbanAPI",
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+                .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
+            ]
+        ),
     ]
 )

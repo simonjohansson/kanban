@@ -3,6 +3,7 @@ import SwiftUI
 struct MainSplitView: View {
     @Bindable var viewModel: ProjectsViewModel
     @State private var selectedProjectID: ProjectSummary.ID?
+    private let sidebarProbe = SidebarStateProbe.fromEnvironment()
 
     var body: some View {
         NavigationSplitView {
@@ -19,7 +20,17 @@ struct MainSplitView: View {
                 }
         }
         .task {
+            sidebarProbe.write(projects: viewModel.projects, selectedProjectSlug: selectedProjectID)
             await viewModel.load()
+        }
+        .onChange(of: viewModel.projects) { _, latest in
+            sidebarProbe.write(projects: latest, selectedProjectSlug: selectedProjectID)
+        }
+        .onChange(of: selectedProjectID) { _, latest in
+            sidebarProbe.write(projects: viewModel.projects, selectedProjectSlug: latest)
+        }
+        .task {
+            await processSelectionRequests()
         }
         .alert(
             "Error",
@@ -54,5 +65,18 @@ struct MainSplitView: View {
             return project.slug
         }
         return lines.joined(separator: "\n")
+    }
+
+    private func processSelectionRequests() async {
+        guard sidebarProbe.selectionInputURL != nil else {
+            return
+        }
+        while !Task.isCancelled {
+            if let requested = sidebarProbe.consumeSelectionRequest(),
+               viewModel.projects.contains(where: { $0.slug == requested }) {
+                selectedProjectID = requested
+            }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
     }
 }

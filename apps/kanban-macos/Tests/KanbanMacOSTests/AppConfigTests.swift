@@ -2,7 +2,20 @@ import Foundation
 import Testing
 @testable import KanbanMacOS
 
+@Suite(.serialized)
 struct AppConfigTests {
+    @Test
+    func prefersServerURLFromEnvironment() throws {
+        setenv("KANBAN_SERVER_URL", "http://127.0.0.1:9911", 1)
+        defer { unsetenv("KANBAN_SERVER_URL") }
+
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+
+        let loaded = try AppConfig.load(homeDirectory: home.path(percentEncoded: false))
+        #expect(loaded.serverURL.absoluteString == "http://127.0.0.1:9911")
+    }
+
     @Test
     func loadsServerURLFromSharedConfig() throws {
         let home = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)

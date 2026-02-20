@@ -8,6 +8,16 @@ public struct AppConfig: Equatable, Sendable {
     }
 
     public static func load(homeDirectory: String) throws -> Self {
+        if let fromEnv = ProcessInfo.processInfo.environment["KANBAN_SERVER_URL"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !fromEnv.isEmpty,
+           let parsed = URL(string: fromEnv),
+           parsed.scheme != nil,
+           parsed.host != nil
+        {
+            return AppConfig(serverURL: parsed)
+        }
+
         let configURL = URL(fileURLWithPath: homeDirectory, isDirectory: true)
             .appendingPathComponent(".config", isDirectory: true)
             .appendingPathComponent("kanban", isDirectory: true)

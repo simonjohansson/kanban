@@ -37,6 +37,9 @@ private struct FallbackProjectsClient: ProjectsAPIClient {
 
 private final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if ProcessInfo.processInfo.environment["KANBAN_E2E_DISABLE_ACTIVATION"] == "1" {
+            return
+        }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
     }
