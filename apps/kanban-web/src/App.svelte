@@ -9,7 +9,7 @@
   const PROJECT_EVENT_TYPES = new Set(['project.created', 'project.deleted']);
 
   const configuredBase = (import.meta.env.VITE_KANBAN_SERVER_URL ?? '').trim();
-  OpenAPI.BASE = configuredBase;
+  let resolvedBase = configuredBase;
 
   let projects: ProjectSummary[] = [];
   let cards: CardSummary[] = [];
@@ -22,6 +22,8 @@
   $: cardsByLane = buildLaneMap(cards);
 
   onMount(async () => {
+    resolvedBase = await resolveServerBase();
+    OpenAPI.BASE = resolvedBase;
     await loadProjects();
     connectWebSocket();
   });
@@ -91,7 +93,7 @@
   }
 
   function buildWebSocketURL(): string {
-    const base = configuredBase || window.location.origin;
+    const base = resolvedBase || window.location.origin;
     const parsed = new URL(base);
     parsed.protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
     parsed.pathname = '/ws';
@@ -138,6 +140,29 @@
 
   function toggleSidebar(): void {
     sidebarHidden = !sidebarHidden;
+  }
+
+  async function resolveServerBase(): Promise<string> {
+    if (configuredBase) {
+      return configuredBase;
+    }
+    if (import.meta.env.DEV) {
+      return window.location.origin;
+    }
+
+    try {
+      const response = await fetch('/client-config');
+      if (response.ok) {
+        const payload = (await response.json()) as { server_url?: unknown };
+        if (typeof payload.server_url === 'string' && payload.server_url.trim() !== '') {
+          return payload.server_url.trim();
+        }
+      }
+    } catch {
+      // fallback to same-origin
+    }
+
+    return window.location.origin;
   }
 </script>
 

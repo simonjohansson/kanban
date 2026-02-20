@@ -57,9 +57,23 @@ Shape:
 - `cli`: `output`
 
 Precedence (high to low):
-1. CLI/server flags
+1. Explicit runtime overrides
 2. Environment variables
 3. `~/.config/kanban/config.yaml`
+
+Client/runtime specifics:
+- `kanban` CLI + `kanban serve`:
+1. flags (`--server-url`, `--output`, `--cards-path`, `--sqlite-path`, `--addr`)
+2. env (`KANBAN_SERVER_URL`, `KANBAN_OUTPUT`, `KANBAN_CARDS_PATH`, `KANBAN_SQLITE_PATH`)
+3. shared config file.
+- macOS app:
+1. `KANBAN_SERVER_URL`
+2. shared config `server_url`
+3. fallback `http://127.0.0.1:8080`
+- web app:
+1. `VITE_KANBAN_SERVER_URL` (build/runtime env)
+2. in production builds, backend-reported `/client-config`
+3. same-origin fallback (`window.location.origin`)
 
 ## Quick start
 

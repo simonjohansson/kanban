@@ -50,3 +50,17 @@ func TestFrontendFallbackDoesNotOverrideHealthAPI(t *testing.T) {
 	body := string(readBody(t, resp.Body))
 	require.True(t, strings.Contains(body, "\"ok\":true") || strings.Contains(body, "\"ok\": true"))
 }
+
+func TestFrontendFallbackDoesNotOverrideClientConfigAPI(t *testing.T) {
+	t.Parallel()
+
+	_, _, httpServer := newTestServer(t)
+	resp, err := http.Get(httpServer.URL + "/client-config")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Contains(t, resp.Header.Get("Content-Type"), "application/json")
+	body := string(readBody(t, resp.Body))
+	require.Contains(t, body, "\"server_url\"")
+}

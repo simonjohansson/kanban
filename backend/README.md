@@ -92,6 +92,7 @@ curl -sS "$BASE_URL/projects/demo-project/cards/1"
 ## Useful Endpoints
 
 - `GET /health`
+- `GET /client-config`
 - `GET /openapi.yaml`
 - `GET /ws`
 - `POST /admin/rebuild`

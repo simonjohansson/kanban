@@ -12,7 +12,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	apiclient "github.com/simonjohansson/kanban/backend/gen/client"
+	"github.com/simonjohansson/kanban/backend/internal/kanban/commands/cardcmd"
+	"github.com/simonjohansson/kanban/backend/internal/kanban/commands/projectcmd"
 	"github.com/spf13/cobra"
 )
 
@@ -21,12 +22,25 @@ type globalFlags struct {
 	output    string
 }
 
+type commandRuntime struct {
+	cfg *Config
+}
+
+func (r commandRuntime) ServerURL() string {
+	return r.cfg.ServerURL
+}
+
+func (r commandRuntime) Output() string {
+	return string(r.cfg.Output)
+}
+
 func NewRootCommand(initial Config, stdout, stderr io.Writer) *cobra.Command {
 	cfg := initial
 	flags := globalFlags{
 		serverURL: initial.ServerURL,
 		output:    string(initial.Output),
 	}
+	runtime := commandRuntime{cfg: &cfg}
 
 	root := &cobra.Command{
 		Use:   "kanban",
@@ -66,8 +80,8 @@ kanban --output json primer`),
 
 	root.AddCommand(newServeCommand(&cfg))
 	root.AddCommand(newPrimerCommand(&cfg, stdout))
-	root.AddCommand(newProjectCommand(&cfg, stdout))
-	root.AddCommand(newCardCommand(&cfg, stdout))
+	root.AddCommand(projectcmd.New(runtime, stdout, handleResponseFromString, wrapCLIError))
+	root.AddCommand(cardcmd.New(runtime, stdout, handleResponseFromString, wrapCLIError))
 	root.AddCommand(newWatchCommand(&cfg, stdout))
 
 	return root
@@ -89,6 +103,17 @@ func applyGlobalFlags(cfg *Config, flags globalFlags) error {
 	return nil
 }
 
+func handleResponseFromString(output string, stdout io.Writer, resp *http.Response, reqErr error) error {
+	if !isValidOutput(output) {
+		return &cliError{status: http.StatusBadRequest, message: fmt.Sprintf("invalid --output: %s", output)}
+	}
+	return handleResponse(Output(output), stdout, resp, reqErr)
+}
+
+func wrapCLIError(status int, message string) error {
+	return &cliError{status: status, message: message}
+}
+
 func newPrimerCommand(cfg *Config, stdout io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "primer",
@@ -100,302 +125,6 @@ kanban --output json primer`),
 			return printPrimer(cfg.Output, stdout)
 		},
 	}
-}
-
-func newProjectCommand(cfg *Config, stdout io.Writer) *cobra.Command {
-	projectCmd := &cobra.Command{
-		Use:     "project",
-		Aliases: []string{"projects", "proj"},
-		Short:   "Manage projects.",
-		Long:    "Create, list, and delete projects.",
-	}
-
-	createCmd := &cobra.Command{
-		Use:     "create",
-		Aliases: []string{"new"},
-		Short:   "Create a project.",
-		Long:    "Create a project with optional repository metadata.",
-		Example: strings.TrimSpace(`kanban project create --name "Alpha"
-kanban proj new -n "Alpha" --local-path /work/alpha --remote-url git@github.com:org/alpha.git`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			name, _ := cmd.Flags().GetString("name")
-			localPath, _ := cmd.Flags().GetString("local-path")
-			remoteURL, _ := cmd.Flags().GetString("remote-url")
-
-			body := apiclient.CreateProjectRequest{Name: strings.TrimSpace(name)}
-			if value := strings.TrimSpace(localPath); value != "" {
-				body.LocalPath = &value
-			}
-			if value := strings.TrimSpace(remoteURL); value != "" {
-				body.RemoteUrl = &value
-			}
-
-			resp, reqErr := client.CreateProject(context.Background(), body)
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	createCmd.Flags().StringP("name", "n", "", "Project display name")
-	createCmd.Flags().String("local-path", "", "Local repository path")
-	createCmd.Flags().String("remote-url", "", "Remote repository URL")
-	_ = createCmd.MarkFlagRequired("name")
-
-	listCmd := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List projects.",
-		Long:    "List all projects known by the backend.",
-		Example: strings.TrimSpace(`kanban project list
-kanban proj ls`),
-		RunE: func(_ *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			resp, reqErr := client.ListProjects(context.Background())
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-
-	deleteCmd := &cobra.Command{
-		Use:     "delete <project-slug>",
-		Aliases: []string{"rm", "remove"},
-		Short:   "Delete a project.",
-		Long:    "Delete a project by slug.",
-		Args:    cobra.ExactArgs(1),
-		Example: strings.TrimSpace(`kanban project delete alpha
-kanban proj rm alpha`),
-		RunE: func(_ *cobra.Command, args []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			resp, reqErr := client.DeleteProject(context.Background(), strings.TrimSpace(args[0]))
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-
-	projectCmd.AddCommand(createCmd, listCmd, deleteCmd)
-	return projectCmd
-}
-
-func newCardCommand(cfg *Config, stdout io.Writer) *cobra.Command {
-	cardCmd := &cobra.Command{
-		Use:     "card",
-		Aliases: []string{"cards"},
-		Short:   "Manage cards.",
-		Long:    "Create, list, get, move, comment, describe, and delete cards.",
-	}
-
-	createCmd := &cobra.Command{
-		Use:     "create",
-		Aliases: []string{"new"},
-		Short:   "Create a card.",
-		Long:    "Create a card in a project with required title and status.",
-		Example: strings.TrimSpace(`kanban card create --project alpha --title "Task" --status Todo
-kanban cards new -p alpha -t "Task" -s Doing`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			project, _ := cmd.Flags().GetString("project")
-			title, _ := cmd.Flags().GetString("title")
-			status, _ := cmd.Flags().GetString("status")
-			description, _ := cmd.Flags().GetString("description")
-
-			body := apiclient.CreateCardRequest{
-				Title:  strings.TrimSpace(title),
-				Status: strings.TrimSpace(status),
-			}
-			if value := strings.TrimSpace(description); value != "" {
-				body.Description = &value
-			}
-
-			resp, reqErr := client.CreateCard(context.Background(), strings.TrimSpace(project), body)
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	createCmd.Flags().StringP("project", "p", "", "Project slug")
-	createCmd.Flags().StringP("title", "t", "", "Card title")
-	createCmd.Flags().StringP("description", "d", "", "Initial description text")
-	createCmd.Flags().StringP("status", "s", "", "Card status (Todo|Doing|Review|Done)")
-	_ = createCmd.MarkFlagRequired("project")
-	_ = createCmd.MarkFlagRequired("title")
-	_ = createCmd.MarkFlagRequired("status")
-
-	listCmd := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List cards.",
-		Long:    "List cards in a project.",
-		Example: strings.TrimSpace(`kanban card list --project alpha
-kanban cards ls -p alpha --include-deleted`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			project, _ := cmd.Flags().GetString("project")
-			includeDeleted, _ := cmd.Flags().GetBool("include-deleted")
-
-			params := &apiclient.ListCardsParams{IncludeDeleted: &includeDeleted}
-			resp, reqErr := client.ListCards(context.Background(), strings.TrimSpace(project), params)
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	listCmd.Flags().StringP("project", "p", "", "Project slug")
-	listCmd.Flags().Bool("include-deleted", false, "Include soft-deleted cards")
-	_ = listCmd.MarkFlagRequired("project")
-
-	getCmd := &cobra.Command{
-		Use:     "get",
-		Aliases: []string{"show"},
-		Short:   "Get one card.",
-		Long:    "Fetch one card by number from a project.",
-		Example: strings.TrimSpace(`kanban card get --project alpha --id 1
-kanban cards show -p alpha -i 1 --output json`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			project, _ := cmd.Flags().GetString("project")
-			id, _ := cmd.Flags().GetInt64("id")
-
-			resp, reqErr := client.GetCard(context.Background(), strings.TrimSpace(project), id)
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	getCmd.Flags().StringP("project", "p", "", "Project slug")
-	getCmd.Flags().Int64P("id", "i", 0, "Card number")
-	_ = getCmd.MarkFlagRequired("project")
-	_ = getCmd.MarkFlagRequired("id")
-
-	moveCmd := &cobra.Command{
-		Use:   "move",
-		Short: "Move a card.",
-		Long:  "Update card status.",
-		Example: strings.TrimSpace(`kanban card move --project alpha --id 1 --status Doing
-kanban cards move -p alpha -i 1 -s Review`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			project, _ := cmd.Flags().GetString("project")
-			id, _ := cmd.Flags().GetInt64("id")
-			status, _ := cmd.Flags().GetString("status")
-
-			body := apiclient.MoveCardRequest{Status: strings.TrimSpace(status)}
-
-			resp, reqErr := client.MoveCard(context.Background(), strings.TrimSpace(project), id, body)
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	moveCmd.Flags().StringP("project", "p", "", "Project slug")
-	moveCmd.Flags().Int64P("id", "i", 0, "Card number")
-	moveCmd.Flags().StringP("status", "s", "", "Target status (Todo|Doing|Review|Done)")
-	_ = moveCmd.MarkFlagRequired("project")
-	_ = moveCmd.MarkFlagRequired("id")
-	_ = moveCmd.MarkFlagRequired("status")
-
-	commentCmd := &cobra.Command{
-		Use:     "comment",
-		Aliases: []string{"note"},
-		Short:   "Append a comment.",
-		Long:    "Add a comment event to a card.",
-		Example: strings.TrimSpace(`kanban card comment --project alpha --id 1 --body "Need review"
-kanban cards note -p alpha -i 1 -b "LGTM"`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			project, _ := cmd.Flags().GetString("project")
-			id, _ := cmd.Flags().GetInt64("id")
-			bodyRaw, _ := cmd.Flags().GetString("body")
-
-			resp, reqErr := client.CommentCard(context.Background(), strings.TrimSpace(project), id, apiclient.TextBodyRequest{Body: strings.TrimSpace(bodyRaw)})
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	commentCmd.Flags().StringP("project", "p", "", "Project slug")
-	commentCmd.Flags().Int64P("id", "i", 0, "Card number")
-	commentCmd.Flags().StringP("body", "b", "", "Comment body")
-	_ = commentCmd.MarkFlagRequired("project")
-	_ = commentCmd.MarkFlagRequired("id")
-	_ = commentCmd.MarkFlagRequired("body")
-
-	describeCmd := &cobra.Command{
-		Use:     "describe",
-		Aliases: []string{"desc"},
-		Short:   "Append description text.",
-		Long:    "Append text to the card description event log.",
-		Example: strings.TrimSpace(`kanban card describe --project alpha --id 1 --body "Investigated root cause"
-kanban cards desc -p alpha -i 1 -b "Added acceptance criteria"`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			project, _ := cmd.Flags().GetString("project")
-			id, _ := cmd.Flags().GetInt64("id")
-			bodyRaw, _ := cmd.Flags().GetString("body")
-
-			resp, reqErr := client.AppendDescription(context.Background(), strings.TrimSpace(project), id, apiclient.TextBodyRequest{Body: strings.TrimSpace(bodyRaw)})
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	describeCmd.Flags().StringP("project", "p", "", "Project slug")
-	describeCmd.Flags().Int64P("id", "i", 0, "Card number")
-	describeCmd.Flags().StringP("body", "b", "", "Description text to append")
-	_ = describeCmd.MarkFlagRequired("project")
-	_ = describeCmd.MarkFlagRequired("id")
-	_ = describeCmd.MarkFlagRequired("body")
-
-	deleteCmd := &cobra.Command{
-		Use:     "delete",
-		Aliases: []string{"rm", "remove"},
-		Short:   "Delete a card.",
-		Long:    "Soft-delete by default; set --hard for permanent delete.",
-		Example: strings.TrimSpace(`kanban card delete --project alpha --id 1
-kanban cards rm -p alpha -i 1 --hard`),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := apiclient.NewClient(cfg.ServerURL)
-			if err != nil {
-				return &cliError{status: http.StatusBadRequest, message: err.Error()}
-			}
-
-			project, _ := cmd.Flags().GetString("project")
-			id, _ := cmd.Flags().GetInt64("id")
-			hard, _ := cmd.Flags().GetBool("hard")
-
-			params := &apiclient.DeleteCardParams{Hard: &hard}
-			resp, reqErr := client.DeleteCard(context.Background(), strings.TrimSpace(project), id, params)
-			return handleResponse(cfg.Output, stdout, resp, reqErr)
-		},
-	}
-	deleteCmd.Flags().StringP("project", "p", "", "Project slug")
-	deleteCmd.Flags().Int64P("id", "i", 0, "Card number")
-	deleteCmd.Flags().Bool("hard", false, "Permanently delete instead of soft delete")
-	_ = deleteCmd.MarkFlagRequired("project")
-	_ = deleteCmd.MarkFlagRequired("id")
-
-	cardCmd.AddCommand(createCmd, listCmd, getCmd, moveCmd, commentCmd, describeCmd, deleteCmd)
-	return cardCmd
 }
 
 func newWatchCommand(cfg *Config, stdout io.Writer) *cobra.Command {

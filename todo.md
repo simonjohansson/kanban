@@ -388,8 +388,15 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
 - Checklist:
   - [x] Add failing tests for uncovered `internal/service` methods (list/get/move/comment/append/delete/rebuild).
   - [x] Add failing tests for uncovered `internal/kanban` run/serve branches.
-  - [ ] Add failing tests for remaining backend handler error branches.
-  - [ ] Reach >=80% backend statement coverage and record report.
+  - [x] Add failing tests for remaining backend handler error branches.
+  - [x] Reach >=80% backend statement coverage and record report.
+  - Coverage report (core backend packages):
+    - `internal/kanban`: 76.1%
+    - `internal/server`: 85.0%
+    - `internal/service`: 89.9%
+    - `internal/store`: 85.1%
+    - `pkg/kanbanconfig`: 85.1%
+    - Total (`/tmp/backend_core.out`): 83.1%
 
 ### Active follow-up: Kanban lanes in Swift + Web (status-only board)
 - Goal: both `/Users/simonjohansson/src/kanban/apps/kanban-macos` and `/Users/simonjohansson/src/kanban/apps/kanban-web` should render a normal 4-lane board (`Todo`, `Doing`, `Review`, `Done`) for the selected project.
@@ -451,12 +458,12 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Add failing backend e2e tests for status-only payloads (no `column` accepted/returned).
   - [x] Implement status-only backend contract (remove `column` from model/service/server/openapi and e2e flows).
   - [x] Regenerate downstream API clients/spec snapshots after status-only migration (Go + Web + macOS spec copy).
-  - [ ] Add failing unit tests for markdown store atomic write + read/write locking expectations.
-  - [ ] Add failing tests for websocket reliability strategy (event ordering/drop handling + resync fallback).
-  - [ ] Refactor backend server into modular handlers (projects/cards/events/projection/static).
-  - [ ] Refactor CLI command tree into per-command packages with shared execution helpers.
-  - [ ] Unify config loading semantics across Go/Swift/Web clients and document precedence.
-  - [ ] Raise backend coverage to >=80% and record package-level report.
+  - [x] Add failing unit tests for markdown store atomic write + read/write locking expectations.
+  - [x] Add failing tests for websocket reliability strategy (event ordering/drop handling + resync fallback).
+  - [x] Refactor backend server into modular handlers (projects/cards/events/projection/static).
+  - [x] Refactor CLI command tree into per-command packages with shared execution helpers.
+  - [x] Unify config loading semantics across Go/Swift/Web clients and document precedence.
+  - [x] Raise backend coverage to >=80% and record package-level report.
 
 ### Active execution: Remaining unchecked TODO sweep (top-down)
 - Context:
@@ -471,13 +478,13 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   6. Unify config semantics for Go/Swift/Web and document precedence.
   7. Re-run full suites, measure coverage, and update report/checklists.
 - Checklist:
-  - [ ] Add failing tests for remaining backend handler error branches.
-  - [ ] Add failing unit tests for markdown store atomic write + read/write locking expectations.
-  - [ ] Add failing tests for websocket reliability strategy (event ordering/drop handling + resync fallback).
-  - [ ] Refactor backend server into modular handlers (projects/cards/events/projection/static).
-  - [ ] Refactor CLI command tree into per-command packages with shared execution helpers.
-  - [ ] Unify config loading semantics across Go/Swift/Web clients and document precedence.
-  - [ ] Reach >=80% backend statement coverage and record reports.
+  - [x] Add failing tests for remaining backend handler error branches.
+  - [x] Add failing unit tests for markdown store atomic write + read/write locking expectations.
+  - [x] Add failing tests for websocket reliability strategy (event ordering/drop handling + resync fallback).
+  - [x] Refactor backend server into modular handlers (projects/cards/events/projection/static).
+  - [x] Refactor CLI command tree into per-command packages with shared execution helpers.
+  - [x] Unify config loading semantics across Go/Swift/Web clients and document precedence.
+  - [x] Reach >=80% backend statement coverage and record reports.
 
 ### Active task: Root documentation
 - Context:

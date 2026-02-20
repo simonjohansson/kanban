@@ -13,16 +13,12 @@ import (
 )
 
 func TestMarkdownStoreUsesRWMutex(t *testing.T) {
-	t.Parallel()
-
 	s, err := NewMarkdownStore(t.TempDir())
 	require.NoError(t, err)
 	require.Equal(t, reflect.TypeOf(sync.RWMutex{}), reflect.TypeOf(s.mu))
 }
 
 func TestGetProjectBlocksWhileWriteLockHeld(t *testing.T) {
-	t.Parallel()
-
 	s, err := NewMarkdownStore(t.TempDir())
 	require.NoError(t, err)
 
@@ -52,8 +48,6 @@ func TestGetProjectBlocksWhileWriteLockHeld(t *testing.T) {
 }
 
 func TestWriteFileAtomicCleansTempOnRenameFailure(t *testing.T) {
-	t.Parallel()
-
 	dir := t.TempDir()
 	path := filepath.Join(dir, "target.md")
 	require.NoError(t, os.WriteFile(path, []byte("old"), 0o644))
@@ -75,8 +69,6 @@ func TestWriteFileAtomicCleansTempOnRenameFailure(t *testing.T) {
 }
 
 func TestWriteFileAtomicReplacesTarget(t *testing.T) {
-	t.Parallel()
-
 	dir := t.TempDir()
 	path := filepath.Join(dir, "target.md")
 	require.NoError(t, os.WriteFile(path, []byte("before"), 0o644))

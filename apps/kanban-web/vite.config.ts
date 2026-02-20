@@ -20,6 +20,7 @@ export default defineConfig({
         ws: true,
       },
       '/health': backendURL,
+      '/client-config': backendURL,
       '/admin': backendURL,
       '/openapi': backendURL,
       '/schemas': backendURL,
