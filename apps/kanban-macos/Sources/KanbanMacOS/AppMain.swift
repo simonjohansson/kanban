@@ -5,11 +5,30 @@ import SwiftUI
 struct KanbanMacOSApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var viewModel = KanbanMacOSApp.makeViewModel()
+    @State private var zoomController = ZoomController()
 
     var body: some Scene {
         WindowGroup {
-            MainSplitView(viewModel: viewModel)
+            MainSplitView(viewModel: viewModel, zoomScale: zoomController.scale)
                 .frame(minWidth: 900, minHeight: 560)
+        }
+        .commands {
+            CommandMenu("View") {
+                Button("Zoom In") {
+                    zoomController.zoomIn()
+                }
+                .keyboardShortcut("=", modifiers: [.command])
+
+                Button("Zoom Out") {
+                    zoomController.zoomOut()
+                }
+                .keyboardShortcut("-", modifiers: [.command])
+
+                Button("Actual Size") {
+                    zoomController.reset()
+                }
+                .keyboardShortcut("0", modifiers: [.command])
+            }
         }
     }
 

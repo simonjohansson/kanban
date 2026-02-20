@@ -2,13 +2,16 @@ import SwiftUI
 
 struct MainSplitView: View {
     @Bindable var viewModel: ProjectsViewModel
+    let zoomScale: Double
     @State private var selectedProjectID: ProjectSummary.ID?
     private let sidebarProbe = SidebarStateProbe.fromEnvironment()
 
     var body: some View {
+        let zoom = ZoomPresentation(scale: zoomScale)
         NavigationSplitView {
             List(viewModel.projects, selection: $selectedProjectID) { project in
                 Text(project.name)
+                    .font(.system(size: zoom.scaled(14)))
                     .help(tooltip(for: project))
             }
             .navigationTitle("Projects")
@@ -21,20 +24,25 @@ struct MainSplitView: View {
                     }
             } else {
                 GeometryReader { geometry in
+                    let laneSpacing = zoom.scaled(BoardPresentation.laneSpacing)
+                    let horizontalPadding = zoom.scaled(BoardPresentation.horizontalPadding)
+                    let verticalPadding = zoom.scaled(BoardPresentation.verticalPadding)
                     let laneWidth = BoardPresentation.laneWidth(
                         containerWidth: geometry.size.width,
-                        laneCount: KanbanLaneStatus.allCases.count
+                        laneCount: KanbanLaneStatus.allCases.count,
+                        laneSpacing: laneSpacing,
+                        horizontalPadding: horizontalPadding
                     )
 
                     ScrollView(.vertical) {
-                        HStack(alignment: .top, spacing: BoardPresentation.laneSpacing) {
+                        HStack(alignment: .top, spacing: laneSpacing) {
                             ForEach(KanbanLaneStatus.allCases, id: \.rawValue) { lane in
-                                laneView(for: lane, laneWidth: laneWidth)
+                                laneView(for: lane, laneWidth: laneWidth, zoom: zoom)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.horizontal, BoardPresentation.horizontalPadding)
-                        .padding(.vertical, BoardPresentation.verticalPadding)
+                        .padding(.horizontal, horizontalPadding)
+                        .padding(.vertical, verticalPadding)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
@@ -80,6 +88,7 @@ struct MainSplitView: View {
         } message: {
             Text(viewModel.alertMessage ?? "Unknown error")
         }
+        .animation(.easeInOut(duration: 0.12), value: zoom.scale)
     }
 
     private func tooltip(for project: ProjectSummary) -> String {
@@ -112,23 +121,23 @@ struct MainSplitView: View {
     }
 
     @ViewBuilder
-    private func laneView(for lane: KanbanLaneStatus, laneWidth: Double) -> some View {
+    private func laneView(for lane: KanbanLaneStatus, laneWidth: Double, zoom: ZoomPresentation) -> some View {
         let cards = viewModel.cards(for: lane)
         VStack(alignment: .leading, spacing: 8) {
             Text(lane.rawValue)
-                .font(.headline)
+                .font(.system(size: zoom.scaled(20), weight: .semibold))
             if cards.isEmpty {
                 Text("No cards")
-                    .font(.subheadline)
+                    .font(.system(size: zoom.scaled(13)))
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(cards) { card in
                     Text(card.title)
-                        .font(.subheadline)
+                        .font(.system(size: zoom.scaled(13)))
                         .foregroundStyle(BoardPresentation.cardTitleColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, zoom.scaled(10))
+                        .padding(.vertical, zoom.scaled(8))
                         .background(BoardPresentation.cardBackgroundColor)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -138,7 +147,7 @@ struct MainSplitView: View {
                 }
             }
         }
-        .padding(10)
+        .padding(zoom.scaled(10))
         .frame(width: laneWidth, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(Color.gray.opacity(0.10))

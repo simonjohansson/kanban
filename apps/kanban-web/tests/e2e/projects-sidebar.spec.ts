@@ -140,6 +140,13 @@ test('shows 4 lanes and reflects cards across project switching and moves', asyn
   await page.setViewportSize({ width: 920, height: 820 });
   await expect(page.getByTestId('board')).toBeVisible();
 
+  const boardUsesFlexLayout = await page.evaluate(() => {
+    const board = document.querySelector('[data-testid="board"]');
+    if (!board) return false;
+    return window.getComputedStyle(board).display === 'flex';
+  });
+  expect(boardUsesFlexLayout).toBe(true);
+
   const boardFitsAtMediumViewport = await page.evaluate(() => {
     const board = document.querySelector('[data-testid="board"]') as HTMLElement | null;
     if (!board) return false;

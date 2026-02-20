@@ -16,7 +16,12 @@ struct BoardPresentation {
         Color(red: cardBackgroundRGB.red, green: cardBackgroundRGB.green, blue: cardBackgroundRGB.blue)
     }
 
-    static func laneWidth(containerWidth: Double, laneCount: Int = 4) -> Double {
+    static func laneWidth(
+        containerWidth: Double,
+        laneCount: Int = 4,
+        laneSpacing: Double = BoardPresentation.laneSpacing,
+        horizontalPadding: Double = BoardPresentation.horizontalPadding
+    ) -> Double {
         guard laneCount > 0 else {
             return 0
         }

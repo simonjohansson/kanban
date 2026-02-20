@@ -220,6 +220,7 @@
   }
 
   .sidebar {
+    position: relative;
     border-right: 1px solid #e5e7eb;
     padding: 16px;
     background: #fff;
@@ -239,7 +240,7 @@
   }
 
   .sidebar h1 {
-    margin: 0 0 16px 0;
+    margin: 0;
     font-size: 1.05rem;
     letter-spacing: 0.02em;
   }
@@ -249,20 +250,22 @@
   }
 
   .sidebar-toggle {
-    border: 1px solid #d1d5db;
-    background: #f9fafb;
-    color: #1f2937;
+    border: 1px solid #0f766e;
+    background: #0f766e;
+    color: #ffffff;
     border-radius: 8px;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
     line-height: 1;
+    box-shadow: 0 1px 3px rgba(15, 118, 110, 0.35);
   }
 
   .sidebar-toggle:hover {
-    background: #eef2ff;
-    border-color: #c7d2fe;
+    background: #115e59;
+    border-color: #115e59;
   }
 
   .project-list {
@@ -297,16 +300,24 @@
   }
 
   .board {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
     gap: 12px;
-    align-items: start;
+    align-items: stretch;
+    justify-content: stretch;
     width: 100%;
+    min-width: 0;
     min-height: calc(100vh - 48px);
+  }
+
+  .board > * {
+    flex: 1 1 0;
   }
 
   .lane {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     background: #f3f4f6;
     border: 1px solid #e5e7eb;
     border-radius: 12px;

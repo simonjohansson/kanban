@@ -494,6 +494,59 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Implement responsive lane sizing with no horizontal clipping.
   - [x] Run `make frontend-test-e2e` and `make test`.
 
+### Deferred follow-up: macOS cards decode error on app start
+- Goal: investigate and fix startup failure where macOS app cannot decode `listCards` response for some projects.
+- Reported symptom:
+  - App alert: `Failed to load cards: Client encountered an error invoking the operation "listCards", caused by "Unknown", underlying error: The data couldn’t be read because it isn’t in the correct format.`
+  - Backend shows successful request:
+    - `GET /projects/mobile-app/cards` with `status=200` and non-empty `bytes`.
+- Notes:
+  - Likely contract/schema drift for card list payload or generated Swift types vs runtime payload.
+  - User requested this be tracked now and handled later.
+- Checklist:
+  - [x] Reproduce with captured payload from `/projects/<project>/cards` when alert appears.
+  - [x] Compare payload fields/types against generated Swift OpenAPI client model for `listCards`.
+  - [x] Add failing Swift test that decodes the problematic payload.
+  - [x] Implement minimal fix and re-run Swift tests/e2e.
+
+### Active follow-up: remove temporary macOS fallback + add keyboard zoom
+- Goal: remove temporary `listCards` fallback decoding logic now that backend is restarted and contract is clean, and add keyboard zoom controls in macOS app.
+- User requirements:
+  1. Remove fallback/extra compatibility handling previously added in `OpenAPIProjectsClient`.
+  2. Support `Cmd+` and `Cmd-` to zoom UI in/out.
+- Plan:
+  1. Add failing tests for zoom step behavior and bounds.
+  2. Revert fallback decode helpers and keep strict generated-client path.
+  3. Introduce zoom state and keyboard shortcuts in macOS app.
+  4. Apply zoom scaling to board UI and verify end-to-end.
+  5. Run swift and root test suites.
+- Checklist:
+  - [x] Add failing tests for zoom controller increment/decrement and clamping.
+  - [x] Remove fallback decode helpers from `OpenAPIProjectsClient`.
+  - [x] Implement `Cmd+` / `Cmd-` keyboard shortcuts.
+  - [x] Apply zoom scale to board content.
+  - [x] Run `make test-swift` and `make test`.
+
+### Active follow-up: zoom behavior correction + web responsive/toggle hardening
+- Goal: align actual behavior with user expectation for macOS zoom and web responsiveness/toggle visibility.
+- User feedback:
+  1. macOS zoom should not shrink the entire view; sidebar should still occupy full vertical space.
+  2. zoom should behave like text/UI scaling with layout reflow.
+  3. web toggle for projects sidebar is not visible in user run.
+  4. web board still does not feel fully responsive.
+- Plan:
+  1. Add failing tests for macOS zoom factor helper behavior (size scaling math, bounds).
+  2. Remove `scaleEffect` whole-view transform and apply zoom through typography/spacing values.
+  3. Rework web board to flex-based lanes (`flex: 1 1 0`, `min-width: 0`) with explicit no-overflow assertions.
+  4. Make web sidebar toggle always visible and high-contrast.
+  5. Re-run web e2e + swift + root tests.
+- Checklist:
+  - [x] Add failing tests for macOS zoom presentation helper.
+  - [x] Replace whole-view scaling with text/layout scaling in macOS.
+  - [x] Harden web layout using flex lanes and explicit responsive constraints.
+  - [x] Ensure sidebar toggle is visually obvious and always rendered.
+  - [x] Run `make frontend-test-e2e`, `make test-swift`, and `make test`.
+
 ## Proposed Backend Refactor (Service Layer)
 ### Problem
 - Current Huma handlers orchestrate too much: markdown write, sqlite projection update, logging, and websocket event publishing.
