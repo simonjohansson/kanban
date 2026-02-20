@@ -16,10 +16,11 @@ type markdownStoreStub struct {
 	deleteProjectFn     func(string) error
 	createProjectFn     func(string, string, string) (model.Project, error)
 	listProjectsFn      func() ([]model.Project, error)
-	createCardFn        func(string, string, string, string) (model.Card, error)
+	createCardFn        func(string, string, string, string, string) (model.Card, error)
 	getProjectFn        func(string) (model.Project, error)
 	getCardFn           func(string, int) (model.Card, error)
 	moveCardFn          func(string, int, string) (model.Card, error)
+	setCardBranchFn     func(string, int, string) (model.Card, error)
 	addCommentFn        func(string, int, string) (model.Card, error)
 	appendDescriptionFn func(string, int, string) (model.Card, error)
 	deleteCardFn        func(string, int, bool) (model.Card, error)
@@ -42,8 +43,8 @@ func (m *markdownStoreStub) DeleteProject(slug string) error {
 	return m.deleteProjectFn(slug)
 }
 
-func (m *markdownStoreStub) CreateCard(projectSlug, title, description, status string) (model.Card, error) {
-	return m.createCardFn(projectSlug, title, description, status)
+func (m *markdownStoreStub) CreateCard(projectSlug, title, description, branch, status string) (model.Card, error) {
+	return m.createCardFn(projectSlug, title, description, branch, status)
 }
 
 func (m *markdownStoreStub) GetCard(projectSlug string, number int) (model.Card, error) {
@@ -52,6 +53,10 @@ func (m *markdownStoreStub) GetCard(projectSlug string, number int) (model.Card,
 
 func (m *markdownStoreStub) MoveCard(projectSlug string, number int, status string) (model.Card, error) {
 	return m.moveCardFn(projectSlug, number, status)
+}
+
+func (m *markdownStoreStub) SetCardBranch(projectSlug string, number int, branch string) (model.Card, error) {
+	return m.setCardBranchFn(projectSlug, number, branch)
 }
 
 func (m *markdownStoreStub) AddComment(projectSlug string, number int, body string) (model.Card, error) {
@@ -202,7 +207,7 @@ func TestCreateCardUpsertsProjectAndCard(t *testing.T) {
 	)
 
 	markdown := &markdownStoreStub{
-		createCardFn: func(projectSlug, _, _, _ string) (model.Card, error) {
+		createCardFn: func(projectSlug, _, _, _, _ string) (model.Card, error) {
 			require.Equal(t, "alpha", projectSlug)
 			return createdCard, nil
 		},
@@ -226,7 +231,7 @@ func TestCreateCardUpsertsProjectAndCard(t *testing.T) {
 	publisher := &publisherStub{}
 
 	svc := newNoopService(markdown, projection, publisher)
-	card, err := svc.CreateCard("alpha", "title", "", "Todo")
+	card, err := svc.CreateCard("alpha", "title", "", "", "Todo")
 	require.NoError(t, err)
 	require.Equal(t, "alpha/card-1", card.ID)
 	require.True(t, projectUpserted)
@@ -502,42 +507,42 @@ func TestCreateCardAdditionalErrorPaths(t *testing.T) {
 
 	t.Run("project not found maps validation", func(t *testing.T) {
 		svc := newNoopService(&markdownStoreStub{
-			createCardFn: func(_, _, _, _ string) (model.Card, error) { return model.Card{}, os.ErrNotExist },
+			createCardFn: func(_, _, _, _, _ string) (model.Card, error) { return model.Card{}, os.ErrNotExist },
 		}, &projectionStub{}, &publisherStub{})
-		_, err := svc.CreateCard("alpha", "t", "", "Todo")
+		_, err := svc.CreateCard("alpha", "t", "", "", "Todo")
 		require.Error(t, err)
 		require.Equal(t, CodeValidation, CodeOf(err))
 	})
 
 	t.Run("get project failure maps internal", func(t *testing.T) {
 		svc := newNoopService(&markdownStoreStub{
-			createCardFn: func(_, _, _, _ string) (model.Card, error) {
+			createCardFn: func(_, _, _, _, _ string) (model.Card, error) {
 				return model.Card{ID: "alpha/card-1", ProjectSlug: "alpha", Number: 1}, nil
 			},
 			getProjectFn: func(_ string) (model.Project, error) { return model.Project{}, errors.New("boom") },
 		}, &projectionStub{}, &publisherStub{})
-		_, err := svc.CreateCard("alpha", "t", "", "Todo")
+		_, err := svc.CreateCard("alpha", "t", "", "", "Todo")
 		require.Error(t, err)
 		require.Equal(t, CodeInternal, CodeOf(err))
 	})
 
 	t.Run("project projection failure maps internal", func(t *testing.T) {
 		svc := newNoopService(&markdownStoreStub{
-			createCardFn: func(_, _, _, _ string) (model.Card, error) {
+			createCardFn: func(_, _, _, _, _ string) (model.Card, error) {
 				return model.Card{ID: "alpha/card-1", ProjectSlug: "alpha", Number: 1}, nil
 			},
 			getProjectFn: func(_ string) (model.Project, error) { return model.Project{Slug: "alpha"}, nil },
 		}, &projectionStub{
 			upsertProjectFn: func(_ model.Project) error { return errors.New("boom") },
 		}, &publisherStub{})
-		_, err := svc.CreateCard("alpha", "t", "", "Todo")
+		_, err := svc.CreateCard("alpha", "t", "", "", "Todo")
 		require.Error(t, err)
 		require.Equal(t, CodeInternal, CodeOf(err))
 	})
 
 	t.Run("card projection failure maps internal", func(t *testing.T) {
 		svc := newNoopService(&markdownStoreStub{
-			createCardFn: func(_, _, _, _ string) (model.Card, error) {
+			createCardFn: func(_, _, _, _, _ string) (model.Card, error) {
 				return model.Card{ID: "alpha/card-1", ProjectSlug: "alpha", Number: 1}, nil
 			},
 			getProjectFn: func(_ string) (model.Project, error) { return model.Project{Slug: "alpha"}, nil },
@@ -545,7 +550,7 @@ func TestCreateCardAdditionalErrorPaths(t *testing.T) {
 			upsertProjectFn: func(_ model.Project) error { return nil },
 			upsertCardFn:    func(_ model.Card) error { return errors.New("boom") },
 		}, &publisherStub{})
-		_, err := svc.CreateCard("alpha", "t", "", "Todo")
+		_, err := svc.CreateCard("alpha", "t", "", "", "Todo")
 		require.Error(t, err)
 		require.Equal(t, CodeInternal, CodeOf(err))
 	})

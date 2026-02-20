@@ -49,6 +49,7 @@ type cardFrontmatter struct {
 	ProjectSlug string    `yaml:"project"`
 	Number      int       `yaml:"number"`
 	Title       string    `yaml:"title"`
+	Branch      string    `yaml:"branch,omitempty"`
 	Status      string    `yaml:"status"`
 	Column      string    `yaml:"column,omitempty"`
 	Deleted     bool      `yaml:"deleted"`
@@ -134,7 +135,7 @@ func (s *MarkdownStore) DeleteProject(slug string) error {
 	return os.RemoveAll(projectDir)
 }
 
-func (s *MarkdownStore) CreateCard(projectSlug, title, description, status string) (model.Card, error) {
+func (s *MarkdownStore) CreateCard(projectSlug, title, description, branch, status string) (model.Card, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -143,6 +144,10 @@ func (s *MarkdownStore) CreateCard(projectSlug, title, description, status strin
 		return model.Card{}, errors.New("title is required")
 	}
 	if err := validateStatus(status); err != nil {
+		return model.Card{}, err
+	}
+	branch = strings.TrimSpace(branch)
+	if err := validateBranchName(branch); err != nil {
 		return model.Card{}, err
 	}
 	project, err := s.loadProject(projectSlug)
@@ -159,6 +164,7 @@ func (s *MarkdownStore) CreateCard(projectSlug, title, description, status strin
 		ProjectSlug: projectSlug,
 		Number:      number,
 		Title:       title,
+		Branch:      branch,
 		Status:      status,
 		Deleted:     false,
 		CreatedAt:   now,
@@ -260,6 +266,34 @@ func (s *MarkdownStore) MoveCard(projectSlug string, number int, status string) 
 	card.Status = status
 	card.UpdatedAt = now
 	card.History = append(card.History, model.HistoryEvent{Timestamp: now, Type: "card.moved", Details: fmt.Sprintf("status=%s", status)})
+	if err := s.writeCard(card); err != nil {
+		return model.Card{}, err
+	}
+	return card, nil
+}
+
+func (s *MarkdownStore) SetCardBranch(projectSlug string, number int, branch string) (model.Card, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	branch = strings.TrimSpace(branch)
+	if err := validateBranchName(branch); err != nil {
+		return model.Card{}, err
+	}
+
+	card, err := s.getCardUnlocked(projectSlug, number)
+	if err != nil {
+		return model.Card{}, err
+	}
+
+	now := time.Now().UTC()
+	card.Branch = branch
+	card.UpdatedAt = now
+	card.History = append(card.History, model.HistoryEvent{
+		Timestamp: now,
+		Type:      "card.branch.updated",
+		Details:   fmt.Sprintf("branch=%s", branch),
+	})
 	if err := s.writeCard(card); err != nil {
 		return model.Card{}, err
 	}
@@ -449,6 +483,7 @@ func serializeCard(c model.Card) ([]byte, string, error) {
 		ProjectSlug: c.ProjectSlug,
 		Number:      c.Number,
 		Title:       c.Title,
+		Branch:      c.Branch,
 		Status:      c.Status,
 		Deleted:     c.Deleted,
 		CreatedAt:   c.CreatedAt,
@@ -509,6 +544,7 @@ func parseCard(data []byte) (model.Card, error) {
 		ProjectSlug: fm.ProjectSlug,
 		Number:      fm.Number,
 		Title:       fm.Title,
+		Branch:      fm.Branch,
 		Status:      fm.Status,
 		Deleted:     fm.Deleted,
 		CreatedAt:   fm.CreatedAt,
@@ -605,6 +641,41 @@ func validateStatus(status string) error {
 	}
 	if _, ok := model.AllowedStatus[status]; !ok {
 		return fmt.Errorf("invalid status %q", status)
+	}
+	return nil
+}
+
+func validateBranchName(branch string) error {
+	branch = strings.TrimSpace(branch)
+	if branch == "" {
+		return nil
+	}
+	if branch == "@" {
+		return errors.New("invalid branch name")
+	}
+	if strings.HasPrefix(branch, "refs/") {
+		return errors.New("invalid branch name")
+	}
+	if strings.HasSuffix(branch, ".") || strings.HasSuffix(branch, ".lock") {
+		return errors.New("invalid branch name")
+	}
+	if strings.Contains(branch, "..") || strings.Contains(branch, "@{") {
+		return errors.New("invalid branch name")
+	}
+	if strings.HasPrefix(branch, "/") || strings.HasSuffix(branch, "/") {
+		return errors.New("invalid branch name")
+	}
+	if strings.Contains(branch, "//") {
+		return errors.New("invalid branch name")
+	}
+	for _, r := range branch {
+		if r <= 0x20 || r == 0x7f {
+			return errors.New("invalid branch name")
+		}
+		switch r {
+		case '~', '^', ':', '?', '*', '[', '\\':
+			return errors.New("invalid branch name")
+		}
 	}
 	return nil
 }

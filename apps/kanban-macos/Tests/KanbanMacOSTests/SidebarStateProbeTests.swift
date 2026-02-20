@@ -26,6 +26,12 @@ struct SidebarStateProbeTests {
                 "Doing": [],
                 "Review": [],
                 "Done": [],
+            ],
+            cardsByStatusDetailed: [
+                "Todo": [SidebarCardStateProbe(title: "Task A", branch: "feature/task-a")],
+                "Doing": [],
+                "Review": [],
+                "Done": [],
             ]
         )
 
@@ -34,6 +40,7 @@ struct SidebarStateProbeTests {
         #expect(payload.projects == ["Alpha", "Beta"])
         #expect(payload.selectedProjectSlug == "beta")
         #expect(payload.cardsByStatus["Todo"] == ["Task A"])
+        #expect(payload.cardsByStatusDetailed["Todo"] == [SidebarCardStateProbe(title: "Task A", branch: "feature/task-a")])
     }
 
     @Test

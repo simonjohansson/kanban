@@ -9,6 +9,7 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { Card } from './models/Card';
 export type { CardSummary } from './models/CardSummary';
+export type { ClientConfigOutputBody } from './models/ClientConfigOutputBody';
 export type { CreateCardRequest } from './models/CreateCardRequest';
 export type { CreateProjectRequest } from './models/CreateProjectRequest';
 export type { DeleteProjectOutputBody } from './models/DeleteProjectOutputBody';
@@ -21,6 +22,7 @@ export type { ListProjectsOutputBody } from './models/ListProjectsOutputBody';
 export type { MoveCardRequest } from './models/MoveCardRequest';
 export type { Project } from './models/Project';
 export type { RebuildProjectionOutputBody } from './models/RebuildProjectionOutputBody';
+export type { SetCardBranchRequest } from './models/SetCardBranchRequest';
 export type { TextBodyRequest } from './models/TextBodyRequest';
 export type { TextEvent } from './models/TextEvent';
 

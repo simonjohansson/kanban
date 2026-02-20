@@ -57,6 +57,16 @@ public final class ProjectsViewModel {
         return map
     }
 
+    func cardsByStatusDetailedMap() -> [String: [SidebarCardStateProbe]] {
+        var map: [String: [SidebarCardStateProbe]] = [:]
+        for status in KanbanLaneStatus.allCases {
+            map[status.rawValue] = cards(for: status).map {
+                SidebarCardStateProbe(title: $0.title, branch: $0.branch)
+            }
+        }
+        return map
+    }
+
     private func apply(update: StoreUpdate) async {
         projects = update.projects
         if let selected = selectedProjectSlug,

@@ -11,6 +11,7 @@ import (
 type createCardRequest struct {
 	Title       string  `json:"title"`
 	Description *string `json:"description,omitempty"`
+	Branch      *string `json:"branch,omitempty"`
 	Status      string  `json:"status"`
 }
 
@@ -24,7 +25,7 @@ type createCardOutput struct {
 }
 
 func (s *Server) createCard(_ context.Context, input *createCardInput) (*createCardOutput, error) {
-	card, err := s.service.CreateCard(input.Project, input.Body.Title, stringOrEmpty(input.Body.Description), input.Body.Status)
+	card, err := s.service.CreateCard(input.Project, input.Body.Title, stringOrEmpty(input.Body.Description), stringOrEmpty(input.Body.Branch), input.Body.Status)
 	if err != nil {
 		return nil, toHumaError(err)
 	}
@@ -147,6 +148,32 @@ func (s *Server) appendDescription(_ context.Context, input *appendDescriptionIn
 		return nil, toHumaError(err)
 	}
 	return &appendDescriptionOutput{Body: card}, nil
+}
+
+type setCardBranchRequest struct {
+	Branch string `json:"branch"`
+}
+
+type setCardBranchInput struct {
+	Project string `path:"project"`
+	Number  int    `path:"number"`
+	Body    setCardBranchRequest
+}
+
+type setCardBranchOutput struct {
+	Body model.Card
+}
+
+func (s *Server) setCardBranch(_ context.Context, input *setCardBranchInput) (*setCardBranchOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	card, err := s.service.SetCardBranch(input.Project, number, input.Body.Branch)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	return &setCardBranchOutput{Body: card}, nil
 }
 
 type deleteCardInput struct {

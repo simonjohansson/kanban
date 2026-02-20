@@ -36,10 +36,14 @@ kanban cards new -p alpha -t "Task" -s Doing`),
 			title, _ := cmd.Flags().GetString("title")
 			status, _ := cmd.Flags().GetString("status")
 			description, _ := cmd.Flags().GetString("description")
+			branch, _ := cmd.Flags().GetString("branch")
 
 			body := apiclient.CreateCardRequest{Title: strings.TrimSpace(title), Status: strings.TrimSpace(status)}
 			if value := strings.TrimSpace(description); value != "" {
 				body.Description = &value
+			}
+			if value := strings.TrimSpace(branch); value != "" {
+				body.Branch = &value
 			}
 
 			resp, reqErr := client.CreateCard(context.Background(), strings.TrimSpace(project), body)
@@ -49,6 +53,7 @@ kanban cards new -p alpha -t "Task" -s Doing`),
 	createCmd.Flags().StringP("project", "p", "", "Project slug")
 	createCmd.Flags().StringP("title", "t", "", "Card title")
 	createCmd.Flags().StringP("description", "d", "", "Initial description text")
+	createCmd.Flags().String("branch", "", "Optional git branch metadata")
 	createCmd.Flags().StringP("status", "s", "", "Card status (Todo|Doing|Review|Done)")
 	_ = createCmd.MarkFlagRequired("project")
 	_ = createCmd.MarkFlagRequired("title")
@@ -185,6 +190,34 @@ kanban cards desc -p alpha -i 1 -b "Added acceptance criteria"`),
 	_ = describeCmd.MarkFlagRequired("id")
 	_ = describeCmd.MarkFlagRequired("body")
 
+	branchCmd := &cobra.Command{
+		Use:   "branch",
+		Short: "Set card branch metadata.",
+		Long:  "Set or update the card branch value.",
+		Example: strings.TrimSpace(`kanban card branch --project alpha --id 1 --branch feature/task
+kanban cards branch -p alpha -i 1 -b feature/task-v2`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := common.NewClient(runtime)
+			if err != nil {
+				return wrapErr(http.StatusBadRequest, err.Error())
+			}
+
+			project, _ := cmd.Flags().GetString("project")
+			id, _ := cmd.Flags().GetInt64("id")
+			branch, _ := cmd.Flags().GetString("branch")
+
+			body := apiclient.SetCardBranchRequest{Branch: strings.TrimSpace(branch)}
+			resp, reqErr := client.SetCardBranch(context.Background(), strings.TrimSpace(project), id, body)
+			return handle(runtime.Output(), stdout, resp, reqErr)
+		},
+	}
+	branchCmd.Flags().StringP("project", "p", "", "Project slug")
+	branchCmd.Flags().Int64P("id", "i", 0, "Card number")
+	branchCmd.Flags().StringP("branch", "b", "", "Git branch metadata")
+	_ = branchCmd.MarkFlagRequired("project")
+	_ = branchCmd.MarkFlagRequired("id")
+	_ = branchCmd.MarkFlagRequired("branch")
+
 	deleteCmd := &cobra.Command{
 		Use:     "delete",
 		Aliases: []string{"rm", "remove"},
@@ -213,6 +246,6 @@ kanban cards rm -p alpha -i 1 --hard`),
 	_ = deleteCmd.MarkFlagRequired("project")
 	_ = deleteCmd.MarkFlagRequired("id")
 
-	cardCmd.AddCommand(createCmd, listCmd, getCmd, moveCmd, commentCmd, describeCmd, deleteCmd)
+	cardCmd.AddCommand(createCmd, listCmd, getCmd, moveCmd, commentCmd, describeCmd, branchCmd, deleteCmd)
 	return cardCmd
 }

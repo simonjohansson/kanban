@@ -9,6 +9,7 @@ export type Card = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    branch?: string;
     comments: Array<TextEvent>;
     created_at: string;
     deleted: boolean;

@@ -28,13 +28,15 @@ public struct KanbanCardSummary: Equatable, Identifiable, Sendable {
     public let number: Int
     public let projectSlug: String
     public let title: String
+    public let branch: String?
     public let status: String
 
-    public init(id: String, number: Int, projectSlug: String, title: String, status: String) {
+    public init(id: String, number: Int, projectSlug: String, title: String, branch: String? = nil, status: String) {
         self.id = id
         self.number = number
         self.projectSlug = projectSlug
         self.title = title
+        self.branch = branch
         self.status = status
     }
 }

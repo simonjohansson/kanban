@@ -188,6 +188,14 @@ func (s *Server) registerOperations() {
 	}, s.appendDescription)
 
 	huma.Register(s.api, huma.Operation{
+		OperationID: "setCardBranch",
+		Method:      http.MethodPatch,
+		Path:        "/projects/{project}/cards/{number}/branch",
+		Summary:     "Set card branch metadata",
+		Errors:      []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.setCardBranch)
+
+	huma.Register(s.api, huma.Operation{
 		OperationID: "deleteCard",
 		Method:      http.MethodDelete,
 		Path:        "/projects/{project}/cards/{number}",

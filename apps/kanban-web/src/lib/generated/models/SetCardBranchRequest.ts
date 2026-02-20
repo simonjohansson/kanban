@@ -2,14 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type CreateCardRequest = {
+export type SetCardBranchRequest = {
     /**
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    branch?: string;
-    description?: string;
-    status: string;
-    title: string;
+    branch: string;
 };
 

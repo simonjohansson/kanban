@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS cards (
   project_slug TEXT NOT NULL,
   number INTEGER NOT NULL,
   title TEXT NOT NULL,
+  branch TEXT,
   status TEXT NOT NULL,
   deleted INTEGER NOT NULL,
   created_at TEXT NOT NULL,

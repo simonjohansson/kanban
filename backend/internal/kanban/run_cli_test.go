@@ -53,7 +53,7 @@ func TestRunExecutesProjectAndCardCommands(t *testing.T) {
 			_, _ = w.Write([]byte(`{"project":"alpha","deleted":true}`))
 		case r.Method == http.MethodPost && r.URL.Path == "/projects/alpha/cards":
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(`{"id":"alpha/card-1","project":"alpha","number":1,"title":"Task","status":"Todo"}`))
+			_, _ = w.Write([]byte(`{"id":"alpha/card-1","project":"alpha","number":1,"title":"Task","branch":"feature/task","status":"Todo"}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/projects/alpha/cards":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"cards":[{"id":"alpha/card-1","project":"alpha","number":1,"title":"Task","status":"Todo","deleted":false,"comments_count":0,"history_count":1}]}`))
@@ -69,6 +69,9 @@ func TestRunExecutesProjectAndCardCommands(t *testing.T) {
 		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/description":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"id":"alpha/card-1","project":"alpha","number":1,"title":"Task","status":"Doing"}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/branch":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":"alpha/card-1","project":"alpha","number":1,"title":"Task","branch":"feature/task-v2","status":"Doing"}`))
 		case r.Method == http.MethodDelete && r.URL.Path == "/projects/alpha/cards/1":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"id":"alpha/card-1","project":"alpha","number":1,"deleted":true}`))
@@ -84,9 +87,10 @@ func TestRunExecutesProjectAndCardCommands(t *testing.T) {
 	cases := [][]string{
 		{"project", "create", "--name", "Alpha"},
 		{"project", "ls"},
-		{"card", "create", "-p", "alpha", "-t", "Task", "-s", "Todo"},
+		{"card", "create", "-p", "alpha", "-t", "Task", "-s", "Todo", "--branch", "feature/task"},
 		{"card", "ls", "-p", "alpha"},
 		{"card", "get", "-p", "alpha", "-i", "1"},
+		{"card", "branch", "-p", "alpha", "-i", "1", "-b", "feature/task-v2"},
 		{"card", "move", "-p", "alpha", "-i", "1", "-s", "Doing"},
 		{"card", "comment", "-p", "alpha", "-i", "1", "-b", "note"},
 		{"card", "desc", "-p", "alpha", "-i", "1", "-b", "body"},

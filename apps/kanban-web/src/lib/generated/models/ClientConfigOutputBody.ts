@@ -2,14 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type CreateCardRequest = {
+export type ClientConfigOutputBody = {
     /**
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
-    branch?: string;
-    description?: string;
-    status: string;
-    title: string;
+    server_url: string;
 };
 

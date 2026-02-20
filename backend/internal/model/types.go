@@ -35,6 +35,7 @@ type Card struct {
 	ProjectSlug string         `json:"project"`
 	Number      int            `json:"number"`
 	Title       string         `json:"title"`
+	Branch      string         `json:"branch,omitempty"`
 	Status      string         `json:"status"`
 	Deleted     bool           `json:"deleted"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -49,6 +50,7 @@ type CardSummary struct {
 	ProjectSlug   string    `json:"project"`
 	Number        int       `json:"number"`
 	Title         string    `json:"title"`
+	Branch        string    `json:"branch,omitempty"`
 	Status        string    `json:"status"`
 	Deleted       bool      `json:"deleted"`
 	CreatedAt     time.Time `json:"created_at"`

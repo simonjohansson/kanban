@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -32,6 +33,7 @@ func TestSQLiteProjectionLifecycle(t *testing.T) {
 		ProjectSlug: "alpha",
 		Number:      1,
 		Title:       "Task A",
+		Branch:      "feature/card-1",
 		Status:      "Todo",
 		Deleted:     false,
 		CreatedAt:   now,
@@ -52,6 +54,7 @@ func TestSQLiteProjectionLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, active, 1)
 	require.Equal(t, "alpha/card-1", active[0].ID)
+	require.Equal(t, "feature/card-1", active[0].Branch)
 
 	allCards, err := p.ListCards("alpha", true)
 	require.NoError(t, err)
@@ -80,9 +83,9 @@ func TestSQLiteProjectionRebuildFromMarkdown(t *testing.T) {
 		{Slug: "alpha", Name: "Alpha", CreatedAt: now, UpdatedAt: now, NextCardSeq: 3},
 	}
 	cards := []model.Card{
-		{ID: "beta/card-1", ProjectSlug: "beta", Number: 1, Title: "B", Status: "Doing", CreatedAt: now, UpdatedAt: now},
-		{ID: "alpha/card-2", ProjectSlug: "alpha", Number: 2, Title: "A2", Status: "Review", CreatedAt: now, UpdatedAt: now},
-		{ID: "alpha/card-1", ProjectSlug: "alpha", Number: 1, Title: "A1", Status: "Todo", CreatedAt: now, UpdatedAt: now},
+		{ID: "beta/card-1", ProjectSlug: "beta", Number: 1, Title: "B", Branch: "feature/b", Status: "Doing", CreatedAt: now, UpdatedAt: now},
+		{ID: "alpha/card-2", ProjectSlug: "alpha", Number: 2, Title: "A2", Branch: "feature/a2", Status: "Review", CreatedAt: now, UpdatedAt: now},
+		{ID: "alpha/card-1", ProjectSlug: "alpha", Number: 1, Title: "A1", Branch: "feature/a1", Status: "Todo", CreatedAt: now, UpdatedAt: now},
 	}
 
 	require.NoError(t, p.RebuildFromMarkdown(projects, cards))
@@ -92,24 +95,28 @@ func TestSQLiteProjectionRebuildFromMarkdown(t *testing.T) {
 	require.Len(t, alphaCards, 2)
 	require.Equal(t, 1, alphaCards[0].Number)
 	require.Equal(t, 2, alphaCards[1].Number)
+	require.Equal(t, "feature/a1", alphaCards[0].Branch)
+	require.Equal(t, "feature/a2", alphaCards[1].Branch)
 
 	betaCards, err := p.ListCards("beta", true)
 	require.NoError(t, err)
 	require.Len(t, betaCards, 1)
 	require.Equal(t, "beta/card-1", betaCards[0].ID)
+	require.Equal(t, "feature/b", betaCards[0].Branch)
 }
 
 func TestSQLiteHelperFunctions(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
-	summary, err := cardSummaryFromRaw("alpha/card-1", "alpha", 1, "Task", "Todo", 1, now.Format(time.RFC3339), now.Format(time.RFC3339), 2, 3)
+	summary, err := cardSummaryFromRaw("alpha/card-1", "alpha", 1, "Task", sql.NullString{String: "feature/x", Valid: true}, "Todo", 1, now.Format(time.RFC3339), now.Format(time.RFC3339), 2, 3)
 	require.NoError(t, err)
 	require.True(t, summary.Deleted)
+	require.Equal(t, "feature/x", summary.Branch)
 	require.Equal(t, 2, summary.CommentsCount)
 	require.Equal(t, 3, summary.HistoryCount)
 
-	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", "Todo", 0, "bad", now.Format(time.RFC3339), 0, 0)
+	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", sql.NullString{}, "Todo", 0, "bad", now.Format(time.RFC3339), 0, 0)
 	require.Error(t, err)
-	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", "Todo", 0, now.Format(time.RFC3339), "bad", 0, 0)
+	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", sql.NullString{}, "Todo", 0, now.Format(time.RFC3339), "bad", 0, 0)
 	require.Error(t, err)
 
 	require.EqualValues(t, 1, boolToInt(true))

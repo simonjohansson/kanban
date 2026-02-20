@@ -79,3 +79,17 @@ func TestWriteFileAtomicReplacesTarget(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "after", string(data))
 }
+
+func TestValidateBranchName(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, validateBranchName(""))
+	require.NoError(t, validateBranchName("feature/card-branch"))
+	require.NoError(t, validateBranchName("bugfix/123"))
+
+	require.Error(t, validateBranchName("bad branch"))
+	require.Error(t, validateBranchName("feature..x"))
+	require.Error(t, validateBranchName("feature.lock"))
+	require.Error(t, validateBranchName("@"))
+	require.Error(t, validateBranchName("refs/heads/main"))
+}

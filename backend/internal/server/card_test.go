@@ -123,3 +123,54 @@ func TestCardEndpointsRejectColumnInRequests(t *testing.T) {
 	})
 	require.Equal(t, http.StatusUnprocessableEntity, moveResp.StatusCode)
 }
+
+func TestCardBranchCreateAndUpdate(t *testing.T) {
+	t.Parallel()
+
+	_, sqlitePath, httpServer := newTestServer(t)
+
+	createProjectResp := doJSON(t, httpServer.URL+"/projects", http.MethodPost, map[string]string{"name": "Branch Board"})
+	require.Equal(t, http.StatusCreated, createProjectResp.StatusCode)
+
+	createCardResp := doJSON(t, httpServer.URL+"/projects/branch-board/cards", http.MethodPost, map[string]string{
+		"title":  "Build branch support",
+		"status": "Todo",
+		"branch": "feature/card-branch",
+	})
+	require.Equal(t, http.StatusCreated, createCardResp.StatusCode)
+	createCardBody := decodeMap(t, createCardResp.Body)
+	require.Equal(t, "feature/card-branch", createCardBody["branch"])
+
+	getCardResp := doJSON(t, httpServer.URL+"/projects/branch-board/cards/1", http.MethodGet, nil)
+	require.Equal(t, http.StatusOK, getCardResp.StatusCode)
+	getCardBody := decodeMap(t, getCardResp.Body)
+	require.Equal(t, "feature/card-branch", getCardBody["branch"])
+
+	updateBranchResp := doJSON(t, httpServer.URL+"/projects/branch-board/cards/1/branch", http.MethodPatch, map[string]string{
+		"branch": "feature/card-branch-v2",
+	})
+	require.Equal(t, http.StatusOK, updateBranchResp.StatusCode)
+	updateBranchBody := decodeMap(t, updateBranchResp.Body)
+	require.Equal(t, "feature/card-branch-v2", updateBranchBody["branch"])
+
+	listCardsResp := doJSON(t, httpServer.URL+"/projects/branch-board/cards", http.MethodGet, nil)
+	require.Equal(t, http.StatusOK, listCardsResp.StatusCode)
+	listCardsBody := decodeMap(t, listCardsResp.Body)
+	cards := listCardsBody["cards"].([]any)
+	require.Len(t, cards, 1)
+	cardSummary := cards[0].(map[string]any)
+	require.Equal(t, "feature/card-branch-v2", cardSummary["branch"])
+
+	invalidBranchResp := doJSON(t, httpServer.URL+"/projects/branch-board/cards/1/branch", http.MethodPatch, map[string]string{
+		"branch": "bad branch name",
+	})
+	require.Equal(t, http.StatusBadRequest, invalidBranchResp.StatusCode)
+
+	db, err := sql.Open("sqlite", sqlitePath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	var branch string
+	err = db.QueryRow(`SELECT branch FROM cards WHERE project_slug = 'branch-board' AND number = 1`).Scan(&branch)
+	require.NoError(t, err)
+	require.Equal(t, "feature/card-branch-v2", branch)
+}

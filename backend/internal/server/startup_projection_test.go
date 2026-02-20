@@ -24,7 +24,7 @@ func TestServerStartupRecreatesProjectionFromMarkdown(t *testing.T) {
 
 	_, err = markdownStore.CreateProject("Alpha", "", "")
 	require.NoError(t, err)
-	_, err = markdownStore.CreateCard("alpha", "Recovered card", "from markdown", "Todo")
+	_, err = markdownStore.CreateCard("alpha", "Recovered card", "from markdown", "", "Todo")
 	require.NoError(t, err)
 
 	createLegacyProjectionDB(t, sqlitePath)
