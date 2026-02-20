@@ -28,6 +28,24 @@ func (q *Queries) DeleteAllProjects(ctx context.Context) error {
 	return err
 }
 
+const deleteCardsByProject = `-- name: DeleteCardsByProject :exec
+DELETE FROM cards WHERE project_slug = ?
+`
+
+func (q *Queries) DeleteCardsByProject(ctx context.Context, projectSlug string) error {
+	_, err := q.db.ExecContext(ctx, deleteCardsByProject, projectSlug)
+	return err
+}
+
+const deleteProjectBySlug = `-- name: DeleteProjectBySlug :exec
+DELETE FROM projects WHERE slug = ?
+`
+
+func (q *Queries) DeleteProjectBySlug(ctx context.Context, slug string) error {
+	_, err := q.db.ExecContext(ctx, deleteProjectBySlug, slug)
+	return err
+}
+
 const hardDeleteCard = `-- name: HardDeleteCard :exec
 DELETE FROM cards WHERE project_slug = ? AND number = ?
 `

@@ -25,7 +25,7 @@ make openapi-gen-go-client
 ```
 
 Output:
-- `/Users/simonjohansson/src/kanban/backend/internal/gen/client/client.gen.go`
+- `/Users/simonjohansson/src/kanban/backend/gen/client/client.gen.go`
 
 ## Generate other clients
 

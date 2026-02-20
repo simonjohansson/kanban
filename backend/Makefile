@@ -1,5 +1,5 @@
 OPENAPI_SPEC := api/openapi.yaml
-GO_CLIENT_OUT := internal/gen/client/client.gen.go
+GO_CLIENT_OUT := gen/client/client.gen.go
 
 .PHONY: test test-e2e test-e2e-verbose test-no-e2e sqlc-generate openapi-sync openapi-validate openapi-gen-go-client
 

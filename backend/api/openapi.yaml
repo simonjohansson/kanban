@@ -94,6 +94,41 @@ paths:
                         application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}:
+        delete:
+            summary: Delete project
+            operationId: deleteProject
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteProjectOutputBody'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
     /projects/{project}/cards:
         get:
             summary: List cards
@@ -576,6 +611,24 @@ components:
                     type: string
             required:
                 - name
+        DeleteProjectOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/DeleteProjectOutputBody.json
+                    readOnly: true
+                deleted:
+                    type: boolean
+                project:
+                    type: string
+            required:
+                - project
+                - deleted
         ErrorDetail:
             type: object
             additionalProperties: false

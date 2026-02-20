@@ -100,7 +100,7 @@ make openapi-gen-go-client
 ```
 
 Generated client output:
-- `/Users/simonjohansson/src/kanban/backend/internal/gen/client/client.gen.go`
+- `/Users/simonjohansson/src/kanban/backend/gen/client/client.gen.go`
 
 ## SQLC Generation
 

@@ -56,6 +56,12 @@ ON CONFLICT(id) DO UPDATE SET
 -- name: HardDeleteCard :exec
 DELETE FROM cards WHERE project_slug = ? AND number = ?;
 
+-- name: DeleteCardsByProject :exec
+DELETE FROM cards WHERE project_slug = ?;
+
+-- name: DeleteProjectBySlug :exec
+DELETE FROM projects WHERE slug = ?;
+
 -- name: ListCardsActive :many
 SELECT id, project_slug, number, title, status, column_name, deleted, created_at, updated_at, comments_count, history_count
 FROM cards

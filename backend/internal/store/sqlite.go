@@ -78,6 +78,14 @@ func (p *SQLiteProjection) HardDeleteCard(projectSlug string, number int) error 
 	})
 }
 
+func (p *SQLiteProjection) DeleteProject(projectSlug string) error {
+	ctx := context.Background()
+	if err := p.queries.DeleteCardsByProject(ctx, projectSlug); err != nil {
+		return err
+	}
+	return p.queries.DeleteProjectBySlug(ctx, projectSlug)
+}
+
 func (p *SQLiteProjection) ListCards(projectSlug string, includeDeleted bool) ([]model.CardSummary, error) {
 	ctx := context.Background()
 	if includeDeleted {

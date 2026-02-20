@@ -112,6 +112,20 @@ func (s *MarkdownStore) GetProject(slug string) (model.Project, error) {
 	return s.loadProject(slug)
 }
 
+func (s *MarkdownStore) DeleteProject(slug string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	projectDir := s.projectDir(slug)
+	if _, err := os.Stat(projectDir); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return os.ErrNotExist
+		}
+		return err
+	}
+	return os.RemoveAll(projectDir)
+}
+
 func (s *MarkdownStore) CreateCard(projectSlug, title, description, status, column string) (model.Card, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	genclient "github.com/simonjohansson/kanban/backend/internal/gen/client"
+	genclient "github.com/simonjohansson/kanban/backend/gen/client"
 	"github.com/simonjohansson/kanban/backend/internal/server"
 	"github.com/stretchr/testify/require"
 )

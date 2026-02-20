@@ -2,18 +2,16 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	"github.com/simonjohansson/kanban/backend/internal/model"
+	"github.com/simonjohansson/kanban/backend/internal/service"
 	"github.com/simonjohansson/kanban/backend/internal/store"
 )
 
@@ -24,7 +22,7 @@ type Options struct {
 }
 
 type Server struct {
-	store      *store.MarkdownStore
+	service    *service.Service
 	projection *store.SQLiteProjection
 	hub        *hub
 	logger     *slog.Logger
@@ -46,12 +44,13 @@ func New(opts Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	hub := newHub()
 
 	router := chi.NewRouter()
 	s := &Server{
-		store:      markdownStore,
+		service:    service.New(markdownStore, projection, hub, logger),
 		projection: projection,
-		hub:        newHub(),
+		hub:        hub,
 		logger:     logger,
 		router:     router,
 	}
@@ -107,6 +106,14 @@ func (s *Server) registerOperations() {
 		Summary:     "List projects",
 		Errors:      []int{http.StatusInternalServerError},
 	}, s.listProjects)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID: "deleteProject",
+		Method:      http.MethodDelete,
+		Path:        "/projects/{project}",
+		Summary:     "Delete project",
+		Errors:      []int{http.StatusNotFound, http.StatusInternalServerError},
+	}, s.deleteProject)
 
 	huma.Register(s.api, huma.Operation{
 		OperationID:   "createCard",
@@ -218,18 +225,10 @@ type createProjectOutput struct {
 }
 
 func (s *Server) createProject(_ context.Context, input *createProjectInput) (*createProjectOutput, error) {
-	project, err := s.store.CreateProject(input.Body.Name, stringOrEmpty(input.Body.LocalPath), stringOrEmpty(input.Body.RemoteURL))
+	project, err := s.service.CreateProject(input.Body.Name, stringOrEmpty(input.Body.LocalPath), stringOrEmpty(input.Body.RemoteURL))
 	if err != nil {
-		if errors.Is(err, os.ErrExist) {
-			return nil, huma.Error409Conflict("project already exists")
-		}
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, toHumaError(err)
 	}
-	if err := s.projection.UpsertProject(project); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	s.logger.Info("project created", "project", project.Slug)
-	s.publishEvent(model.Event{Type: "project.created", Project: project.Slug, Timestamp: time.Now().UTC()})
 
 	out := &createProjectOutput{Body: project}
 	return out, nil
@@ -242,12 +241,34 @@ type listProjectsOutput struct {
 }
 
 func (s *Server) listProjects(_ context.Context, _ *struct{}) (*listProjectsOutput, error) {
-	projects, err := s.store.ListProjects()
+	projects, err := s.service.ListProjects()
 	if err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
+		return nil, toHumaError(err)
 	}
 	out := &listProjectsOutput{}
 	out.Body.Projects = projects
+	return out, nil
+}
+
+type deleteProjectInput struct {
+	Project string `path:"project"`
+}
+
+type deleteProjectOutput struct {
+	Body struct {
+		Project string `json:"project"`
+		Deleted bool   `json:"deleted"`
+	}
+}
+
+func (s *Server) deleteProject(_ context.Context, input *deleteProjectInput) (*deleteProjectOutput, error) {
+	if err := s.service.DeleteProject(input.Project); err != nil {
+		return nil, toHumaError(err)
+	}
+
+	out := &deleteProjectOutput{}
+	out.Body.Project = input.Project
+	out.Body.Deleted = true
 	return out, nil
 }
 
@@ -268,28 +289,10 @@ type createCardOutput struct {
 }
 
 func (s *Server) createCard(_ context.Context, input *createCardInput) (*createCardOutput, error) {
-	card, err := s.store.CreateCard(input.Project, input.Body.Title, stringOrEmpty(input.Body.Description), input.Body.Status, stringOrEmpty(input.Body.Column))
+	card, err := s.service.CreateCard(input.Project, input.Body.Title, stringOrEmpty(input.Body.Description), input.Body.Status, stringOrEmpty(input.Body.Column))
 	if err != nil {
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, toHumaError(err)
 	}
-	project, err := s.store.GetProject(input.Project)
-	if err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	if err := s.projection.UpsertProject(project); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	if err := s.projection.UpsertCard(card); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	s.logger.Info("card created", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number)
-	s.publishEvent(model.Event{
-		Type:      "card.created",
-		Project:   card.ProjectSlug,
-		CardID:    card.ID,
-		CardNum:   card.Number,
-		Timestamp: time.Now().UTC(),
-	})
 
 	out := &createCardOutput{Body: card}
 	return out, nil
@@ -307,9 +310,9 @@ type listCardsOutput struct {
 }
 
 func (s *Server) listCards(_ context.Context, input *listCardsInput) (*listCardsOutput, error) {
-	cards, err := s.projection.ListCards(input.Project, input.IncludeDeleted)
+	cards, err := s.service.ListCards(input.Project, input.IncludeDeleted)
 	if err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
+		return nil, toHumaError(err)
 	}
 	out := &listCardsOutput{}
 	out.Body.Cards = cards
@@ -330,12 +333,9 @@ func (s *Server) getCard(_ context.Context, input *cardPathInput) (*getCardOutpu
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
-	card, err := s.store.GetCard(input.Project, number)
+	card, err := s.service.GetCard(input.Project, number)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, huma.Error404NotFound("card not found")
-		}
-		return nil, huma.Error500InternalServerError(err.Error())
+		return nil, toHumaError(err)
 	}
 	return &getCardOutput{Body: card}, nil
 }
@@ -360,24 +360,10 @@ func (s *Server) moveCard(_ context.Context, input *moveCardInput) (*moveCardOut
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
-	card, err := s.store.MoveCard(input.Project, number, input.Body.Status, stringOrEmpty(input.Body.Column))
+	card, err := s.service.MoveCard(input.Project, number, input.Body.Status, stringOrEmpty(input.Body.Column))
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, huma.Error404NotFound("card not found")
-		}
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, toHumaError(err)
 	}
-	if err := s.projection.UpsertCard(card); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	s.logger.Info("card moved", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "status", card.Status, "column", card.Column)
-	s.publishEvent(model.Event{
-		Type:      "card.moved",
-		Project:   card.ProjectSlug,
-		CardID:    card.ID,
-		CardNum:   card.Number,
-		Timestamp: time.Now().UTC(),
-	})
 	return &moveCardOutput{Body: card}, nil
 }
 
@@ -400,24 +386,10 @@ func (s *Server) commentCard(_ context.Context, input *commentCardInput) (*comme
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
-	card, err := s.store.AddComment(input.Project, number, input.Body.Body)
+	card, err := s.service.CommentCard(input.Project, number, input.Body.Body)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, huma.Error404NotFound("card not found")
-		}
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, toHumaError(err)
 	}
-	if err := s.projection.UpsertCard(card); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	s.logger.Info("card commented", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "comments_count", len(card.Comments))
-	s.publishEvent(model.Event{
-		Type:      "card.commented",
-		Project:   card.ProjectSlug,
-		CardID:    card.ID,
-		CardNum:   card.Number,
-		Timestamp: time.Now().UTC(),
-	})
 	return &commentCardOutput{Body: card}, nil
 }
 
@@ -436,24 +408,10 @@ func (s *Server) appendDescription(_ context.Context, input *appendDescriptionIn
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
-	card, err := s.store.AppendDescription(input.Project, number, input.Body.Body)
+	card, err := s.service.AppendDescription(input.Project, number, input.Body.Body)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, huma.Error404NotFound("card not found")
-		}
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, toHumaError(err)
 	}
-	if err := s.projection.UpsertCard(card); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	s.logger.Info("card description appended", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "description_entries", len(card.Description))
-	s.publishEvent(model.Event{
-		Type:      "card.updated",
-		Project:   card.ProjectSlug,
-		CardID:    card.ID,
-		CardNum:   card.Number,
-		Timestamp: time.Now().UTC(),
-	})
 	return &appendDescriptionOutput{Body: card}, nil
 }
 
@@ -472,38 +430,9 @@ func (s *Server) deleteCard(_ context.Context, input *deleteCardInput) (*deleteC
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
-	card, err := s.store.DeleteCard(input.Project, number, input.Hard)
+	card, err := s.service.DeleteCard(input.Project, number, input.Hard)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, huma.Error404NotFound("card not found")
-		}
-		return nil, huma.Error400BadRequest(err.Error())
-	}
-
-	if input.Hard {
-		if err := s.projection.HardDeleteCard(input.Project, number); err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
-		}
-		s.logger.Info("card hard deleted", "project", input.Project, "card_id", card.ID, "card_number", card.Number)
-		s.publishEvent(model.Event{
-			Type:      "card.deleted_hard",
-			Project:   input.Project,
-			CardID:    card.ID,
-			CardNum:   card.Number,
-			Timestamp: time.Now().UTC(),
-		})
-	} else {
-		if err := s.projection.UpsertCard(card); err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
-		}
-		s.logger.Info("card soft deleted", "project", input.Project, "card_id", card.ID, "card_number", card.Number)
-		s.publishEvent(model.Event{
-			Type:      "card.deleted_soft",
-			Project:   input.Project,
-			CardID:    card.ID,
-			CardNum:   card.Number,
-			Timestamp: time.Now().UTC(),
-		})
+		return nil, toHumaError(err)
 	}
 
 	return &deleteCardOutput{Body: card}, nil
@@ -517,18 +446,14 @@ type rebuildProjectionOutput struct {
 }
 
 func (s *Server) rebuildProjection(_ context.Context, _ *struct{}) (*rebuildProjectionOutput, error) {
-	projects, cards, err := s.store.Snapshot()
+	result, err := s.service.RebuildProjection()
 	if err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
-	}
-	if err := s.projection.RebuildFromMarkdown(projects, cards); err != nil {
-		return nil, huma.Error500InternalServerError(err.Error())
+		return nil, toHumaError(err)
 	}
 
 	out := &rebuildProjectionOutput{}
-	out.Body.ProjectsRebuilt = len(projects)
-	out.Body.CardsRebuilt = len(cards)
-	s.logger.Info("projection rebuilt", "projects_rebuilt", len(projects), "cards_rebuilt", len(cards))
+	out.Body.ProjectsRebuilt = result.ProjectsRebuilt
+	out.Body.CardsRebuilt = result.CardsRebuilt
 	return out, nil
 }
 
@@ -546,8 +471,17 @@ func stringOrEmpty(v *string) string {
 	return strings.TrimSpace(*v)
 }
 
-func (s *Server) publishEvent(event model.Event) {
-	// Ensure project filter consistency on websocket subscriptions.
-	event.Project = strings.TrimSpace(event.Project)
-	s.hub.Publish(event)
+func toHumaError(err error) error {
+	code := service.CodeOf(err)
+	msg := service.MessageOf(err)
+	switch code {
+	case service.CodeConflict:
+		return huma.Error409Conflict(msg)
+	case service.CodeNotFound:
+		return huma.Error404NotFound(msg)
+	case service.CodeValidation:
+		return huma.Error400BadRequest(msg)
+	default:
+		return huma.Error500InternalServerError(msg)
+	}
 }
