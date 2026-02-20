@@ -48,6 +48,42 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
             throw URLError(.badServerResponse)
         }
     }
+
+    public func getCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails {
+        let response = try await client.getCard(path: .init(project: projectSlug, number: Int64(number)))
+        switch response {
+        case .ok(let ok):
+            let body = try ok.body.json
+            return KanbanCardDetails(
+                id: body.id,
+                number: Int(body.number),
+                projectSlug: body.project,
+                title: body.title,
+                branch: body.branch,
+                status: body.status,
+                description: body.description.map {
+                    KanbanCardTextEvent(
+                        timestamp: Self.formatTimestamp($0.timestamp),
+                        body: $0.body
+                    )
+                },
+                comments: body.comments.map {
+                    KanbanCardTextEvent(
+                        timestamp: Self.formatTimestamp($0.timestamp),
+                        body: $0.body
+                    )
+                }
+            )
+        default:
+            throw URLError(.badServerResponse)
+        }
+    }
+
+    private static func formatTimestamp(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
+    }
 }
 
 struct FlexibleRFC3339DateTranscoder: DateTranscoder {

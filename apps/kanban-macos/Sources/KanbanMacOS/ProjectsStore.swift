@@ -3,6 +3,7 @@ import Foundation
 public protocol ProjectsAPIClient: Sendable {
     func listProjects() async throws -> [ProjectSummary]
     func listCards(projectSlug: String) async throws -> [KanbanCardSummary]
+    func getCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails
 }
 
 public protocol ProjectEventStream: Sendable {
@@ -22,6 +23,7 @@ public struct StoreUpdate: Sendable {
 public protocol ProjectsStoreProtocol: Sendable {
     func initialLoad() async throws -> [ProjectSummary]
     func loadCards(projectSlug: String) async throws -> [KanbanCardSummary]
+    func loadCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails
     func startWatching() -> AsyncThrowingStream<StoreUpdate, Error>
 }
 
@@ -40,6 +42,10 @@ public final class ProjectsStore: ProjectsStoreProtocol {
 
     public func loadCards(projectSlug: String) async throws -> [KanbanCardSummary] {
         try await apiClient.listCards(projectSlug: projectSlug).sorted(by: sortCards(lhs:rhs:))
+    }
+
+    public func loadCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails {
+        try await apiClient.getCard(projectSlug: projectSlug, number: number)
     }
 
     public func startWatching() -> AsyncThrowingStream<StoreUpdate, Error> {

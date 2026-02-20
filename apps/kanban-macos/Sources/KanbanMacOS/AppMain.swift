@@ -53,6 +53,9 @@ struct KanbanMacOSApp: App {
 private struct FallbackProjectsClient: ProjectsAPIClient {
     func listProjects() async throws -> [ProjectSummary] { [] }
     func listCards(projectSlug _: String) async throws -> [KanbanCardSummary] { [] }
+    func getCard(projectSlug _: String, number _: Int) async throws -> KanbanCardDetails {
+        throw URLError(.badServerResponse)
+    }
 }
 
 private final class AppDelegate: NSObject, NSApplicationDelegate {

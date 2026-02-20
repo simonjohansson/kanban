@@ -30,7 +30,10 @@ struct SidebarStateProbe {
         projects: [ProjectSummary],
         selectedProjectSlug: String?,
         cardsByStatus: [String: [String]],
-        cardsByStatusDetailed: [String: [SidebarCardStateProbe]]
+        cardsByStatusDetailed: [String: [SidebarCardStateProbe]],
+        cardDetailsVisible: Bool,
+        cardDetails: SidebarCardDetailsStateProbe?,
+        cardDetailsError: String?
     ) {
         guard let outputURL else {
             return
@@ -40,7 +43,10 @@ struct SidebarStateProbe {
             projects: projects.map(\.name),
             selectedProjectSlug: selectedProjectSlug,
             cardsByStatus: cardsByStatus,
-            cardsByStatusDetailed: cardsByStatusDetailed
+            cardsByStatusDetailed: cardsByStatusDetailed,
+            cardDetailsVisible: cardDetailsVisible,
+            cardDetails: cardDetails,
+            cardDetailsError: cardDetailsError
         )
         guard let raw = try? JSONEncoder().encode(payload) else {
             return
@@ -66,16 +72,36 @@ struct SidebarStateProbePayload: Codable, Equatable {
     let selectedProjectSlug: String?
     let cardsByStatus: [String: [String]]
     let cardsByStatusDetailed: [String: [SidebarCardStateProbe]]
+    let cardDetailsVisible: Bool
+    let cardDetails: SidebarCardDetailsStateProbe?
+    let cardDetailsError: String?
 
     enum CodingKeys: String, CodingKey {
         case projects
         case selectedProjectSlug = "selected_project_slug"
         case cardsByStatus = "cards_by_status"
         case cardsByStatusDetailed = "cards_by_status_detailed"
+        case cardDetailsVisible = "card_details_visible"
+        case cardDetails = "card_details"
+        case cardDetailsError = "card_details_error"
     }
 }
 
 struct SidebarCardStateProbe: Codable, Equatable {
     let title: String
     let branch: String?
+}
+
+struct SidebarCardDetailsStateProbe: Codable, Equatable {
+    let title: String
+    let branch: String?
+    let descriptionBodies: [String]
+    let commentBodies: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case branch
+        case descriptionBodies = "description_bodies"
+        case commentBodies = "comment_bodies"
+    }
 }

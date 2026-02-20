@@ -32,7 +32,15 @@ struct SidebarStateProbeTests {
                 "Doing": [],
                 "Review": [],
                 "Done": [],
-            ]
+            ],
+            cardDetailsVisible: true,
+            cardDetails: SidebarCardDetailsStateProbe(
+                title: "Task A",
+                branch: "feature/task-a",
+                descriptionBodies: ["description body"],
+                commentBodies: ["comment body"]
+            ),
+            cardDetailsError: nil
         )
 
         let raw = try Data(contentsOf: output)
@@ -41,6 +49,9 @@ struct SidebarStateProbeTests {
         #expect(payload.selectedProjectSlug == "beta")
         #expect(payload.cardsByStatus["Todo"] == ["Task A"])
         #expect(payload.cardsByStatusDetailed["Todo"] == [SidebarCardStateProbe(title: "Task A", branch: "feature/task-a")])
+        #expect(payload.cardDetailsVisible == true)
+        #expect(payload.cardDetails?.title == "Task A")
+        #expect(payload.cardDetails?.descriptionBodies == ["description body"])
     }
 
     @Test

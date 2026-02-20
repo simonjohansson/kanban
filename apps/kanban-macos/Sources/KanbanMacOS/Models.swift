@@ -41,6 +41,47 @@ public struct KanbanCardSummary: Equatable, Identifiable, Sendable {
     }
 }
 
+public struct KanbanCardTextEvent: Equatable, Sendable {
+    public let timestamp: String
+    public let body: String
+
+    public init(timestamp: String, body: String) {
+        self.timestamp = timestamp
+        self.body = body
+    }
+}
+
+public struct KanbanCardDetails: Equatable, Sendable {
+    public let id: String
+    public let number: Int
+    public let projectSlug: String
+    public let title: String
+    public let branch: String?
+    public let status: String
+    public let description: [KanbanCardTextEvent]
+    public let comments: [KanbanCardTextEvent]
+
+    public init(
+        id: String,
+        number: Int,
+        projectSlug: String,
+        title: String,
+        branch: String? = nil,
+        status: String,
+        description: [KanbanCardTextEvent],
+        comments: [KanbanCardTextEvent]
+    ) {
+        self.id = id
+        self.number = number
+        self.projectSlug = projectSlug
+        self.title = title
+        self.branch = branch
+        self.status = status
+        self.description = description
+        self.comments = comments
+    }
+}
+
 public struct ProjectEvent: Equatable, Sendable {
     public let type: String
     public let projectSlug: String?
