@@ -636,6 +636,23 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Ensure sidebar toggle is visually obvious and always rendered.
   - [x] Run `make frontend-test-e2e`, `make test-swift`, and `make test`.
 
+### Active follow-up: Address GitHub PR review comments (feature branch)
+- Goal: resolve all actionable review comments on `codex/card-branch-metadata` and keep tests green.
+- Context:
+  - User requested handling all actionable GitHub PR feedback in this branch.
+  - Required workflow is via `gh` + skill script that fetches review threads/comments.
+- Plan:
+  1. Fetch full PR review comments/threads for current branch.
+  2. Classify actionable vs non-actionable comments.
+  3. Apply fixes for all actionable items with tests-first where behavior changes.
+  4. Run relevant test suites and summarize updates.
+- Checklist:
+  - [x] Fetch PR comments/threads from GitHub.
+  - [x] Enumerate actionable review items.
+  - [x] Implement fixes for all actionable items.
+  - [x] Run tests and verify branch is ready.
+  - [x] Summarize resolved comments and resulting changes.
+
 ## Proposed Backend Refactor (Service Layer)
 ### Problem
 - Current Huma handlers orchestrate too much: markdown write, sqlite projection update, logging, and websocket event publishing.

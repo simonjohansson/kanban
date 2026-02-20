@@ -92,4 +92,7 @@ func TestValidateBranchName(t *testing.T) {
 	require.Error(t, validateBranchName("feature.lock"))
 	require.Error(t, validateBranchName("@"))
 	require.Error(t, validateBranchName("refs/heads/main"))
+	require.Error(t, validateBranchName("HEAD"))
+	require.Error(t, validateBranchName("foo/.bar"))
+	require.Error(t, validateBranchName("foo/bar.lock/baz"))
 }

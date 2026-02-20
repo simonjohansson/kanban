@@ -653,6 +653,9 @@ func validateBranchName(branch string) error {
 	if branch == "@" {
 		return errors.New("invalid branch name")
 	}
+	if branch == "HEAD" {
+		return errors.New("invalid branch name")
+	}
 	if strings.HasPrefix(branch, "refs/") {
 		return errors.New("invalid branch name")
 	}
@@ -667,6 +670,17 @@ func validateBranchName(branch string) error {
 	}
 	if strings.Contains(branch, "//") {
 		return errors.New("invalid branch name")
+	}
+	for _, segment := range strings.Split(branch, "/") {
+		if segment == "" {
+			return errors.New("invalid branch name")
+		}
+		if strings.HasPrefix(segment, ".") {
+			return errors.New("invalid branch name")
+		}
+		if strings.HasSuffix(segment, ".lock") {
+			return errors.New("invalid branch name")
+		}
 	}
 	for _, r := range branch {
 		if r <= 0x20 || r == 0x7f {
