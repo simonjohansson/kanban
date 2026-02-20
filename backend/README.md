@@ -9,8 +9,15 @@ SQLite projection queries are generated with `sqlc`.
 
 ```bash
 cd /Users/simonjohansson/src/kanban/backend
-go run ./cmd/kanban serve --addr 127.0.0.1:8080 --data-dir /tmp/kanban-data --sqlite-path /tmp/kanban-data/projection.db
+go run ./cmd/kanban serve --addr 127.0.0.1:8080 --cards-path /tmp/kanban-data/cards --sqlite-path /tmp/kanban-data/projection.db
 ```
+
+Storage/runtime config sources (highest precedence first):
+1. flags: `kanban serve --cards-path ... --sqlite-path ... --addr ...`
+2. env: `KANBAN_CARDS_PATH`, `KANBAN_SQLITE_PATH`, `KANBAN_SERVER_URL`
+3. config file: `~/.config/kanban/config.yaml`
+
+`--data-dir` is still accepted as a deprecated alias for `--cards-path`.
 
 ## Sample API Flow (curl)
 
@@ -46,8 +53,7 @@ curl -sS -X POST "$BASE_URL/projects/demo-project/cards" \
   -d '{
     "title": "Set up CI",
     "description": "Create initial CI pipeline",
-    "status": "Todo",
-    "column": "Todo"
+    "status": "Todo"
   }'
 ```
 

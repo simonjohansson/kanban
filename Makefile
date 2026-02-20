@@ -1,4 +1,8 @@
-.PHONY: test test-backend test-swift test-swift-e2e build-swift-app run-swift-app frontend-install frontend-dev frontend-build frontend-build-embed frontend-test-e2e
+.PHONY: test test-backend test-swift test-swift-e2e build-swift-app run-swift-app run-backend frontend-install frontend-dev frontend-build frontend-build-embed frontend-test-e2e
+
+KANBAN_ADDR ?= 127.0.0.1:8080
+KANBAN_CARDS_PATH ?= $(HOME)/.local/state/kanban/cards
+KANBAN_SQLITE_PATH ?= $(HOME)/.local/state/kanban/projection.db
 
 test: test-backend test-swift
 
@@ -17,6 +21,9 @@ build-swift-app:
 
 run-swift-app:
 	cd apps/kanban-macos && swift run KanbanMacOS
+
+run-backend:
+	cd backend && go run ./cmd/kanban serve --addr "$(KANBAN_ADDR)" --cards-path "$(KANBAN_CARDS_PATH)" --sqlite-path "$(KANBAN_SQLITE_PATH)"
 
 frontend-install:
 	cd apps/kanban-web && npm ci

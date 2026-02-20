@@ -42,4 +42,42 @@ func TestPrimerJSONIncludesContractSections(t *testing.T) {
 	responseShapes, ok := payload["response_shapes"].(map[string]any)
 	require.True(t, ok)
 	require.Contains(t, responseShapes, "list_cards")
+
+	idSemantics, ok := payload["id_semantics"].(map[string]any)
+	require.True(t, ok)
+	require.Contains(t, idSemantics, "card_id")
+	require.Contains(t, idSemantics, "card_number")
+	require.Contains(t, idSemantics, "id_argument")
+
+	errorShape, ok := payload["error_shape"].(map[string]any)
+	require.True(t, ok)
+	require.Contains(t, errorShape, "backend_problem_json")
+	require.Contains(t, errorShape, "cli_fallback_json")
+
+	deleteSemantics, ok := payload["delete_semantics"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, true, deleteSemantics["soft_delete_default"])
+	require.Equal(t, true, deleteSemantics["hard_delete_flag"])
+
+	descSemantics, ok := payload["desc_semantics"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "append", descSemantics["mode"])
+	require.Equal(t, true, descSemantics["not_a_get"])
+
+	projectCommandSupport, ok := payload["project_command_support"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, false, projectCommandSupport["rename_supported"])
+	require.Equal(t, false, projectCommandSupport["edit_supported"])
+
+	watchEventShape, ok := payload["watch_event_shape"].(map[string]any)
+	require.True(t, ok)
+	require.Contains(t, watchEventShape, "type")
+	require.Contains(t, watchEventShape, "project")
+	require.Contains(t, watchEventShape, "card_id")
+	require.Contains(t, watchEventShape, "card_number")
+
+	statusRules, ok := payload["status_rules"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, true, statusRules["can_create_in_any_allowed_status"])
+	require.Equal(t, true, statusRules["status_required_for_create_command"])
 }

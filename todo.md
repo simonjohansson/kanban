@@ -188,10 +188,10 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
 - Checklist:
   - [x] Remove `sqlite_path`/`cards_path` from CLI `Config`, env parsing, persistent flags, and primer/help output.
   - [x] Keep CLI config focused on `server_url` + output mode.
-  - [ ] Add backend tasks for explicit storage config surface (flags/env/docs) scoped to backend runtime.
-  - [ ] Decide/implement backend naming consistency for cards storage (`--cards-path` alias vs existing `--data-dir` semantics).
-  - [ ] Add backend tests for storage path configuration and startup behavior.
-  - [ ] Add root-level run guidance/target (or launcher) for starting backend with storage options.
+  - [x] Add backend tasks for explicit storage config surface (flags/env/docs) scoped to backend runtime.
+  - [x] Decide/implement backend naming consistency for cards storage (`--cards-path` alias vs existing `--data-dir` semantics).
+  - [x] Add backend tests for storage path configuration and startup behavior.
+  - [x] Add root-level run guidance/target (or launcher) for starting backend with storage options.
 
 ### Primer quality improvements
 - Context:
@@ -206,12 +206,12 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
 - Context:
   - External LLM review identified missing operational details required for robust agent chaining.
 - Checklist:
-  - [ ] Add failing tests for response shapes and ID semantics.
-  - [ ] Add failing tests for JSON error shape and delete semantics.
-  - [ ] Add failing tests for `desc` semantics and project command support matrix.
-  - [ ] Add failing tests for watch event schema and status-at-creation rule.
-  - [ ] Update primer text/json payload to include all above details.
-  - [ ] Run CLI tests until green.
+  - [x] Add failing tests for response shapes and ID semantics.
+  - [x] Add failing tests for JSON error shape and delete semantics.
+  - [x] Add failing tests for `desc` semantics and project command support matrix.
+  - [x] Add failing tests for watch event schema and status-at-creation rule.
+  - [x] Update primer text/json payload to include all above details.
+  - [x] Run CLI tests until green.
 
 ### Backend service-layer refactor (strict sync)
 - Goal: remove orchestration from Huma handlers and centralize markdown+projection+events in service layer.

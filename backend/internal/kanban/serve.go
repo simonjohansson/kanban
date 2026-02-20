@@ -27,6 +27,8 @@ type runtimeDefaults struct {
 	SQLitePath string
 }
 
+var runServeFunc = runServe
+
 func loadRuntimeDefaults(home string) (runtimeDefaults, error) {
 	cfg, err := kanbanconfig.LoadOrInit(home)
 	if err != nil {
@@ -103,7 +105,7 @@ kanban serve --cards-path /tmp/kanban/cards --sqlite-path /tmp/kanban/projection
 				return errors.New("--sqlite-path cannot be empty")
 			}
 
-			return runServe(serveAddr, serveCards, serveSQLite)
+			return runServeFunc(serveAddr, serveCards, serveSQLite)
 		},
 	}
 
@@ -115,6 +117,13 @@ kanban serve --cards-path /tmp/kanban/cards --sqlite-path /tmp/kanban/projection
 }
 
 func runServe(addr, cardsPath, sqlitePath string) error {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
+	return runServeWithSignals(addr, cardsPath, sqlitePath, sigCh)
+}
+
+func runServeWithSignals(addr, cardsPath, sqlitePath string, sigCh <-chan os.Signal) error {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	if err := os.MkdirAll(filepath.Dir(sqlitePath), 0o755); err != nil {
@@ -149,10 +158,6 @@ func runServe(addr, cardsPath, sqlitePath string) error {
 		}
 		serverErrCh <- nil
 	}()
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(sigCh)
 
 	select {
 	case listenErr := <-serverErrCh:
