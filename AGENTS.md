@@ -3,13 +3,14 @@
 ## Development Process
 
 - Use strict TDD.
-- Before starting implementation work, first update `todo.md` with:
-  - background/context for the task,
-  - a concrete plan,
-  - explicit todos/checklist items.
-- Do not start coding before that `todo.md` planning pass is done.
-- While implementing, continuously update `todo.md` so it reflects real-time progress (`todo` -> `in progress` -> `done`).
-- Continue working until all planned todos for the active task are completed and reflected in `todo.md`.
+- Before feature work, prime context with `kanban primer` if that context is not already present.
+- If the `kanban` command cannot talk to the server, stop immediately and tell the user to start the server.
+- Ask extensive clarifying questions about the feature before planning implementation.
+- Create cards in the kanban board for the agreed work.
+- If working in a worktree/branch, record the active worktree/branch on the card.
+- Once feature context and scope are aligned, move the card to `doing`.
+- Start implementation only after the card is in `doing`.
+- When implementation is done, move the card to `review` and notify the user.
 - Continue working until all relevant tests pass.
 - Exception: if blocked and unable to proceed without user input, stop and ask concise clarifying questions.
 - Preferred development flow is: `e2e/black-box tests -> unit tests -> implementation`.
