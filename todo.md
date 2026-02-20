@@ -263,6 +263,27 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
   - [x] Add/adjust tests for path + namespaced field behavior.
   - [x] Re-run CLI + backend + monorepo tests.
 
+### Active follow-up: macOS Swift app foundation
+- Goal: create a native macOS SwiftUI app with left project pane + empty right pane, backed by API + websocket updates.
+- Location: `/Users/simonjohansson/src/kanban/apps/kanban-macos`
+- Scope for this step:
+  - main window with `NavigationSplitView`
+  - sidebar listing projects from backend
+  - right pane placeholder (empty state)
+  - config from `~/.config/kanban/config.yaml` (`server_url` fallback to localhost)
+  - websocket subscription and project list refresh on project events
+  - row hover tooltip showing local/remote paths when available
+  - alert on load/stream failures
+  - generated API client from OpenAPI and used by app
+- TDD checklist:
+  - [x] Add failing tests for config loading/fallback behavior.
+  - [x] Add failing tests for project store (initial load + websocket-triggered refresh).
+  - [x] Add failing tests for view model state + alert behavior.
+  - [x] Scaffold Swift package app + OpenAPI generation target.
+  - [x] Implement minimal app/services to satisfy tests.
+  - [x] Run Swift package tests and fix regressions.
+  - [x] Add root Makefile target to compile and launch the Swift app.
+
 ## Proposed Backend Refactor (Service Layer)
 ### Problem
 - Current Huma handlers orchestrate too much: markdown write, sqlite projection update, logging, and websocket event publishing.
@@ -386,6 +407,7 @@ Backend phase is complete and no longer treated as MVP-only. Current focus is pr
 - [x] Unified runtime config location to `~/.config/kanban/config.yaml` with shared schema (`server_url`, `backend.*`, `cli.output`) and wired backend+CLI to read it.
 - [x] Fixed backend entrypoint so `go run cmd/kanban-backend/main.go` works (moved runtime config helpers into `main.go`).
 - [x] Fixed `kb watch` interrupt handling so Ctrl-C reliably exits immediately (added regression test).
+- [x] Added first macOS Swift app foundation at `/Users/simonjohansson/src/kanban/apps/kanban-macos` with generated OpenAPI client, sidebar project list, and websocket-triggered refresh flow.
 
 ## Open Questions
 - None currently blocking implementation.
