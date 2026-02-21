@@ -12,6 +12,11 @@ public final class ProjectsViewModel {
     public private(set) var cardDetails: KanbanCardDetails?
     public var cardDetailsErrorMessage: String?
     public private(set) var isCardDetailsLoading = false
+    public private(set) var reviewReasonPromptVisible = false
+    public private(set) var reviewReasonTargetStatus: String?
+    public var reviewReasonInput = ""
+    public var reviewReasonErrorMessage: String?
+    public private(set) var isReviewTransitionInFlight = false
 
     private let store: any ProjectsStoreProtocol
     private var watchTask: Task<Void, Never>?
@@ -95,6 +100,41 @@ public final class ProjectsViewModel {
         cardDetails = nil
         cardDetailsErrorMessage = nil
         isCardDetailsLoading = false
+        closeReviewReasonPrompt()
+    }
+
+    public func requestReviewTransition(to status: String) async {
+        guard let card = cardDetails, card.status == KanbanLaneStatus.review.rawValue else {
+            return
+        }
+        if status == KanbanLaneStatus.todo.rawValue || status == KanbanLaneStatus.doing.rawValue {
+            reviewReasonPromptVisible = true
+            reviewReasonTargetStatus = status
+            reviewReasonInput = ""
+            reviewReasonErrorMessage = nil
+            return
+        }
+        if status == KanbanLaneStatus.done.rawValue {
+            await executeReviewTransition(to: status, reason: nil)
+        }
+    }
+
+    public func submitReviewReason(_ reason: String) async {
+        guard let target = reviewReasonTargetStatus,
+              target == KanbanLaneStatus.todo.rawValue || target == KanbanLaneStatus.doing.rawValue else {
+            return
+        }
+        let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        reviewReasonInput = reason
+        if trimmed.isEmpty {
+            reviewReasonErrorMessage = "Reason is required"
+            return
+        }
+        await executeReviewTransition(to: target, reason: trimmed)
+    }
+
+    public func cancelReviewReasonPrompt() {
+        closeReviewReasonPrompt()
     }
 
     public func cards(for status: KanbanLaneStatus) -> [KanbanCardSummary] {
@@ -128,6 +168,9 @@ public final class ProjectsViewModel {
         }
         if shouldRefreshCards(for: update.event) {
             await reloadCards()
+            if let selectedCardNumber {
+                await selectCard(number: selectedCardNumber)
+            }
         }
     }
 
@@ -154,5 +197,53 @@ public final class ProjectsViewModel {
         } catch {
             alertMessage = "Failed to load cards: \(error.localizedDescription)"
         }
+    }
+
+    private func closeReviewReasonPrompt() {
+        reviewReasonPromptVisible = false
+        reviewReasonTargetStatus = nil
+        reviewReasonInput = ""
+        reviewReasonErrorMessage = nil
+    }
+
+    private func refreshBoardAndSelectedCard() async {
+        await reloadCards()
+        if let selectedCardNumber {
+            await selectCard(number: selectedCardNumber)
+        }
+    }
+
+    private func executeReviewTransition(to status: String, reason: String?) async {
+        guard let selectedProjectSlug, let selectedCardNumber else {
+            return
+        }
+        isReviewTransitionInFlight = true
+        defer { isReviewTransitionInFlight = false }
+
+        do {
+            try await store.moveCard(projectSlug: selectedProjectSlug, number: selectedCardNumber, status: status)
+            if let reason {
+                let commentBody = "Moved back to \(status): \(reason)"
+                do {
+                    try await store.commentOnCard(projectSlug: selectedProjectSlug, number: selectedCardNumber, body: commentBody)
+                } catch {
+                    try? await store.moveCard(
+                        projectSlug: selectedProjectSlug,
+                        number: selectedCardNumber,
+                        status: KanbanLaneStatus.review.rawValue
+                    )
+                    alertMessage = "Failed to add transition reason"
+                    closeReviewReasonPrompt()
+                    await refreshBoardAndSelectedCard()
+                    return
+                }
+            }
+            closeReviewReasonPrompt()
+            closeCardDetails()
+        } catch {
+            alertMessage = "Failed to move card: \(error.localizedDescription)"
+        }
+
+        await refreshBoardAndSelectedCard()
     }
 }

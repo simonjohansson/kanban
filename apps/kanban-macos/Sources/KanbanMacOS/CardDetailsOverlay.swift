@@ -4,8 +4,22 @@ struct CardDetailsOverlay: View {
     let details: KanbanCardDetails?
     let isLoading: Bool
     let errorMessage: String?
+    let reviewActionsVisible: Bool
+    let reviewActionBusy: Bool
+    let reviewReasonPromptVisible: Bool
+    let reviewReasonTargetStatus: String?
+    let reviewReasonErrorMessage: String?
+    let reviewReasonInput: String
     let onClose: (String) -> Void
     let onRetry: () -> Void
+    let onMoveReviewToTodo: () -> Void
+    let onMoveReviewToDoing: () -> Void
+    let onMoveReviewToDone: () -> Void
+    let onReviewReasonChanged: (String) -> Void
+    let onSubmitReviewReason: () -> Void
+    let onCancelReviewReason: () -> Void
+    let onReviewReasonFocusChanged: (Bool) -> Void
+    @FocusState private var reviewReasonInputFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -50,6 +64,57 @@ struct CardDetailsOverlay: View {
                                 }
                             }
                         }
+                        if reviewActionsVisible {
+                            section(title: "Review Actions") {
+                                HStack(spacing: 8) {
+                                    Button("Move to Todo") {
+                                        onMoveReviewToTodo()
+                                    }
+                                    .disabled(reviewActionBusy)
+                                    Button("Move to Doing") {
+                                        onMoveReviewToDoing()
+                                    }
+                                    .disabled(reviewActionBusy)
+                                    Button("Move to Done") {
+                                        onMoveReviewToDone()
+                                    }
+                                    .disabled(reviewActionBusy)
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                        }
+                        if reviewReasonPromptVisible {
+                            section(title: "Reason for Moving to \(reviewReasonTargetStatus ?? "")") {
+                                TextField(
+                                    "Why is this card moving back?",
+                                    text: Binding(
+                                        get: { reviewReasonInput },
+                                        set: { onReviewReasonChanged($0) }
+                                    )
+                                )
+                                .textFieldStyle(.roundedBorder)
+                                .focused($reviewReasonInputFocused)
+                                .onChange(of: reviewReasonInputFocused) { _, latest in
+                                    onReviewReasonFocusChanged(latest)
+                                }
+                                if let reviewReasonErrorMessage {
+                                    Text(reviewReasonErrorMessage)
+                                        .foregroundStyle(.red)
+                                }
+                                HStack(spacing: 8) {
+                                    Button("Confirm") {
+                                        onSubmitReviewReason()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(reviewActionBusy)
+                                    Button("Cancel") {
+                                        onCancelReviewReason()
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(reviewActionBusy)
+                                }
+                            }
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -66,6 +131,21 @@ struct CardDetailsOverlay: View {
         )
         .shadow(color: Color.black.opacity(0.24), radius: 24, y: 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .onChange(of: reviewReasonPromptVisible) { _, latest in
+            if latest {
+                reviewReasonInputFocused = true
+                onReviewReasonFocusChanged(true)
+            } else {
+                reviewReasonInputFocused = false
+                onReviewReasonFocusChanged(false)
+            }
+        }
+        .onAppear {
+            if reviewReasonPromptVisible {
+                reviewReasonInputFocused = true
+                onReviewReasonFocusChanged(true)
+            }
+        }
         .onExitCommand {
             onClose("escape")
         }

@@ -6,6 +6,7 @@
   type ProjectSummary = Pick<Project, 'name' | 'slug' | 'local_path' | 'remote_url'>;
   const LANES = ['Todo', 'Doing', 'Review', 'Done'] as const;
   type LaneStatus = (typeof LANES)[number];
+  type ReviewReasonStatus = 'Todo' | 'Doing';
   type HistoryMode = 'push' | 'replace' | 'none';
   const CARD_EVENT_TYPES = new Set(['card.created', 'card.moved', 'card.deleted_soft', 'card.deleted_hard']);
   const PROJECT_EVENT_TYPES = new Set(['project.created', 'project.deleted']);
@@ -28,6 +29,10 @@
   let cardDetailsError: string | null = null;
   let cardDetailsRequestToken = 0;
   let cardDetailsOpen = false;
+  let reviewActionBusy = false;
+  let reviewReasonTargetStatus: ReviewReasonStatus | null = null;
+  let reviewReasonInput = '';
+  let reviewReasonError: string | null = null;
 
   $: cardsByLane = buildLaneMap(cards);
   $: cardDetailsOpen = cardDetailsProjectSlug !== null && cardDetailsNumber !== null;
@@ -140,9 +145,95 @@
     await openCardDetails(cardDetailsProjectSlug, cardDetailsNumber, { historyMode: 'replace', selectProject: true });
   }
 
+  function requiresReviewReason(status: LaneStatus): status is ReviewReasonStatus {
+    return status === 'Todo' || status === 'Doing';
+  }
+
+  function openReviewReasonPrompt(status: ReviewReasonStatus): void {
+    reviewReasonTargetStatus = status;
+    reviewReasonInput = '';
+    reviewReasonError = null;
+  }
+
+  function closeReviewReasonPrompt(): void {
+    reviewReasonTargetStatus = null;
+    reviewReasonInput = '';
+    reviewReasonError = null;
+  }
+
+  function handleReviewReasonInput(value: string): void {
+    reviewReasonInput = value;
+    if (reviewReasonError) {
+      reviewReasonError = null;
+    }
+  }
+
+  async function refreshBoardAndSelectedCard(): Promise<void> {
+    await loadCards();
+    await retryCardDetails();
+  }
+
+  async function executeReviewMove(targetStatus: LaneStatus, reason: string | null): Promise<void> {
+    if (!cardDetailsProjectSlug || cardDetailsNumber === null) {
+      return;
+    }
+    const transitionProjectSlug = cardDetailsProjectSlug;
+    const transitionCardNumber = cardDetailsNumber;
+    reviewActionBusy = true;
+    try {
+      await DefaultService.moveCard(transitionProjectSlug, transitionCardNumber, { status: targetStatus });
+      if (reason !== null) {
+        const commentBody = `Moved back to ${targetStatus}: ${reason}`;
+        try {
+          await DefaultService.commentCard(transitionProjectSlug, transitionCardNumber, { body: commentBody });
+        } catch {
+          try {
+            await DefaultService.moveCard(transitionProjectSlug, transitionCardNumber, { status: 'Review' });
+          } catch {
+            // noop; error state is shared for both failure modes
+          }
+          alertMessage = 'Failed to add transition reason';
+          closeReviewReasonPrompt();
+          return;
+        }
+      }
+      closeReviewReasonPrompt();
+      closeCardDetails({ historyMode: 'replace' });
+    } catch (err) {
+      alertMessage = `Failed to move card: ${String(err)}`;
+    } finally {
+      await refreshBoardAndSelectedCard();
+      reviewActionBusy = false;
+    }
+  }
+
+  async function moveReviewCard(targetStatus: LaneStatus): Promise<void> {
+    if (cardDetails?.status !== 'Review') {
+      return;
+    }
+    if (requiresReviewReason(targetStatus)) {
+      openReviewReasonPrompt(targetStatus);
+      return;
+    }
+    await executeReviewMove(targetStatus, null);
+  }
+
+  async function submitReviewReason(): Promise<void> {
+    if (!reviewReasonTargetStatus) {
+      return;
+    }
+    const trimmedReason = reviewReasonInput.trim();
+    if (!trimmedReason) {
+      reviewReasonError = 'Reason is required';
+      return;
+    }
+    await executeReviewMove(reviewReasonTargetStatus, trimmedReason);
+  }
+
   function closeCardDetails(options: { historyMode?: HistoryMode } = {}): void {
     const historyMode = options.historyMode ?? 'push';
     cardDetailsRequestToken += 1;
+    closeReviewReasonPrompt();
     cardDetailsProjectSlug = null;
     cardDetailsNumber = null;
     cardDetails = null;
@@ -161,6 +252,11 @@
   }
 
   function handleGlobalKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && reviewReasonTargetStatus) {
+      event.preventDefault();
+      closeReviewReasonPrompt();
+      return;
+    }
     if (event.key === 'Escape' && cardDetailsOpen) {
       event.preventDefault();
       closeCardDetails({ historyMode: 'push' });
@@ -185,6 +281,9 @@
           payload.project === selectedProjectSlug
         ) {
           await loadCards();
+          if (cardDetailsProjectSlug === selectedProjectSlug && cardDetailsNumber !== null) {
+            await retryCardDetails();
+          }
         }
       } catch {
         // ignore malformed event payloads
@@ -385,8 +484,19 @@
     card={cardDetails}
     errorMessage={cardDetailsError}
     loading={cardDetailsLoading}
+    onCancelReviewReason={closeReviewReasonPrompt}
     onClose={() => closeCardDetails({ historyMode: 'push' })}
+    onMoveReviewToDoing={() => moveReviewCard('Doing')}
+    onMoveReviewToDone={() => moveReviewCard('Done')}
+    onMoveReviewToTodo={() => moveReviewCard('Todo')}
+    onReviewReasonInput={handleReviewReasonInput}
     onRetry={retryCardDetails}
+    onSubmitReviewReason={submitReviewReason}
+    reviewActionBusy={reviewActionBusy}
+    reviewActionsVisible={cardDetails?.status === 'Review'}
+    reviewReasonError={reviewReasonError}
+    reviewReasonInput={reviewReasonInput}
+    reviewReasonTargetStatus={reviewReasonTargetStatus}
   />
 {/if}
 

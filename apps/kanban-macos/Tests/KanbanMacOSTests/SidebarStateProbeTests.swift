@@ -40,7 +40,11 @@ struct SidebarStateProbeTests {
                 descriptionBodies: ["description body"],
                 commentBodies: ["comment body"]
             ),
-            cardDetailsError: nil
+            cardDetailsError: nil,
+            reviewReasonPromptVisible: true,
+            reviewReasonTargetStatus: "Doing",
+            reviewReasonError: "Reason is required",
+            reviewReasonInputFocused: true
         )
 
         let raw = try Data(contentsOf: output)
@@ -52,6 +56,10 @@ struct SidebarStateProbeTests {
         #expect(payload.cardDetailsVisible == true)
         #expect(payload.cardDetails?.title == "Task A")
         #expect(payload.cardDetails?.descriptionBodies == ["description body"])
+        #expect(payload.reviewReasonPromptVisible == true)
+        #expect(payload.reviewReasonTargetStatus == "Doing")
+        #expect(payload.reviewReasonError == "Reason is required")
+        #expect(payload.reviewReasonInputFocused == true)
     }
 
     @Test
