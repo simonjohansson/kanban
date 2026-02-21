@@ -1,4 +1,5 @@
 import Foundation
+import KanbanAPI
 
 public enum KanbanLaneStatus: String, CaseIterable, Sendable {
     case todo = "Todo"
@@ -131,11 +132,13 @@ public struct KanbanCardDetails: Equatable, Sendable {
     }
 }
 
+public typealias WebSocketEventType = Components.Schemas.WebsocketEventType
+
 public struct ProjectEvent: Equatable, Sendable {
-    public let type: String
+    public let type: WebSocketEventType
     public let projectSlug: String?
 
-    public init(type: String, projectSlug: String?) {
+    public init(type: WebSocketEventType, projectSlug: String?) {
         self.type = type
         self.projectSlug = projectSlug
     }

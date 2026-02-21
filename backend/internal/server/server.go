@@ -10,6 +10,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
+	"github.com/simonjohansson/kanban/backend/internal/model"
 	"github.com/simonjohansson/kanban/backend/internal/service"
 	"github.com/simonjohansson/kanban/backend/internal/store"
 )
@@ -283,14 +284,67 @@ func (s *Server) registerWebSocketOperationDocs() {
 	if oapi.Paths == nil {
 		oapi.Paths = map[string]*huma.PathItem{}
 	}
+	ensureWebsocketEventSchemas(oapi)
 	oapi.Paths["/ws"] = &huma.PathItem{
 		Get: &huma.Operation{
 			OperationID: "websocketEvents",
 			Summary:     "Websocket event stream",
 			Description: "Subscribe to project/card events. Optional project query param filters by project slug.",
 			Responses: map[string]*huma.Response{
-				"101": {Description: "Switching protocols to websocket"},
+				"200": {
+					Description: "Websocket event payload schema for generated clients.",
+					Content: map[string]*huma.MediaType{
+						"application/json": {
+							Schema: &huma.Schema{Ref: "#/components/schemas/WebsocketEvent"},
+						},
+					},
+				},
+				"101": {
+					Description: "Switching protocols to websocket",
+					Content: map[string]*huma.MediaType{
+						"application/json": {
+							Schema: &huma.Schema{Ref: "#/components/schemas/WebsocketEvent"},
+						},
+					},
+				},
 			},
 		},
 	}
+}
+
+func ensureWebsocketEventSchemas(oapi *huma.OpenAPI) {
+	if oapi.Components == nil {
+		oapi.Components = &huma.Components{
+			Schemas: huma.NewMapRegistry("#/components/schemas/", huma.DefaultSchemaNamer),
+		}
+	}
+	if oapi.Components.Schemas == nil {
+		oapi.Components.Schemas = huma.NewMapRegistry("#/components/schemas/", huma.DefaultSchemaNamer)
+	}
+
+	schemas := oapi.Components.Schemas.Map()
+	schemas["WebsocketEventType"] = &huma.Schema{
+		Type: "string",
+		Enum: websocketEventKindEnumValues(),
+	}
+	schemas["WebsocketEvent"] = &huma.Schema{
+		Type:     "object",
+		Required: []string{"type", "project", "timestamp"},
+		Properties: map[string]*huma.Schema{
+			"type":        {Ref: "#/components/schemas/WebsocketEventType"},
+			"project":     {Type: "string"},
+			"card_id":     {Type: "string"},
+			"card_number": {Type: "integer", Format: "int64"},
+			"timestamp":   {Type: "string", Format: "date-time"},
+		},
+	}
+}
+
+func websocketEventKindEnumValues() []any {
+	eventTypes := model.WebSocketEventTypes()
+	values := make([]any, 0, len(eventTypes))
+	for _, eventType := range eventTypes {
+		values = append(values, string(eventType))
+	}
+	return values
 }

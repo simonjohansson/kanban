@@ -26,7 +26,7 @@ struct ProjectsStoreTests {
             ],
         ], cardResponses: [:])
         let events = EventStreamStub(events: [
-            .init(type: "project.created", projectSlug: "beta"),
+            .init(type: .project_period_created, projectSlug: "beta"),
         ])
         let store = ProjectsStore(apiClient: api, eventStream: events)
 

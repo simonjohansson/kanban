@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/lib/websocketEvents.ts", "src/lib/generated/**/*.ts"],
+  "exclude": ["tests", "playwright.config.ts", "vite.config.ts"]
+}

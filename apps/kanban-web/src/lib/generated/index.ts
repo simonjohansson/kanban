@@ -33,5 +33,7 @@ export type { TextEvent } from './models/TextEvent';
 export type { Todo } from './models/Todo';
 export type { UpdateAcceptanceCriterionRequest } from './models/UpdateAcceptanceCriterionRequest';
 export type { UpdateTodoRequest } from './models/UpdateTodoRequest';
+export type { WebsocketEvent } from './models/WebsocketEvent';
+export type { WebsocketEventType } from './models/WebsocketEventType';
 
 export { DefaultService } from './services/DefaultService';

@@ -84,7 +84,7 @@ func (s *Service) CreateProject(name, localPath, remoteURL string) (model.Projec
 	}
 	s.logger.Info("project created", "project", project.Slug)
 	s.publish(model.Event{
-		Type:      "project.created",
+		Type:      model.EventTypeProjectCreated,
 		Project:   project.Slug,
 		Timestamp: time.Now().UTC(),
 	})
@@ -111,7 +111,7 @@ func (s *Service) DeleteProject(slug string) error {
 	}
 	s.logger.Info("project deleted", "project", slug)
 	s.publish(model.Event{
-		Type:      "project.deleted",
+		Type:      model.EventTypeProjectDeleted,
 		Project:   slug,
 		Timestamp: time.Now().UTC(),
 	})
@@ -139,7 +139,7 @@ func (s *Service) CreateCard(projectSlug, title, description, branch, status str
 	}
 	s.logger.Info("card created", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number)
 	s.publish(model.Event{
-		Type:      "card.created",
+		Type:      model.EventTypeCardCreated,
 		Project:   card.ProjectSlug,
 		CardID:    card.ID,
 		CardNum:   card.Number,
@@ -162,7 +162,7 @@ func (s *Service) SetCardBranch(projectSlug string, number int, branch string) (
 	}
 	s.logger.Info("card branch updated", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "branch", card.Branch)
 	s.publish(model.Event{
-		Type:      "card.branch.updated",
+		Type:      model.EventTypeCardBranchUpdated,
 		Project:   card.ProjectSlug,
 		CardID:    card.ID,
 		CardNum:   card.Number,
@@ -204,7 +204,7 @@ func (s *Service) MoveCard(projectSlug string, number int, status string) (model
 	}
 	s.logger.Info("card moved", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "status", card.Status)
 	s.publish(model.Event{
-		Type:      "card.moved",
+		Type:      model.EventTypeCardMoved,
 		Project:   card.ProjectSlug,
 		CardID:    card.ID,
 		CardNum:   card.Number,
@@ -227,7 +227,7 @@ func (s *Service) CommentCard(projectSlug string, number int, body string) (mode
 	}
 	s.logger.Info("card commented", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "comments_count", len(card.Comments))
 	s.publish(model.Event{
-		Type:      "card.commented",
+		Type:      model.EventTypeCardCommented,
 		Project:   card.ProjectSlug,
 		CardID:    card.ID,
 		CardNum:   card.Number,
@@ -250,7 +250,7 @@ func (s *Service) AppendDescription(projectSlug string, number int, body string)
 	}
 	s.logger.Info("card description appended", "project", card.ProjectSlug, "card_id", card.ID, "card_number", card.Number, "description_entries", len(card.Description))
 	s.publish(model.Event{
-		Type:      "card.updated",
+		Type:      model.EventTypeCardUpdated,
 		Project:   card.ProjectSlug,
 		CardID:    card.ID,
 		CardNum:   card.Number,
@@ -272,7 +272,7 @@ func (s *Service) AddTodo(projectSlug string, number int, text string) (model.To
 	}
 	s.logger.Info("card todo added", "project", projectSlug, "card_number", number, "todo_id", todo.ID)
 	s.publish(model.Event{
-		Type:      "card.todo.added",
+		Type:      model.EventTypeCardTodoAdded,
 		Project:   projectSlug,
 		CardID:    fmt.Sprintf("%s/card-%d", projectSlug, number),
 		CardNum:   number,
@@ -308,7 +308,7 @@ func (s *Service) SetTodoCompleted(projectSlug string, number int, todoID int, c
 	}
 	s.logger.Info("card todo updated", "project", projectSlug, "card_number", number, "todo_id", todoID, "completed", completed)
 	s.publish(model.Event{
-		Type:      "card.todo.updated",
+		Type:      model.EventTypeCardTodoUpdated,
 		Project:   projectSlug,
 		CardID:    fmt.Sprintf("%s/card-%d", projectSlug, number),
 		CardNum:   number,
@@ -330,7 +330,7 @@ func (s *Service) DeleteTodo(projectSlug string, number int, todoID int) (model.
 	}
 	s.logger.Info("card todo deleted", "project", projectSlug, "card_number", number, "todo_id", todoID)
 	s.publish(model.Event{
-		Type:      "card.todo.deleted",
+		Type:      model.EventTypeCardTodoDeleted,
 		Project:   projectSlug,
 		CardID:    fmt.Sprintf("%s/card-%d", projectSlug, number),
 		CardNum:   number,
@@ -352,7 +352,7 @@ func (s *Service) AddAcceptanceCriterion(projectSlug string, number int, text st
 	}
 	s.logger.Info("card acceptance criterion added", "project", projectSlug, "card_number", number, "criterion_id", criterion.ID)
 	s.publish(model.Event{
-		Type:      "card.acceptance.added",
+		Type:      model.EventTypeCardAcceptanceAdded,
 		Project:   projectSlug,
 		CardID:    fmt.Sprintf("%s/card-%d", projectSlug, number),
 		CardNum:   number,
@@ -388,7 +388,7 @@ func (s *Service) SetAcceptanceCriterionCompleted(projectSlug string, number int
 	}
 	s.logger.Info("card acceptance criterion updated", "project", projectSlug, "card_number", number, "criterion_id", criterionID, "completed", completed)
 	s.publish(model.Event{
-		Type:      "card.acceptance.updated",
+		Type:      model.EventTypeCardAcceptanceUpdated,
 		Project:   projectSlug,
 		CardID:    fmt.Sprintf("%s/card-%d", projectSlug, number),
 		CardNum:   number,
@@ -410,7 +410,7 @@ func (s *Service) DeleteAcceptanceCriterion(projectSlug string, number int, crit
 	}
 	s.logger.Info("card acceptance criterion deleted", "project", projectSlug, "card_number", number, "criterion_id", criterionID)
 	s.publish(model.Event{
-		Type:      "card.acceptance.deleted",
+		Type:      model.EventTypeCardAcceptanceDeleted,
 		Project:   projectSlug,
 		CardID:    fmt.Sprintf("%s/card-%d", projectSlug, number),
 		CardNum:   number,
@@ -435,7 +435,7 @@ func (s *Service) DeleteCard(projectSlug string, number int, hard bool) (model.C
 		}
 		s.logger.Info("card hard deleted", "project", projectSlug, "card_id", card.ID, "card_number", card.Number)
 		s.publish(model.Event{
-			Type:      "card.deleted_hard",
+			Type:      model.EventTypeCardDeletedHard,
 			Project:   projectSlug,
 			CardID:    card.ID,
 			CardNum:   card.Number,
@@ -449,7 +449,7 @@ func (s *Service) DeleteCard(projectSlug string, number int, hard bool) (model.C
 	}
 	s.logger.Info("card soft deleted", "project", projectSlug, "card_id", card.ID, "card_number", card.Number)
 	s.publish(model.Event{
-		Type:      "card.deleted_soft",
+		Type:      model.EventTypeCardDeletedSoft,
 		Project:   projectSlug,
 		CardID:    card.ID,
 		CardNum:   card.Number,

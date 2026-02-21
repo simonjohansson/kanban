@@ -76,7 +76,7 @@ func (h *hub) Publish(event model.Event) {
 		default:
 		}
 		fallback := model.Event{
-			Type:      "resync.required",
+			Type:      model.EventTypeResyncRequired,
 			Project:   event.Project,
 			Timestamp: time.Now().UTC(),
 		}
