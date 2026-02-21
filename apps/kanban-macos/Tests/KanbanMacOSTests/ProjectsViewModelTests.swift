@@ -63,6 +63,9 @@ struct ProjectsViewModelTests {
             description: [
                 .init(timestamp: "2026-02-20T10:00:00Z", body: "First description"),
             ],
+            todos: [
+                .init(id: 1, text: "Write tests", completed: false),
+            ],
             comments: [
                 .init(timestamp: "2026-02-20T10:01:00Z", body: "First comment"),
             ]
@@ -85,6 +88,7 @@ struct ProjectsViewModelTests {
         #expect(viewModel.cardDetails?.title == "Task A")
         #expect(viewModel.cardDetails?.branch == "feature/task-a")
         #expect(viewModel.cardDetails?.description.first?.body == "First description")
+        #expect(viewModel.cardDetails?.todos.first?.text == "Write tests")
         #expect(viewModel.cardDetails?.comments.first?.body == "First comment")
         #expect(viewModel.cardDetailsErrorMessage == nil)
         #expect(viewModel.isCardDetailsLoading == false)
@@ -101,6 +105,7 @@ struct ProjectsViewModelTests {
             branch: "feature/task-a",
             status: "Todo",
             description: [],
+            todos: [],
             comments: []
         )
         let second = KanbanCardDetails(
@@ -111,6 +116,7 @@ struct ProjectsViewModelTests {
             branch: "feature/task-b",
             status: "Todo",
             description: [],
+            todos: [],
             comments: []
         )
         let store = StoreStub(
@@ -175,6 +181,7 @@ struct ProjectsViewModelTests {
             branch: nil,
             status: "Todo",
             description: [],
+            todos: [],
             comments: []
         )
         let store = StoreStub(

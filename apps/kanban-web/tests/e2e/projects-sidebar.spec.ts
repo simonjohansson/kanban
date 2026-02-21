@@ -214,11 +214,56 @@ test('opens card details popup with deep links and close behaviors', async ({ pa
   });
   expect(secondCommentResponse.status).toBe(200);
 
+  const firstTodoResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/todos', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Write tests' }),
+  });
+  expect(firstTodoResponse.status).toBe(201);
+
+  const secondTodoResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/todos', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Run tests' }),
+  });
+  expect(secondTodoResponse.status).toBe(201);
+
+  const doneTodoResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/todos/2', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ completed: true }),
+  });
+  expect(doneTodoResponse.status).toBe(200);
+
+  const firstAcceptanceResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/acceptance', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Requirement A' }),
+  });
+  expect(firstAcceptanceResponse.status).toBe(201);
+
+  const secondAcceptanceResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/acceptance', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Requirement B' }),
+  });
+  expect(secondAcceptanceResponse.status).toBe(201);
+
+  const doneAcceptanceResponse = await fetch('http://127.0.0.1:18080/projects/modal-project/cards/1/acceptance/2', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ completed: true }),
+  });
+  expect(doneAcceptanceResponse.status).toBe(200);
+
   await page.reload();
 
   await page.getByTestId('project-item').filter({ hasText: 'Modal Project' }).click();
   await expect(page.getByTestId('lane-Todo')).toContainText('Card One');
+  await expect(page.getByTestId('card-item').filter({ hasText: 'Card One' })).toContainText('1/2 Todos 1/2 AC');
   await expect(page.getByTestId('lane-Todo')).toContainText('Card Two');
+  await expect(page.getByTestId('card-item').filter({ hasText: 'Card Two' })).not.toContainText('Todos');
+  await expect(page.getByTestId('card-item').filter({ hasText: 'Card Two' })).not.toContainText('AC');
 
   await page.getByTestId('card-item').filter({ hasText: 'Card One' }).click();
   await expect(page.getByTestId('card-details-modal')).toBeVisible();
@@ -228,13 +273,25 @@ test('opens card details popup with deep links and close behaviors', async ({ pa
   await expect(page.getByTestId('card-details-comments')).toContainText('First comment line 1');
   await expect(page.getByTestId('card-details-comments')).toContainText('First comment line 2');
   await expect(page.getByTestId('card-details-comments')).not.toContainText('\\n');
+  await expect(page.getByTestId('card-details-todos')).toContainText('Write tests');
+  await expect(page.getByTestId('card-details-todos')).toContainText('Run tests');
+  await expect(page.getByTestId('card-details-todos')).toContainText('[x]');
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('Requirement A');
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('Requirement B');
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('[x]');
   await expect(page).toHaveURL(/\/card\/modal-project\/1$/);
+
+  await page.getByTestId('card-details-close').click();
+  await expect(page.getByTestId('card-details-modal')).toHaveCount(0);
+  await expect(page).toHaveURL('/');
 
   await page.getByTestId('card-item').filter({ hasText: 'Card Two' }).click();
   await expect(page.getByTestId('card-details-title')).toHaveText('Card Two');
   await expect(page.getByTestId('card-details-branch')).toContainText('feature/card-two');
   await expect(page.getByTestId('card-details-description')).toContainText('Second description body');
   await expect(page.getByTestId('card-details-comments')).toContainText('Second comment body');
+  await expect(page.getByTestId('card-details-todos')).toContainText('No todos');
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('No acceptance criteria');
   await expect(page).toHaveURL(/\/card\/modal-project\/2$/);
 
   await page.getByTestId('card-details-close').click();
@@ -331,6 +388,78 @@ test('guards malformed deep links and ignores stale card-detail requests', async
   expect(pageErrors).toHaveLength(0);
   await page.getByTestId('project-item').filter({ hasText: 'Race A' }).click();
   await expect(page.getByTestId('lane-Todo')).toContainText('Race A Card');
+});
+
+test('live-updates open card details when todos and acceptance criteria change', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto('/');
+
+  const createProjectResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Live Update Project' }),
+  });
+  expect(createProjectResponse.status).toBe(201);
+
+  const createCardResponse = await fetch('http://127.0.0.1:18080/projects/live-update-project/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Observe live updates',
+      description: 'watch todo/ac changes without closing modal',
+      status: 'Todo',
+    }),
+  });
+  expect(createCardResponse.status).toBe(201);
+
+  await page.reload();
+  await page.getByTestId('project-item').filter({ hasText: 'Live Update Project' }).click();
+  await page.getByTestId('card-item').filter({ hasText: 'Observe live updates' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-details-todos')).toContainText('No todos');
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('No acceptance criteria');
+
+  const addTodoResponse = await fetch('http://127.0.0.1:18080/projects/live-update-project/cards/1/todos', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Live todo item' }),
+  });
+  expect(addTodoResponse.status).toBe(201);
+  const addedTodo = (await addTodoResponse.json()) as { id: number };
+
+  await expect(page.getByTestId('card-details-todos')).toContainText('Live todo item');
+
+  const addAcceptanceResponse = await fetch('http://127.0.0.1:18080/projects/live-update-project/cards/1/acceptance', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Live AC item' }),
+  });
+  expect(addAcceptanceResponse.status).toBe(201);
+  const addedAcceptance = (await addAcceptanceResponse.json()) as { id: number };
+
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('Live AC item');
+
+  const doneTodoResponse = await fetch(
+    `http://127.0.0.1:18080/projects/live-update-project/cards/1/todos/${addedTodo.id}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ completed: true }),
+    }
+  );
+  expect(doneTodoResponse.status).toBe(200);
+
+  const doneAcceptanceResponse = await fetch(
+    `http://127.0.0.1:18080/projects/live-update-project/cards/1/acceptance/${addedAcceptance.id}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ completed: true }),
+    }
+  );
+  expect(doneAcceptanceResponse.status).toBe(200);
+
+  await expect(page.getByTestId('card-item').filter({ hasText: 'Observe live updates' })).toContainText('1/1 Todos 1/1 AC');
 });
 
 test('requires reason for Review to Todo/Doing and rolls back when comment fails', async ({ page }) => {

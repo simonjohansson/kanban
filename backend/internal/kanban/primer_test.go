@@ -18,6 +18,10 @@ func TestPrimerTextIncludesCoreTemplates(t *testing.T) {
 	require.Contains(t, raw, "GET_CARD:")
 	require.Contains(t, raw, "DELETE_PROJECT:")
 	require.Contains(t, raw, "LIST_CARDS_WITH_DELETED:")
+	require.Contains(t, raw, "LIST_TODOS:")
+	require.Contains(t, raw, "ADD_TODO:")
+	require.Contains(t, raw, "LIST_ACCEPTANCE_CRITERIA:")
+	require.Contains(t, raw, "ADD_ACCEPTANCE_CRITERION:")
 	require.Contains(t, raw, "LIST_CARDS => {\"cards\":[")
 	require.Contains(t, raw, "kanban --output json")
 }
@@ -38,10 +42,16 @@ func TestPrimerJSONIncludesContractSections(t *testing.T) {
 	require.Contains(t, commandTemplates, "get_card")
 	require.Contains(t, commandTemplates, "delete_project")
 	require.Contains(t, commandTemplates, "list_cards_include_deleted")
+	require.Contains(t, commandTemplates, "list_todos")
+	require.Contains(t, commandTemplates, "add_todo")
+	require.Contains(t, commandTemplates, "list_acceptance_criteria")
+	require.Contains(t, commandTemplates, "add_acceptance_criterion")
 
 	responseShapes, ok := payload["response_shapes"].(map[string]any)
 	require.True(t, ok)
 	require.Contains(t, responseShapes, "list_cards")
+	require.Contains(t, responseShapes, "list_todos")
+	require.Contains(t, responseShapes, "list_acceptance_criteria")
 
 	idSemantics, ok := payload["id_semantics"].(map[string]any)
 	require.True(t, ok)
@@ -63,6 +73,14 @@ func TestPrimerJSONIncludesContractSections(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "append", descSemantics["mode"])
 	require.Equal(t, true, descSemantics["not_a_get"])
+
+	todoSemantics, ok := payload["todo_semantics"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, false, todoSemantics["use_description_for_todos"])
+
+	acceptanceSemantics, ok := payload["acceptance_semantics"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, false, acceptanceSemantics["use_description_for_acceptance_criteria"])
 
 	projectCommandSupport, ok := payload["project_command_support"].(map[string]any)
 	require.True(t, ok)

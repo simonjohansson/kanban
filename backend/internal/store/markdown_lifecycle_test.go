@@ -130,6 +130,7 @@ func TestMarkdownStoreValidationAndParsingHelpers(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, yml)
 	require.Contains(t, body, "# Description")
+	require.Contains(t, body, "# Todos")
 
 	roundTrip, err := parseCard(append(append([]byte("---\n"), yml...), []byte("---\n"+body)...))
 	require.NoError(t, err)
@@ -174,4 +175,97 @@ func TestListProjectCardsSkipsInvalidCardFilenames(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cards, 1)
 	require.Equal(t, 1, cards[0].Number)
+}
+
+func TestMarkdownStoreCardTodosLifecycle(t *testing.T) {
+	s, err := NewMarkdownStore(t.TempDir())
+	require.NoError(t, err)
+
+	_, err = s.CreateProject("Todo Board", "", "")
+	require.NoError(t, err)
+	_, err = s.CreateCard("todo-board", "Task", "", "", "Todo")
+	require.NoError(t, err)
+
+	first, err := s.AddTodo("todo-board", 1, "Write tests")
+	require.NoError(t, err)
+	require.Equal(t, 1, first.ID)
+	require.Equal(t, "Write tests", first.Text)
+	require.False(t, first.Completed)
+
+	second, err := s.AddTodo("todo-board", 1, "Write tests")
+	require.NoError(t, err)
+	require.Equal(t, 2, second.ID)
+
+	_, err = s.AddTodo("todo-board", 1, "   ")
+	require.ErrorContains(t, err, "todo text is required")
+
+	updated, err := s.SetTodoCompleted("todo-board", 1, 2, true)
+	require.NoError(t, err)
+	require.Equal(t, 2, updated.ID)
+	require.True(t, updated.Completed)
+
+	updated, err = s.SetTodoCompleted("todo-board", 1, 2, false)
+	require.NoError(t, err)
+	require.False(t, updated.Completed)
+
+	_, err = s.SetTodoCompleted("todo-board", 1, 0, true)
+	require.ErrorContains(t, err, "todo id is required")
+
+	deleted, err := s.DeleteTodo("todo-board", 1, 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, deleted.ID)
+
+	third, err := s.AddTodo("todo-board", 1, "Ship it")
+	require.NoError(t, err)
+	require.Equal(t, 3, third.ID)
+
+	todos, err := s.ListTodos("todo-board", 1)
+	require.NoError(t, err)
+	require.Len(t, todos, 2)
+	require.Equal(t, 2, todos[0].ID)
+	require.Equal(t, 3, todos[1].ID)
+}
+
+func TestMarkdownStoreAcceptanceCriteriaLifecycle(t *testing.T) {
+	s, err := NewMarkdownStore(t.TempDir())
+	require.NoError(t, err)
+
+	_, err = s.CreateProject("AC Board", "", "")
+	require.NoError(t, err)
+	_, err = s.CreateCard("ac-board", "Task", "", "", "Todo")
+	require.NoError(t, err)
+
+	first, err := s.AddAcceptanceCriterion("ac-board", 1, "Requirement A")
+	require.NoError(t, err)
+	require.Equal(t, 1, first.ID)
+	require.False(t, first.Completed)
+
+	second, err := s.AddAcceptanceCriterion("ac-board", 1, "Requirement B")
+	require.NoError(t, err)
+	require.Equal(t, 2, second.ID)
+
+	_, err = s.AddAcceptanceCriterion("ac-board", 1, "   ")
+	require.ErrorContains(t, err, "acceptance criterion text is required")
+
+	done, err := s.SetAcceptanceCriterionCompleted("ac-board", 1, 2, true)
+	require.NoError(t, err)
+	require.True(t, done.Completed)
+
+	undo, err := s.SetAcceptanceCriterionCompleted("ac-board", 1, 2, false)
+	require.NoError(t, err)
+	require.False(t, undo.Completed)
+
+	removed, err := s.DeleteAcceptanceCriterion("ac-board", 1, 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, removed.ID)
+
+	third, err := s.AddAcceptanceCriterion("ac-board", 1, "Requirement C")
+	require.NoError(t, err)
+	require.Equal(t, 3, third.ID)
+
+	ac, err := s.ListAcceptanceCriteria("ac-board", 1)
+	require.NoError(t, err)
+	require.Len(t, ac, 2)
+	require.Equal(t, 2, ac[0].ID)
+	require.Equal(t, 3, ac[1].ID)
 }

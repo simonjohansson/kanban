@@ -318,6 +318,216 @@ paths:
                         application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/acceptance:
+        get:
+            summary: List acceptance criteria
+            operationId: listAcceptanceCriteria
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListAcceptanceCriteriaOutputBody'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+        post:
+            summary: Add acceptance criterion
+            operationId: addAcceptanceCriterion
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AddAcceptanceCriterionRequest'
+                required: true
+            responses:
+                "201":
+                    description: Created
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcceptanceCriterion'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/acceptance/{criterion_id}:
+        delete:
+            summary: Delete acceptance criterion
+            operationId: deleteAcceptanceCriterion
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+                - name: criterion_id
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcceptanceCriterion'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+        patch:
+            summary: Update acceptance criterion
+            operationId: updateAcceptanceCriterion
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+                - name: criterion_id
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateAcceptanceCriterionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcceptanceCriterion'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
     /projects/{project}/cards/{number}/branch:
         patch:
             summary: Set card branch metadata
@@ -530,6 +740,216 @@ paths:
                         application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/todos:
+        get:
+            summary: List card todos
+            operationId: listTodos
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListTodosOutputBody'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+        post:
+            summary: Add card todo
+            operationId: addTodo
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AddTodoRequest'
+                required: true
+            responses:
+                "201":
+                    description: Created
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Todo'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+    /projects/{project}/cards/{number}/todos/{todo_id}:
+        delete:
+            summary: Delete card todo
+            operationId: deleteTodo
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+                - name: todo_id
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Todo'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+        patch:
+            summary: Update card todo
+            operationId: updateTodo
+            parameters:
+                - name: project
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+                - name: todo_id
+                  in: path
+                  required: true
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateTodoRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Todo'
+                "400":
+                    description: Bad Request
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "404":
+                    description: Not Found
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "422":
+                    description: Unprocessable Entity
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorModel'
     /ws:
         get:
             summary: Websocket event stream
@@ -540,6 +960,58 @@ paths:
                     description: Switching protocols to websocket
 components:
     schemas:
+        AcceptanceCriterion:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/AcceptanceCriterion.json
+                    readOnly: true
+                completed:
+                    type: boolean
+                id:
+                    type: integer
+                    format: int64
+                text:
+                    type: string
+            required:
+                - id
+                - text
+                - completed
+        AddAcceptanceCriterionRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/AddAcceptanceCriterionRequest.json
+                    readOnly: true
+                text:
+                    type: string
+            required:
+                - text
+        AddTodoRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/AddTodoRequest.json
+                    readOnly: true
+                text:
+                    type: string
+            required:
+                - text
         Card:
             type: object
             additionalProperties: false
@@ -551,6 +1023,10 @@ components:
                     examples:
                         - https://example.com/schemas/Card.json
                     readOnly: true
+                acceptance_criteria:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AcceptanceCriterion'
                 branch:
                     type: string
                 comments:
@@ -581,6 +1057,10 @@ components:
                     type: string
                 title:
                     type: string
+                todos:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Todo'
                 updated_at:
                     type: string
                     format: date-time
@@ -589,6 +1069,7 @@ components:
                 - project
                 - number
                 - title
+                - branch
                 - status
                 - deleted
                 - created_at
@@ -596,10 +1077,18 @@ components:
                 - description
                 - comments
                 - history
+                - todos
+                - acceptance_criteria
         CardSummary:
             type: object
             additionalProperties: false
             properties:
+                acceptance_criteria_completed_count:
+                    type: integer
+                    format: int64
+                acceptance_criteria_count:
+                    type: integer
+                    format: int64
                 branch:
                     type: string
                 comments_count:
@@ -624,6 +1113,12 @@ components:
                     type: string
                 title:
                     type: string
+                todos_completed_count:
+                    type: integer
+                    format: int64
+                todos_count:
+                    type: integer
+                    format: int64
                 updated_at:
                     type: string
                     format: date-time
@@ -632,12 +1127,17 @@ components:
                 - project
                 - number
                 - title
+                - branch
                 - status
                 - deleted
                 - created_at
                 - updated_at
                 - comments_count
                 - history_count
+                - todos_count
+                - todos_completed_count
+                - acceptance_criteria_count
+                - acceptance_criteria_completed_count
         ClientConfigOutputBody:
             type: object
             additionalProperties: false
@@ -799,6 +1299,23 @@ components:
                 - timestamp
                 - type
                 - details
+        ListAcceptanceCriteriaOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/ListAcceptanceCriteriaOutputBody.json
+                    readOnly: true
+                acceptance_criteria:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AcceptanceCriterion'
+            required:
+                - acceptance_criteria
         ListCardsOutputBody:
             type: object
             additionalProperties: false
@@ -833,6 +1350,23 @@ components:
                         $ref: '#/components/schemas/Project'
             required:
                 - projects
+        ListTodosOutputBody:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/ListTodosOutputBody.json
+                    readOnly: true
+                todos:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Todo'
+            required:
+                - todos
         MoveCardRequest:
             type: object
             additionalProperties: false
@@ -944,3 +1478,55 @@ components:
             required:
                 - timestamp
                 - body
+        Todo:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/Todo.json
+                    readOnly: true
+                completed:
+                    type: boolean
+                id:
+                    type: integer
+                    format: int64
+                text:
+                    type: string
+            required:
+                - id
+                - text
+                - completed
+        UpdateAcceptanceCriterionRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/UpdateAcceptanceCriterionRequest.json
+                    readOnly: true
+                completed:
+                    type: boolean
+            required:
+                - completed
+        UpdateTodoRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                $schema:
+                    type: string
+                    description: A URL to the JSON Schema for this object.
+                    format: uri
+                    examples:
+                        - https://example.com/schemas/UpdateTodoRequest.json
+                    readOnly: true
+                completed:
+                    type: boolean
+            required:
+                - completed

@@ -17,37 +17,66 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// AcceptanceCriterion defines model for AcceptanceCriterion.
+type AcceptanceCriterion struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema    *string `json:"$schema,omitempty"`
+	Completed bool    `json:"completed"`
+	Id        int64   `json:"id"`
+	Text      string  `json:"text"`
+}
+
+// AddAcceptanceCriterionRequest defines model for AddAcceptanceCriterionRequest.
+type AddAcceptanceCriterionRequest struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+	Text   string  `json:"text"`
+}
+
+// AddTodoRequest defines model for AddTodoRequest.
+type AddTodoRequest struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+	Text   string  `json:"text"`
+}
+
 // Card defines model for Card.
 type Card struct {
 	// Schema A URL to the JSON Schema for this object.
-	Schema      *string        `json:"$schema,omitempty"`
-	Branch      *string        `json:"branch,omitempty"`
-	Comments    []TextEvent    `json:"comments"`
-	CreatedAt   time.Time      `json:"created_at"`
-	Deleted     bool           `json:"deleted"`
-	Description []TextEvent    `json:"description"`
-	History     []HistoryEvent `json:"history"`
-	Id          string         `json:"id"`
-	Number      int64          `json:"number"`
-	Project     string         `json:"project"`
-	Status      string         `json:"status"`
-	Title       string         `json:"title"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	Schema             *string               `json:"$schema,omitempty"`
+	AcceptanceCriteria []AcceptanceCriterion `json:"acceptance_criteria"`
+	Branch             string                `json:"branch"`
+	Comments           []TextEvent           `json:"comments"`
+	CreatedAt          time.Time             `json:"created_at"`
+	Deleted            bool                  `json:"deleted"`
+	Description        []TextEvent           `json:"description"`
+	History            []HistoryEvent        `json:"history"`
+	Id                 string                `json:"id"`
+	Number             int64                 `json:"number"`
+	Project            string                `json:"project"`
+	Status             string                `json:"status"`
+	Title              string                `json:"title"`
+	Todos              []Todo                `json:"todos"`
+	UpdatedAt          time.Time             `json:"updated_at"`
 }
 
 // CardSummary defines model for CardSummary.
 type CardSummary struct {
-	Branch        *string   `json:"branch,omitempty"`
-	CommentsCount int64     `json:"comments_count"`
-	CreatedAt     time.Time `json:"created_at"`
-	Deleted       bool      `json:"deleted"`
-	HistoryCount  int64     `json:"history_count"`
-	Id            string    `json:"id"`
-	Number        int64     `json:"number"`
-	Project       string    `json:"project"`
-	Status        string    `json:"status"`
-	Title         string    `json:"title"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	AcceptanceCriteriaCompletedCount int64     `json:"acceptance_criteria_completed_count"`
+	AcceptanceCriteriaCount          int64     `json:"acceptance_criteria_count"`
+	Branch                           string    `json:"branch"`
+	CommentsCount                    int64     `json:"comments_count"`
+	CreatedAt                        time.Time `json:"created_at"`
+	Deleted                          bool      `json:"deleted"`
+	HistoryCount                     int64     `json:"history_count"`
+	Id                               string    `json:"id"`
+	Number                           int64     `json:"number"`
+	Project                          string    `json:"project"`
+	Status                           string    `json:"status"`
+	Title                            string    `json:"title"`
+	TodosCompletedCount              int64     `json:"todos_completed_count"`
+	TodosCount                       int64     `json:"todos_count"`
+	UpdatedAt                        time.Time `json:"updated_at"`
 }
 
 // ClientConfigOutputBody defines model for ClientConfigOutputBody.
@@ -134,6 +163,13 @@ type HistoryEvent struct {
 	Type      string    `json:"type"`
 }
 
+// ListAcceptanceCriteriaOutputBody defines model for ListAcceptanceCriteriaOutputBody.
+type ListAcceptanceCriteriaOutputBody struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema             *string               `json:"$schema,omitempty"`
+	AcceptanceCriteria []AcceptanceCriterion `json:"acceptance_criteria"`
+}
+
 // ListCardsOutputBody defines model for ListCardsOutputBody.
 type ListCardsOutputBody struct {
 	// Schema A URL to the JSON Schema for this object.
@@ -146,6 +182,13 @@ type ListProjectsOutputBody struct {
 	// Schema A URL to the JSON Schema for this object.
 	Schema   *string   `json:"$schema,omitempty"`
 	Projects []Project `json:"projects"`
+}
+
+// ListTodosOutputBody defines model for ListTodosOutputBody.
+type ListTodosOutputBody struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema *string `json:"$schema,omitempty"`
+	Todos  []Todo  `json:"todos"`
 }
 
 // MoveCardRequest defines model for MoveCardRequest.
@@ -196,6 +239,29 @@ type TextEvent struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// Todo defines model for Todo.
+type Todo struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema    *string `json:"$schema,omitempty"`
+	Completed bool    `json:"completed"`
+	Id        int64   `json:"id"`
+	Text      string  `json:"text"`
+}
+
+// UpdateAcceptanceCriterionRequest defines model for UpdateAcceptanceCriterionRequest.
+type UpdateAcceptanceCriterionRequest struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema    *string `json:"$schema,omitempty"`
+	Completed bool    `json:"completed"`
+}
+
+// UpdateTodoRequest defines model for UpdateTodoRequest.
+type UpdateTodoRequest struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema    *string `json:"$schema,omitempty"`
+	Completed bool    `json:"completed"`
+}
+
 // ListCardsParams defines parameters for ListCards.
 type ListCardsParams struct {
 	IncludeDeleted *bool `form:"include_deleted,omitempty" json:"include_deleted,omitempty"`
@@ -212,6 +278,12 @@ type CreateProjectJSONRequestBody = CreateProjectRequest
 // CreateCardJSONRequestBody defines body for CreateCard for application/json ContentType.
 type CreateCardJSONRequestBody = CreateCardRequest
 
+// AddAcceptanceCriterionJSONRequestBody defines body for AddAcceptanceCriterion for application/json ContentType.
+type AddAcceptanceCriterionJSONRequestBody = AddAcceptanceCriterionRequest
+
+// UpdateAcceptanceCriterionJSONRequestBody defines body for UpdateAcceptanceCriterion for application/json ContentType.
+type UpdateAcceptanceCriterionJSONRequestBody = UpdateAcceptanceCriterionRequest
+
 // SetCardBranchJSONRequestBody defines body for SetCardBranch for application/json ContentType.
 type SetCardBranchJSONRequestBody = SetCardBranchRequest
 
@@ -223,6 +295,12 @@ type AppendDescriptionJSONRequestBody = TextBodyRequest
 
 // MoveCardJSONRequestBody defines body for MoveCard for application/json ContentType.
 type MoveCardJSONRequestBody = MoveCardRequest
+
+// AddTodoJSONRequestBody defines body for AddTodo for application/json ContentType.
+type AddTodoJSONRequestBody = AddTodoRequest
+
+// UpdateTodoJSONRequestBody defines body for UpdateTodo for application/json ContentType.
+type UpdateTodoJSONRequestBody = UpdateTodoRequest
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -331,6 +409,22 @@ type ClientInterface interface {
 	// GetCard request
 	GetCard(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListAcceptanceCriteria request
+	ListAcceptanceCriteria(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddAcceptanceCriterionWithBody request with any body
+	AddAcceptanceCriterionWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddAcceptanceCriterion(ctx context.Context, project string, number int64, body AddAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteAcceptanceCriterion request
+	DeleteAcceptanceCriterion(ctx context.Context, project string, number int64, criterionId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateAcceptanceCriterionWithBody request with any body
+	UpdateAcceptanceCriterionWithBody(ctx context.Context, project string, number int64, criterionId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateAcceptanceCriterion(ctx context.Context, project string, number int64, criterionId int64, body UpdateAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SetCardBranchWithBody request with any body
 	SetCardBranchWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -350,6 +444,22 @@ type ClientInterface interface {
 	MoveCardWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	MoveCard(ctx context.Context, project string, number int64, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListTodos request
+	ListTodos(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddTodoWithBody request with any body
+	AddTodoWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddTodo(ctx context.Context, project string, number int64, body AddTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteTodo request
+	DeleteTodo(ctx context.Context, project string, number int64, todoId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateTodoWithBody request with any body
+	UpdateTodoWithBody(ctx context.Context, project string, number int64, todoId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateTodo(ctx context.Context, project string, number int64, todoId int64, body UpdateTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// WebsocketEvents request
 	WebsocketEvents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -499,6 +609,78 @@ func (c *Client) GetCard(ctx context.Context, project string, number int64, reqE
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListAcceptanceCriteria(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAcceptanceCriteriaRequest(c.Server, project, number)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddAcceptanceCriterionWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddAcceptanceCriterionRequestWithBody(c.Server, project, number, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddAcceptanceCriterion(ctx context.Context, project string, number int64, body AddAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddAcceptanceCriterionRequest(c.Server, project, number, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteAcceptanceCriterion(ctx context.Context, project string, number int64, criterionId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteAcceptanceCriterionRequest(c.Server, project, number, criterionId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateAcceptanceCriterionWithBody(ctx context.Context, project string, number int64, criterionId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateAcceptanceCriterionRequestWithBody(c.Server, project, number, criterionId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateAcceptanceCriterion(ctx context.Context, project string, number int64, criterionId int64, body UpdateAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateAcceptanceCriterionRequest(c.Server, project, number, criterionId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) SetCardBranchWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSetCardBranchRequestWithBody(c.Server, project, number, contentType, body)
 	if err != nil {
@@ -585,6 +767,78 @@ func (c *Client) MoveCardWithBody(ctx context.Context, project string, number in
 
 func (c *Client) MoveCard(ctx context.Context, project string, number int64, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMoveCardRequest(c.Server, project, number, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListTodos(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTodosRequest(c.Server, project, number)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddTodoWithBody(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddTodoRequestWithBody(c.Server, project, number, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddTodo(ctx context.Context, project string, number int64, body AddTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddTodoRequest(c.Server, project, number, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteTodo(ctx context.Context, project string, number int64, todoId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteTodoRequest(c.Server, project, number, todoId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateTodoWithBody(ctx context.Context, project string, number int64, todoId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateTodoRequestWithBody(c.Server, project, number, todoId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateTodo(ctx context.Context, project string, number int64, todoId int64, body UpdateTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateTodoRequest(c.Server, project, number, todoId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -996,6 +1250,210 @@ func NewGetCardRequest(server string, project string, number int64) (*http.Reque
 	return req, nil
 }
 
+// NewListAcceptanceCriteriaRequest generates requests for ListAcceptanceCriteria
+func NewListAcceptanceCriteriaRequest(server string, project string, number int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/acceptance", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddAcceptanceCriterionRequest calls the generic AddAcceptanceCriterion builder with application/json body
+func NewAddAcceptanceCriterionRequest(server string, project string, number int64, body AddAcceptanceCriterionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddAcceptanceCriterionRequestWithBody(server, project, number, "application/json", bodyReader)
+}
+
+// NewAddAcceptanceCriterionRequestWithBody generates requests for AddAcceptanceCriterion with any type of body
+func NewAddAcceptanceCriterionRequestWithBody(server string, project string, number int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/acceptance", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteAcceptanceCriterionRequest generates requests for DeleteAcceptanceCriterion
+func NewDeleteAcceptanceCriterionRequest(server string, project string, number int64, criterionId int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "criterion_id", runtime.ParamLocationPath, criterionId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/acceptance/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateAcceptanceCriterionRequest calls the generic UpdateAcceptanceCriterion builder with application/json body
+func NewUpdateAcceptanceCriterionRequest(server string, project string, number int64, criterionId int64, body UpdateAcceptanceCriterionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateAcceptanceCriterionRequestWithBody(server, project, number, criterionId, "application/json", bodyReader)
+}
+
+// NewUpdateAcceptanceCriterionRequestWithBody generates requests for UpdateAcceptanceCriterion with any type of body
+func NewUpdateAcceptanceCriterionRequestWithBody(server string, project string, number int64, criterionId int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "criterion_id", runtime.ParamLocationPath, criterionId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/acceptance/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewSetCardBranchRequest calls the generic SetCardBranch builder with application/json body
 func NewSetCardBranchRequest(server string, project string, number int64, body SetCardBranchJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1212,6 +1670,210 @@ func NewMoveCardRequestWithBody(server string, project string, number int64, con
 	return req, nil
 }
 
+// NewListTodosRequest generates requests for ListTodos
+func NewListTodosRequest(server string, project string, number int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/todos", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddTodoRequest calls the generic AddTodo builder with application/json body
+func NewAddTodoRequest(server string, project string, number int64, body AddTodoJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddTodoRequestWithBody(server, project, number, "application/json", bodyReader)
+}
+
+// NewAddTodoRequestWithBody generates requests for AddTodo with any type of body
+func NewAddTodoRequestWithBody(server string, project string, number int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/todos", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteTodoRequest generates requests for DeleteTodo
+func NewDeleteTodoRequest(server string, project string, number int64, todoId int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "todo_id", runtime.ParamLocationPath, todoId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/todos/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateTodoRequest calls the generic UpdateTodo builder with application/json body
+func NewUpdateTodoRequest(server string, project string, number int64, todoId int64, body UpdateTodoJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateTodoRequestWithBody(server, project, number, todoId, "application/json", bodyReader)
+}
+
+// NewUpdateTodoRequestWithBody generates requests for UpdateTodo with any type of body
+func NewUpdateTodoRequestWithBody(server string, project string, number int64, todoId int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "number", runtime.ParamLocationPath, number)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "todo_id", runtime.ParamLocationPath, todoId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/cards/%s/todos/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewWebsocketEventsRequest generates requests for WebsocketEvents
 func NewWebsocketEventsRequest(server string) (*http.Request, error) {
 	var err error
@@ -1316,6 +1978,22 @@ type ClientWithResponsesInterface interface {
 	// GetCardWithResponse request
 	GetCardWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*GetCardResponse, error)
 
+	// ListAcceptanceCriteriaWithResponse request
+	ListAcceptanceCriteriaWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*ListAcceptanceCriteriaResponse, error)
+
+	// AddAcceptanceCriterionWithBodyWithResponse request with any body
+	AddAcceptanceCriterionWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddAcceptanceCriterionResponse, error)
+
+	AddAcceptanceCriterionWithResponse(ctx context.Context, project string, number int64, body AddAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*AddAcceptanceCriterionResponse, error)
+
+	// DeleteAcceptanceCriterionWithResponse request
+	DeleteAcceptanceCriterionWithResponse(ctx context.Context, project string, number int64, criterionId int64, reqEditors ...RequestEditorFn) (*DeleteAcceptanceCriterionResponse, error)
+
+	// UpdateAcceptanceCriterionWithBodyWithResponse request with any body
+	UpdateAcceptanceCriterionWithBodyWithResponse(ctx context.Context, project string, number int64, criterionId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateAcceptanceCriterionResponse, error)
+
+	UpdateAcceptanceCriterionWithResponse(ctx context.Context, project string, number int64, criterionId int64, body UpdateAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateAcceptanceCriterionResponse, error)
+
 	// SetCardBranchWithBodyWithResponse request with any body
 	SetCardBranchWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCardBranchResponse, error)
 
@@ -1335,6 +2013,22 @@ type ClientWithResponsesInterface interface {
 	MoveCardWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MoveCardResponse, error)
 
 	MoveCardWithResponse(ctx context.Context, project string, number int64, body MoveCardJSONRequestBody, reqEditors ...RequestEditorFn) (*MoveCardResponse, error)
+
+	// ListTodosWithResponse request
+	ListTodosWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*ListTodosResponse, error)
+
+	// AddTodoWithBodyWithResponse request with any body
+	AddTodoWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddTodoResponse, error)
+
+	AddTodoWithResponse(ctx context.Context, project string, number int64, body AddTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*AddTodoResponse, error)
+
+	// DeleteTodoWithResponse request
+	DeleteTodoWithResponse(ctx context.Context, project string, number int64, todoId int64, reqEditors ...RequestEditorFn) (*DeleteTodoResponse, error)
+
+	// UpdateTodoWithBodyWithResponse request with any body
+	UpdateTodoWithBodyWithResponse(ctx context.Context, project string, number int64, todoId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTodoResponse, error)
+
+	UpdateTodoWithResponse(ctx context.Context, project string, number int64, todoId int64, body UpdateTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateTodoResponse, error)
 
 	// WebsocketEventsWithResponse request
 	WebsocketEventsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*WebsocketEventsResponse, error)
@@ -1584,6 +2278,110 @@ func (r GetCardResponse) StatusCode() int {
 	return 0
 }
 
+type ListAcceptanceCriteriaResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *ListAcceptanceCriteriaOutputBody
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAcceptanceCriteriaResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAcceptanceCriteriaResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddAcceptanceCriterionResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON201                   *AcceptanceCriterion
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r AddAcceptanceCriterionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddAcceptanceCriterionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteAcceptanceCriterionResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *AcceptanceCriterion
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteAcceptanceCriterionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteAcceptanceCriterionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateAcceptanceCriterionResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *AcceptanceCriterion
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateAcceptanceCriterionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateAcceptanceCriterionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type SetCardBranchResponse struct {
 	Body                      []byte
 	HTTPResponse              *http.Response
@@ -1682,6 +2480,110 @@ func (r MoveCardResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r MoveCardResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListTodosResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *ListTodosOutputBody
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTodosResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTodosResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddTodoResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON201                   *Todo
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r AddTodoResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddTodoResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteTodoResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Todo
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteTodoResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteTodoResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateTodoResponse struct {
+	Body                      []byte
+	HTTPResponse              *http.Response
+	JSON200                   *Todo
+	ApplicationproblemJSON400 *ErrorModel
+	ApplicationproblemJSON404 *ErrorModel
+	ApplicationproblemJSON422 *ErrorModel
+	ApplicationproblemJSON500 *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateTodoResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateTodoResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1815,6 +2717,58 @@ func (c *ClientWithResponses) GetCardWithResponse(ctx context.Context, project s
 	return ParseGetCardResponse(rsp)
 }
 
+// ListAcceptanceCriteriaWithResponse request returning *ListAcceptanceCriteriaResponse
+func (c *ClientWithResponses) ListAcceptanceCriteriaWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*ListAcceptanceCriteriaResponse, error) {
+	rsp, err := c.ListAcceptanceCriteria(ctx, project, number, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAcceptanceCriteriaResponse(rsp)
+}
+
+// AddAcceptanceCriterionWithBodyWithResponse request with arbitrary body returning *AddAcceptanceCriterionResponse
+func (c *ClientWithResponses) AddAcceptanceCriterionWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddAcceptanceCriterionResponse, error) {
+	rsp, err := c.AddAcceptanceCriterionWithBody(ctx, project, number, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddAcceptanceCriterionResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddAcceptanceCriterionWithResponse(ctx context.Context, project string, number int64, body AddAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*AddAcceptanceCriterionResponse, error) {
+	rsp, err := c.AddAcceptanceCriterion(ctx, project, number, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddAcceptanceCriterionResponse(rsp)
+}
+
+// DeleteAcceptanceCriterionWithResponse request returning *DeleteAcceptanceCriterionResponse
+func (c *ClientWithResponses) DeleteAcceptanceCriterionWithResponse(ctx context.Context, project string, number int64, criterionId int64, reqEditors ...RequestEditorFn) (*DeleteAcceptanceCriterionResponse, error) {
+	rsp, err := c.DeleteAcceptanceCriterion(ctx, project, number, criterionId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteAcceptanceCriterionResponse(rsp)
+}
+
+// UpdateAcceptanceCriterionWithBodyWithResponse request with arbitrary body returning *UpdateAcceptanceCriterionResponse
+func (c *ClientWithResponses) UpdateAcceptanceCriterionWithBodyWithResponse(ctx context.Context, project string, number int64, criterionId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateAcceptanceCriterionResponse, error) {
+	rsp, err := c.UpdateAcceptanceCriterionWithBody(ctx, project, number, criterionId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateAcceptanceCriterionResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateAcceptanceCriterionWithResponse(ctx context.Context, project string, number int64, criterionId int64, body UpdateAcceptanceCriterionJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateAcceptanceCriterionResponse, error) {
+	rsp, err := c.UpdateAcceptanceCriterion(ctx, project, number, criterionId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateAcceptanceCriterionResponse(rsp)
+}
+
 // SetCardBranchWithBodyWithResponse request with arbitrary body returning *SetCardBranchResponse
 func (c *ClientWithResponses) SetCardBranchWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCardBranchResponse, error) {
 	rsp, err := c.SetCardBranchWithBody(ctx, project, number, contentType, body, reqEditors...)
@@ -1881,6 +2835,58 @@ func (c *ClientWithResponses) MoveCardWithResponse(ctx context.Context, project 
 		return nil, err
 	}
 	return ParseMoveCardResponse(rsp)
+}
+
+// ListTodosWithResponse request returning *ListTodosResponse
+func (c *ClientWithResponses) ListTodosWithResponse(ctx context.Context, project string, number int64, reqEditors ...RequestEditorFn) (*ListTodosResponse, error) {
+	rsp, err := c.ListTodos(ctx, project, number, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTodosResponse(rsp)
+}
+
+// AddTodoWithBodyWithResponse request with arbitrary body returning *AddTodoResponse
+func (c *ClientWithResponses) AddTodoWithBodyWithResponse(ctx context.Context, project string, number int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddTodoResponse, error) {
+	rsp, err := c.AddTodoWithBody(ctx, project, number, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddTodoResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddTodoWithResponse(ctx context.Context, project string, number int64, body AddTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*AddTodoResponse, error) {
+	rsp, err := c.AddTodo(ctx, project, number, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddTodoResponse(rsp)
+}
+
+// DeleteTodoWithResponse request returning *DeleteTodoResponse
+func (c *ClientWithResponses) DeleteTodoWithResponse(ctx context.Context, project string, number int64, todoId int64, reqEditors ...RequestEditorFn) (*DeleteTodoResponse, error) {
+	rsp, err := c.DeleteTodo(ctx, project, number, todoId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteTodoResponse(rsp)
+}
+
+// UpdateTodoWithBodyWithResponse request with arbitrary body returning *UpdateTodoResponse
+func (c *ClientWithResponses) UpdateTodoWithBodyWithResponse(ctx context.Context, project string, number int64, todoId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTodoResponse, error) {
+	rsp, err := c.UpdateTodoWithBody(ctx, project, number, todoId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateTodoResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateTodoWithResponse(ctx context.Context, project string, number int64, todoId int64, body UpdateTodoJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateTodoResponse, error) {
+	rsp, err := c.UpdateTodo(ctx, project, number, todoId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateTodoResponse(rsp)
 }
 
 // WebsocketEventsWithResponse request returning *WebsocketEventsResponse
@@ -2320,6 +3326,222 @@ func ParseGetCardResponse(rsp *http.Response) (*GetCardResponse, error) {
 	return response, nil
 }
 
+// ParseListAcceptanceCriteriaResponse parses an HTTP response from a ListAcceptanceCriteriaWithResponse call
+func ParseListAcceptanceCriteriaResponse(rsp *http.Response) (*ListAcceptanceCriteriaResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAcceptanceCriteriaResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAcceptanceCriteriaOutputBody
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddAcceptanceCriterionResponse parses an HTTP response from a AddAcceptanceCriterionWithResponse call
+func ParseAddAcceptanceCriterionResponse(rsp *http.Response) (*AddAcceptanceCriterionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddAcceptanceCriterionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest AcceptanceCriterion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteAcceptanceCriterionResponse parses an HTTP response from a DeleteAcceptanceCriterionWithResponse call
+func ParseDeleteAcceptanceCriterionResponse(rsp *http.Response) (*DeleteAcceptanceCriterionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteAcceptanceCriterionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AcceptanceCriterion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateAcceptanceCriterionResponse parses an HTTP response from a UpdateAcceptanceCriterionWithResponse call
+func ParseUpdateAcceptanceCriterionResponse(rsp *http.Response) (*UpdateAcceptanceCriterionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateAcceptanceCriterionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AcceptanceCriterion
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseSetCardBranchResponse parses an HTTP response from a SetCardBranchWithResponse call
 func ParseSetCardBranchResponse(rsp *http.Response) (*SetCardBranchResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -2498,6 +3720,222 @@ func ParseMoveCardResponse(rsp *http.Response) (*MoveCardResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Card
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListTodosResponse parses an HTTP response from a ListTodosWithResponse call
+func ParseListTodosResponse(rsp *http.Response) (*ListTodosResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTodosResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListTodosOutputBody
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddTodoResponse parses an HTTP response from a AddTodoWithResponse call
+func ParseAddTodoResponse(rsp *http.Response) (*AddTodoResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddTodoResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Todo
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteTodoResponse parses an HTTP response from a DeleteTodoWithResponse call
+func ParseDeleteTodoResponse(rsp *http.Response) (*DeleteTodoResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteTodoResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Todo
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateTodoResponse parses an HTTP response from a UpdateTodoWithResponse call
+func ParseUpdateTodoResponse(rsp *http.Response) (*UpdateTodoResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateTodoResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Todo
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

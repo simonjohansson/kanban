@@ -41,7 +41,11 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
                     projectSlug: $0.project,
                     title: $0.title,
                     branch: $0.branch,
-                    status: $0.status
+                    status: $0.status,
+                    todosCount: Int($0.todos_count),
+                    todosCompletedCount: Int($0.todos_completed_count),
+                    acceptanceCriteriaCount: Int($0.acceptance_criteria_count),
+                    acceptanceCriteriaCompletedCount: Int($0.acceptance_criteria_completed_count)
                 )
             }
         default:
@@ -65,6 +69,20 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
                     KanbanCardTextEvent(
                         timestamp: Self.formatTimestamp($0.timestamp),
                         body: Self.normalizeEscapedNewlines($0.body)
+                    )
+                },
+                todos: body.todos.map {
+                    KanbanTodo(
+                        id: Int($0.id),
+                        text: Self.normalizeEscapedNewlines($0.text),
+                        completed: $0.completed
+                    )
+                },
+                acceptanceCriteria: body.acceptance_criteria.map {
+                    KanbanAcceptanceCriterion(
+                        id: Int($0.id),
+                        text: Self.normalizeEscapedNewlines($0.text),
+                        completed: $0.completed
                     )
                 },
                 comments: body.comments.map {

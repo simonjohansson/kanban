@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AcceptanceCriterion } from '../models/AcceptanceCriterion';
+import type { AddAcceptanceCriterionRequest } from '../models/AddAcceptanceCriterionRequest';
+import type { AddTodoRequest } from '../models/AddTodoRequest';
 import type { Card } from '../models/Card';
 import type { ClientConfigOutputBody } from '../models/ClientConfigOutputBody';
 import type { CreateCardRequest } from '../models/CreateCardRequest';
@@ -9,13 +12,18 @@ import type { CreateProjectRequest } from '../models/CreateProjectRequest';
 import type { DeleteProjectOutputBody } from '../models/DeleteProjectOutputBody';
 import type { ErrorModel } from '../models/ErrorModel';
 import type { HealthOutputBody } from '../models/HealthOutputBody';
+import type { ListAcceptanceCriteriaOutputBody } from '../models/ListAcceptanceCriteriaOutputBody';
 import type { ListCardsOutputBody } from '../models/ListCardsOutputBody';
 import type { ListProjectsOutputBody } from '../models/ListProjectsOutputBody';
+import type { ListTodosOutputBody } from '../models/ListTodosOutputBody';
 import type { MoveCardRequest } from '../models/MoveCardRequest';
 import type { Project } from '../models/Project';
 import type { RebuildProjectionOutputBody } from '../models/RebuildProjectionOutputBody';
 import type { SetCardBranchRequest } from '../models/SetCardBranchRequest';
 import type { TextBodyRequest } from '../models/TextBodyRequest';
+import type { Todo } from '../models/Todo';
+import type { UpdateAcceptanceCriterionRequest } from '../models/UpdateAcceptanceCriterionRequest';
+import type { UpdateTodoRequest } from '../models/UpdateTodoRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -226,6 +234,124 @@ export class DefaultService {
         });
     }
     /**
+     * List acceptance criteria
+     * @param project
+     * @param number
+     * @returns ListAcceptanceCriteriaOutputBody OK
+     * @throws ApiError
+     */
+    public static listAcceptanceCriteria(
+        project: string,
+        number: number,
+    ): CancelablePromise<ListAcceptanceCriteriaOutputBody> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/projects/{project}/cards/{number}/acceptance',
+            path: {
+                'project': project,
+                'number': number,
+            },
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * Add acceptance criterion
+     * @param project
+     * @param number
+     * @param requestBody
+     * @returns AcceptanceCriterion Created
+     * @throws ApiError
+     */
+    public static addAcceptanceCriterion(
+        project: string,
+        number: number,
+        requestBody: AddAcceptanceCriterionRequest,
+    ): CancelablePromise<AcceptanceCriterion> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/projects/{project}/cards/{number}/acceptance',
+            path: {
+                'project': project,
+                'number': number,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * Delete acceptance criterion
+     * @param project
+     * @param number
+     * @param criterionId
+     * @returns AcceptanceCriterion OK
+     * @throws ApiError
+     */
+    public static deleteAcceptanceCriterion(
+        project: string,
+        number: number,
+        criterionId: number,
+    ): CancelablePromise<AcceptanceCriterion> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/projects/{project}/cards/{number}/acceptance/{criterion_id}',
+            path: {
+                'project': project,
+                'number': number,
+                'criterion_id': criterionId,
+            },
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * Update acceptance criterion
+     * @param project
+     * @param number
+     * @param criterionId
+     * @param requestBody
+     * @returns AcceptanceCriterion OK
+     * @throws ApiError
+     */
+    public static updateAcceptanceCriterion(
+        project: string,
+        number: number,
+        criterionId: number,
+        requestBody: UpdateAcceptanceCriterionRequest,
+    ): CancelablePromise<AcceptanceCriterion> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/projects/{project}/cards/{number}/acceptance/{criterion_id}',
+            path: {
+                'project': project,
+                'number': number,
+                'criterion_id': criterionId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * Set card branch metadata
      * @param project
      * @param number
@@ -334,6 +460,124 @@ export class DefaultService {
             path: {
                 'project': project,
                 'number': number,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * List card todos
+     * @param project
+     * @param number
+     * @returns ListTodosOutputBody OK
+     * @throws ApiError
+     */
+    public static listTodos(
+        project: string,
+        number: number,
+    ): CancelablePromise<ListTodosOutputBody> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/projects/{project}/cards/{number}/todos',
+            path: {
+                'project': project,
+                'number': number,
+            },
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * Add card todo
+     * @param project
+     * @param number
+     * @param requestBody
+     * @returns Todo Created
+     * @throws ApiError
+     */
+    public static addTodo(
+        project: string,
+        number: number,
+        requestBody: AddTodoRequest,
+    ): CancelablePromise<Todo> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/projects/{project}/cards/{number}/todos',
+            path: {
+                'project': project,
+                'number': number,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * Delete card todo
+     * @param project
+     * @param number
+     * @param todoId
+     * @returns Todo OK
+     * @throws ApiError
+     */
+    public static deleteTodo(
+        project: string,
+        number: number,
+        todoId: number,
+    ): CancelablePromise<Todo> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/projects/{project}/cards/{number}/todos/{todo_id}',
+            path: {
+                'project': project,
+                'number': number,
+                'todo_id': todoId,
+            },
+            errors: {
+                400: `Bad Request`,
+                404: `Not Found`,
+                422: `Unprocessable Entity`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * Update card todo
+     * @param project
+     * @param number
+     * @param todoId
+     * @param requestBody
+     * @returns Todo OK
+     * @throws ApiError
+     */
+    public static updateTodo(
+        project: string,
+        number: number,
+        todoId: number,
+        requestBody: UpdateTodoRequest,
+    ): CancelablePromise<Todo> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/projects/{project}/cards/{number}/todos/{todo_id}',
+            path: {
+                'project': project,
+                'number': number,
+                'todo_id': todoId,
             },
             body: requestBody,
             mediaType: 'application/json',

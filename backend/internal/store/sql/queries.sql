@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS cards (
   updated_at TEXT NOT NULL,
   comments_count INTEGER NOT NULL,
   history_count INTEGER NOT NULL,
+  todos_count INTEGER NOT NULL,
+  todos_completed_count INTEGER NOT NULL,
+  acceptance_criteria_count INTEGER NOT NULL,
+  acceptance_criteria_completed_count INTEGER NOT NULL,
   UNIQUE(project_slug, number)
 );
 
@@ -38,9 +42,9 @@ ON CONFLICT(slug) DO UPDATE SET
 
 -- name: UpsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   project_slug = excluded.project_slug,
   number = excluded.number,
@@ -51,7 +55,11 @@ ON CONFLICT(id) DO UPDATE SET
   created_at = excluded.created_at,
   updated_at = excluded.updated_at,
   comments_count = excluded.comments_count,
-  history_count = excluded.history_count;
+  history_count = excluded.history_count,
+  todos_count = excluded.todos_count,
+  todos_completed_count = excluded.todos_completed_count,
+  acceptance_criteria_count = excluded.acceptance_criteria_count,
+  acceptance_criteria_completed_count = excluded.acceptance_criteria_completed_count;
 
 -- name: HardDeleteCard :exec
 DELETE FROM cards WHERE project_slug = ? AND number = ?;
@@ -63,13 +71,13 @@ DELETE FROM cards WHERE project_slug = ?;
 DELETE FROM projects WHERE slug = ?;
 
 -- name: ListCardsActive :many
-SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 FROM cards
 WHERE project_slug = ? AND deleted = 0
 ORDER BY number ASC;
 
 -- name: ListCardsWithDeleted :many
-SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 FROM cards
 WHERE project_slug = ?
 ORDER BY number ASC;
@@ -86,6 +94,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: InsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

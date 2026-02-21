@@ -67,6 +67,42 @@ func TestProjectAndCardErrorPaths(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, missingDelete.StatusCode)
 	zeroDeleteNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/0", http.MethodDelete, nil)
 	require.Equal(t, http.StatusBadRequest, zeroDeleteNumber.StatusCode)
+
+	badTodoJSON := doRaw(t, httpServer.URL+"/projects/err-board/cards/1/todos", http.MethodPost, "{", "application/json")
+	require.Equal(t, http.StatusBadRequest, badTodoJSON.StatusCode)
+
+	emptyTodoText := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/todos", http.MethodPost, map[string]string{"text": "   "})
+	require.Equal(t, http.StatusBadRequest, emptyTodoText.StatusCode)
+
+	zeroTodoCardNumber := doJSON(t, httpServer.URL+"/projects/err-board/cards/0/todos", http.MethodPost, map[string]string{"text": "x"})
+	require.Equal(t, http.StatusBadRequest, zeroTodoCardNumber.StatusCode)
+
+	missingTodoCard := doJSON(t, httpServer.URL+"/projects/err-board/cards/999/todos", http.MethodPost, map[string]string{"text": "x"})
+	require.Equal(t, http.StatusNotFound, missingTodoCard.StatusCode)
+
+	badTodoUpdateJSON := doRaw(t, httpServer.URL+"/projects/err-board/cards/1/todos/1", http.MethodPatch, "{", "application/json")
+	require.Equal(t, http.StatusBadRequest, badTodoUpdateJSON.StatusCode)
+
+	zeroTodoIDUpdate := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/todos/0", http.MethodPatch, map[string]bool{"completed": true})
+	require.Equal(t, http.StatusBadRequest, zeroTodoIDUpdate.StatusCode)
+
+	missingTodoUpdate := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/todos/999", http.MethodPatch, map[string]bool{"completed": true})
+	require.Equal(t, http.StatusNotFound, missingTodoUpdate.StatusCode)
+
+	zeroTodoIDDelete := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/todos/0", http.MethodDelete, nil)
+	require.Equal(t, http.StatusBadRequest, zeroTodoIDDelete.StatusCode)
+
+	badAcceptanceJSON := doRaw(t, httpServer.URL+"/projects/err-board/cards/1/acceptance", http.MethodPost, "{", "application/json")
+	require.Equal(t, http.StatusBadRequest, badAcceptanceJSON.StatusCode)
+
+	emptyAcceptanceText := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/acceptance", http.MethodPost, map[string]string{"text": "   "})
+	require.Equal(t, http.StatusBadRequest, emptyAcceptanceText.StatusCode)
+
+	zeroCriterionID := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/acceptance/0", http.MethodPatch, map[string]bool{"completed": true})
+	require.Equal(t, http.StatusBadRequest, zeroCriterionID.StatusCode)
+
+	missingCriterion := doJSON(t, httpServer.URL+"/projects/err-board/cards/1/acceptance/999", http.MethodPatch, map[string]bool{"completed": true})
+	require.Equal(t, http.StatusNotFound, missingCriterion.StatusCode)
 }
 
 func TestWebsocketProjectFilter(t *testing.T) {

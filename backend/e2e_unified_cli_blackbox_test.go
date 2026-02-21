@@ -142,6 +142,264 @@ func TestKanbanProjectAndCardFlowCallsBackend(t *testing.T) {
 	require.Equal(t, "hard=true", requests[3].query)
 }
 
+func TestKanbanCardTodoFlowCallsBackend(t *testing.T) {
+	kanbanBin := buildKanbanBinary(t)
+
+	var mu sync.Mutex
+	var requests []recordedRequest
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		_ = r.Body.Close()
+
+		mu.Lock()
+		requests = append(requests, recordedRequest{
+			method: r.Method,
+			path:   r.URL.Path,
+			query:  r.URL.RawQuery,
+			body:   strings.TrimSpace(string(body)),
+		})
+		mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/projects/alpha/cards/1/todos":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Write tests","completed":false}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/todos/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Write tests","completed":true}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/todos/2":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":2,"text":"Review","completed":false}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/projects/alpha/cards/1/todos/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Write tests","completed":true}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/projects/alpha/cards/1/todos":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"todos":[{"id":2,"text":"Review","completed":false}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"detail":"not found"}`))
+		}
+	}))
+	defer server.Close()
+
+	addTodo := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "todo", "add",
+		"--project", "alpha",
+		"--id", "1",
+		"--body", "Write tests",
+	)
+	require.Equal(t, 0, addTodo.exitCode, addTodo.combined)
+
+	doneTodo := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "todo", "done",
+		"--project", "alpha",
+		"--id", "1",
+		"--todo-id", "1",
+	)
+	require.Equal(t, 0, doneTodo.exitCode, doneTodo.combined)
+
+	undoTodo := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "todo", "undo",
+		"--project", "alpha",
+		"--id", "1",
+		"--todo-id", "2",
+	)
+	require.Equal(t, 0, undoTodo.exitCode, undoTodo.combined)
+
+	deleteTodo := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "todo", "rm",
+		"--project", "alpha",
+		"--id", "1",
+		"--todo-id", "1",
+	)
+	require.Equal(t, 0, deleteTodo.exitCode, deleteTodo.combined)
+
+	listTodos := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "todo", "ls",
+		"--project", "alpha",
+		"--id", "1",
+	)
+	require.Equal(t, 0, listTodos.exitCode, listTodos.combined)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, requests, 5)
+	require.Equal(t, recordedRequest{
+		method: "POST",
+		path:   "/projects/alpha/cards/1/todos",
+		query:  "",
+		body:   `{"text":"Write tests"}`,
+	}, requests[0])
+	require.Equal(t, recordedRequest{
+		method: "PATCH",
+		path:   "/projects/alpha/cards/1/todos/1",
+		query:  "",
+		body:   `{"completed":true}`,
+	}, requests[1])
+	require.Equal(t, recordedRequest{
+		method: "PATCH",
+		path:   "/projects/alpha/cards/1/todos/2",
+		query:  "",
+		body:   `{"completed":false}`,
+	}, requests[2])
+	require.Equal(t, recordedRequest{
+		method: "DELETE",
+		path:   "/projects/alpha/cards/1/todos/1",
+		query:  "",
+		body:   "",
+	}, requests[3])
+	require.Equal(t, recordedRequest{
+		method: "GET",
+		path:   "/projects/alpha/cards/1/todos",
+		query:  "",
+		body:   "",
+	}, requests[4])
+}
+
+func TestKanbanCardAcceptanceFlowCallsBackend(t *testing.T) {
+	kanbanBin := buildKanbanBinary(t)
+
+	var mu sync.Mutex
+	var requests []recordedRequest
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		_ = r.Body.Close()
+
+		mu.Lock()
+		requests = append(requests, recordedRequest{
+			method: r.Method,
+			path:   r.URL.Path,
+			query:  r.URL.RawQuery,
+			body:   strings.TrimSpace(string(body)),
+		})
+		mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/projects/alpha/cards/1/acceptance":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Requirement met","completed":false}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/acceptance/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Requirement met","completed":true}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/acceptance/2":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":2,"text":"Verified","completed":false}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/projects/alpha/cards/1/acceptance/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Requirement met","completed":true}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/projects/alpha/cards/1/acceptance":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"acceptance_criteria":[{"id":2,"text":"Verified","completed":false}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"detail":"not found"}`))
+		}
+	}))
+	defer server.Close()
+
+	add := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "acceptance", "add",
+		"--project", "alpha",
+		"--id", "1",
+		"--body", "Requirement met",
+	)
+	require.Equal(t, 0, add.exitCode, add.combined)
+
+	done := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "ac", "done",
+		"--project", "alpha",
+		"--id", "1",
+		"--criterion-id", "1",
+	)
+	require.Equal(t, 0, done.exitCode, done.combined)
+
+	undo := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "acceptance", "undo",
+		"--project", "alpha",
+		"--id", "1",
+		"--criterion-id", "2",
+	)
+	require.Equal(t, 0, undo.exitCode, undo.combined)
+
+	rm := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "ac", "rm",
+		"--project", "alpha",
+		"--id", "1",
+		"--criterion-id", "1",
+	)
+	require.Equal(t, 0, rm.exitCode, rm.combined)
+
+	ls := runKanban(t, kanbanBin,
+		"--server-url", server.URL,
+		"--output", "json",
+		"card", "acceptance", "ls",
+		"--project", "alpha",
+		"--id", "1",
+	)
+	require.Equal(t, 0, ls.exitCode, ls.combined)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, requests, 5)
+	require.Equal(t, recordedRequest{
+		method: "POST",
+		path:   "/projects/alpha/cards/1/acceptance",
+		query:  "",
+		body:   `{"text":"Requirement met"}`,
+	}, requests[0])
+	require.Equal(t, recordedRequest{
+		method: "PATCH",
+		path:   "/projects/alpha/cards/1/acceptance/1",
+		query:  "",
+		body:   `{"completed":true}`,
+	}, requests[1])
+	require.Equal(t, recordedRequest{
+		method: "PATCH",
+		path:   "/projects/alpha/cards/1/acceptance/2",
+		query:  "",
+		body:   `{"completed":false}`,
+	}, requests[2])
+	require.Equal(t, recordedRequest{
+		method: "DELETE",
+		path:   "/projects/alpha/cards/1/acceptance/1",
+		query:  "",
+		body:   "",
+	}, requests[3])
+	require.Equal(t, recordedRequest{
+		method: "GET",
+		path:   "/projects/alpha/cards/1/acceptance",
+		query:  "",
+		body:   "",
+	}, requests[4])
+}
+
 func TestKanbanWatchExitsOnInterrupt(t *testing.T) {
 	kanbanBin := buildKanbanBinary(t)
 
@@ -219,7 +477,7 @@ func buildKanbanBinary(t *testing.T) string {
 
 	binPath := filepath.Join(t.TempDir(), "kanban")
 	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/kanban")
-	cmd.Dir = "/Users/simonjohansson/src/kanban/backend"
+	cmd.Dir = "."
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err, string(out))
 	return binPath

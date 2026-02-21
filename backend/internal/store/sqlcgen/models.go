@@ -9,17 +9,21 @@ import (
 )
 
 type Card struct {
-	ID            string
-	ProjectSlug   string
-	Number        int64
-	Title         string
-	Branch        sql.NullString
-	Status        string
-	Deleted       int64
-	CreatedAt     string
-	UpdatedAt     string
-	CommentsCount int64
-	HistoryCount  int64
+	ID                               string
+	ProjectSlug                      string
+	Number                           int64
+	Title                            string
+	Branch                           sql.NullString
+	Status                           string
+	Deleted                          int64
+	CreatedAt                        string
+	UpdatedAt                        string
+	CommentsCount                    int64
+	HistoryCount                     int64
+	TodosCount                       int64
+	TodosCompletedCount              int64
+	AcceptanceCriteriaCount          int64
+	AcceptanceCriteriaCompletedCount int64
 }
 
 type Project struct {

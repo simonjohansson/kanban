@@ -56,18 +56,24 @@ func (p *SQLiteProjection) UpsertProject(project model.Project) error {
 }
 
 func (p *SQLiteProjection) UpsertCard(card model.Card) error {
+	todosCompleted := completedTodosCount(card.Todos)
+	acceptanceCompleted := completedAcceptanceCriteriaCount(card.AcceptanceCriteria)
 	return p.queries.UpsertCard(context.Background(), sqlcgen.UpsertCardParams{
-		ID:            card.ID,
-		ProjectSlug:   card.ProjectSlug,
-		Number:        int64(card.Number),
-		Title:         card.Title,
-		Branch:        nullableString(card.Branch),
-		Status:        card.Status,
-		Deleted:       boolToInt(card.Deleted),
-		CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
-		UpdatedAt:     card.UpdatedAt.UTC().Format(time.RFC3339),
-		CommentsCount: int64(len(card.Comments)),
-		HistoryCount:  int64(len(card.History)),
+		ID:                                card.ID,
+		ProjectSlug:                       card.ProjectSlug,
+		Number:                            int64(card.Number),
+		Title:                             card.Title,
+		Branch:                            nullableString(card.Branch),
+		Status:                            card.Status,
+		Deleted:                           boolToInt(card.Deleted),
+		CreatedAt:                         card.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:                         card.UpdatedAt.UTC().Format(time.RFC3339),
+		CommentsCount:                     int64(len(card.Comments)),
+		HistoryCount:                      int64(len(card.History)),
+		TodosCount:                        int64(len(card.Todos)),
+		TodosCompletedCount:               int64(todosCompleted),
+		AcceptanceCriteriaCount:           int64(len(card.AcceptanceCriteria)),
+		AcceptanceCriteriaCompletedCount:  int64(acceptanceCompleted),
 	})
 }
 
@@ -144,18 +150,24 @@ func (p *SQLiteProjection) RebuildFromMarkdown(projects []model.Project, cards [
 	}
 
 	for _, card := range cards {
+		todosCompleted := completedTodosCount(card.Todos)
+		acceptanceCompleted := completedAcceptanceCriteriaCount(card.AcceptanceCriteria)
 		if err = qtx.InsertCard(context.Background(), sqlcgen.InsertCardParams{
-			ID:            card.ID,
-			ProjectSlug:   card.ProjectSlug,
-			Number:        int64(card.Number),
-			Title:         card.Title,
-			Branch:        nullableString(card.Branch),
-			Status:        card.Status,
-			Deleted:       boolToInt(card.Deleted),
-			CreatedAt:     card.CreatedAt.UTC().Format(time.RFC3339),
-			UpdatedAt:     card.UpdatedAt.UTC().Format(time.RFC3339),
-			CommentsCount: int64(len(card.Comments)),
-			HistoryCount:  int64(len(card.History)),
+			ID:                               card.ID,
+			ProjectSlug:                      card.ProjectSlug,
+			Number:                           int64(card.Number),
+			Title:                            card.Title,
+			Branch:                           nullableString(card.Branch),
+			Status:                           card.Status,
+			Deleted:                          boolToInt(card.Deleted),
+			CreatedAt:                        card.CreatedAt.UTC().Format(time.RFC3339),
+			UpdatedAt:                        card.UpdatedAt.UTC().Format(time.RFC3339),
+			CommentsCount:                    int64(len(card.Comments)),
+			HistoryCount:                     int64(len(card.History)),
+			TodosCount:                       int64(len(card.Todos)),
+			TodosCompletedCount:              int64(todosCompleted),
+			AcceptanceCriteriaCount:          int64(len(card.AcceptanceCriteria)),
+			AcceptanceCriteriaCompletedCount: int64(acceptanceCompleted),
 		}); err != nil {
 			return fmt.Errorf("insert card %s: %w", card.ID, err)
 		}
@@ -179,6 +191,10 @@ func mapCardSummaryRowsFromActive(rows []sqlcgen.Card) ([]model.CardSummary, err
 			row.UpdatedAt,
 			row.CommentsCount,
 			row.HistoryCount,
+			row.TodosCount,
+			row.TodosCompletedCount,
+			row.AcceptanceCriteriaCount,
+			row.AcceptanceCriteriaCompletedCount,
 		)
 		if err != nil {
 			return nil, err
@@ -203,6 +219,10 @@ func mapCardSummaryRowsFromAll(rows []sqlcgen.Card) ([]model.CardSummary, error)
 			row.UpdatedAt,
 			row.CommentsCount,
 			row.HistoryCount,
+			row.TodosCount,
+			row.TodosCompletedCount,
+			row.AcceptanceCriteriaCount,
+			row.AcceptanceCriteriaCompletedCount,
 		)
 		if err != nil {
 			return nil, err
@@ -212,7 +232,7 @@ func mapCardSummaryRowsFromAll(rows []sqlcgen.Card) ([]model.CardSummary, error)
 	return cards, nil
 }
 
-func cardSummaryFromRaw(id, projectSlug string, number int64, title string, branch sql.NullString, status string, deleted int64, created, updated string, commentsCount, historyCount int64) (model.CardSummary, error) {
+func cardSummaryFromRaw(id, projectSlug string, number int64, title string, branch sql.NullString, status string, deleted int64, created, updated string, commentsCount, historyCount, todosCount, todosCompletedCount, acceptanceCriteriaCount, acceptanceCriteriaCompletedCount int64) (model.CardSummary, error) {
 	createdAt, err := time.Parse(time.RFC3339, created)
 	if err != nil {
 		return model.CardSummary{}, err
@@ -222,17 +242,21 @@ func cardSummaryFromRaw(id, projectSlug string, number int64, title string, bran
 		return model.CardSummary{}, err
 	}
 	return model.CardSummary{
-		ID:            id,
-		ProjectSlug:   projectSlug,
-		Number:        int(number),
-		Title:         title,
-		Branch:        branch.String,
-		Status:        status,
-		Deleted:       deleted == 1,
-		CreatedAt:     createdAt,
-		UpdatedAt:     updatedAt,
-		CommentsCount: int(commentsCount),
-		HistoryCount:  int(historyCount),
+		ID:                               id,
+		ProjectSlug:                      projectSlug,
+		Number:                           int(number),
+		Title:                            title,
+		Branch:                           branch.String,
+		Status:                           status,
+		Deleted:                          deleted == 1,
+		CreatedAt:                        createdAt,
+		UpdatedAt:                        updatedAt,
+		CommentsCount:                    int(commentsCount),
+		HistoryCount:                     int(historyCount),
+		TodosCount:                       int(todosCount),
+		TodosCompletedCount:              int(todosCompletedCount),
+		AcceptanceCriteriaCount:          int(acceptanceCriteriaCount),
+		AcceptanceCriteriaCompletedCount: int(acceptanceCriteriaCompletedCount),
 	}, nil
 }
 
@@ -249,4 +273,24 @@ func nullableString(v string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: trimmed, Valid: true}
+}
+
+func completedTodosCount(todos []model.Todo) int {
+	count := 0
+	for _, todo := range todos {
+		if todo.Completed {
+			count++
+		}
+	}
+	return count
+}
+
+func completedAcceptanceCriteriaCount(criteria []model.AcceptanceCriterion) int {
+	count := 0
+	for _, criterion := range criteria {
+		if criterion.Completed {
+			count++
+		}
+	}
+	return count
 }

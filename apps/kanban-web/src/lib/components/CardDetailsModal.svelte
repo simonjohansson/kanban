@@ -93,6 +93,36 @@
         </section>
 
         <section>
+          <h3>Todos</h3>
+          <div data-testid="card-details-todos">
+            {#if !card.todos || card.todos.length === 0}
+              <p class="empty">No todos</p>
+            {:else}
+              {#each card.todos ?? [] as todo}
+                <article class="event todo">
+                  <p><span class="mono">[{todo.completed ? 'x' : ' '}] #{todo.id}</span> {renderText(todo.text)}</p>
+                </article>
+              {/each}
+            {/if}
+          </div>
+        </section>
+
+        <section>
+          <h3>Acceptance criteria</h3>
+          <div data-testid="card-details-acceptance-criteria">
+            {#if !card.acceptance_criteria || card.acceptance_criteria.length === 0}
+              <p class="empty">No acceptance criteria</p>
+            {:else}
+              {#each card.acceptance_criteria ?? [] as criterion}
+                <article class="event todo">
+                  <p><span class="mono">[{criterion.completed ? 'x' : ' '}] #{criterion.id}</span> {renderText(criterion.text)}</p>
+                </article>
+              {/each}
+            {/if}
+          </div>
+        </section>
+
+        <section>
           <h3>Comments</h3>
           <div data-testid="card-details-comments">
             {#if !card.comments || card.comments.length === 0}
@@ -254,6 +284,12 @@
     color: #111827;
     font-size: 0.9rem;
     white-space: pre-wrap;
+  }
+
+  .todo p {
+    display: inline-flex;
+    gap: 8px;
+    align-items: baseline;
   }
 
   .empty {

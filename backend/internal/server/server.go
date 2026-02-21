@@ -188,6 +188,72 @@ func (s *Server) registerOperations() {
 	}, s.appendDescription)
 
 	huma.Register(s.api, huma.Operation{
+		OperationID:   "addTodo",
+		Method:        http.MethodPost,
+		Path:          "/projects/{project}/cards/{number}/todos",
+		DefaultStatus: http.StatusCreated,
+		Summary:       "Add card todo",
+		Errors:        []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.addTodo)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID: "listTodos",
+		Method:      http.MethodGet,
+		Path:        "/projects/{project}/cards/{number}/todos",
+		Summary:     "List card todos",
+		Errors:      []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.listTodos)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID: "updateTodo",
+		Method:      http.MethodPatch,
+		Path:        "/projects/{project}/cards/{number}/todos/{todo_id}",
+		Summary:     "Update card todo",
+		Errors:      []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.updateTodo)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID: "deleteTodo",
+		Method:      http.MethodDelete,
+		Path:        "/projects/{project}/cards/{number}/todos/{todo_id}",
+		Summary:     "Delete card todo",
+		Errors:      []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.deleteTodo)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID:   "addAcceptanceCriterion",
+		Method:        http.MethodPost,
+		Path:          "/projects/{project}/cards/{number}/acceptance",
+		DefaultStatus: http.StatusCreated,
+		Summary:       "Add acceptance criterion",
+		Errors:        []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.addAcceptanceCriterion)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID: "listAcceptanceCriteria",
+		Method:      http.MethodGet,
+		Path:        "/projects/{project}/cards/{number}/acceptance",
+		Summary:     "List acceptance criteria",
+		Errors:      []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.listAcceptanceCriteria)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID: "updateAcceptanceCriterion",
+		Method:      http.MethodPatch,
+		Path:        "/projects/{project}/cards/{number}/acceptance/{criterion_id}",
+		Summary:     "Update acceptance criterion",
+		Errors:      []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.updateAcceptanceCriterion)
+
+	huma.Register(s.api, huma.Operation{
+		OperationID: "deleteAcceptanceCriterion",
+		Method:      http.MethodDelete,
+		Path:        "/projects/{project}/cards/{number}/acceptance/{criterion_id}",
+		Summary:     "Delete acceptance criterion",
+		Errors:      []int{http.StatusBadRequest, http.StatusNotFound, http.StatusInternalServerError},
+	}, s.deleteAcceptanceCriterion)
+
+	huma.Register(s.api, huma.Operation{
 		OperationID: "setCardBranch",
 		Method:      http.MethodPatch,
 		Path:        "/projects/{project}/cards/{number}/branch",

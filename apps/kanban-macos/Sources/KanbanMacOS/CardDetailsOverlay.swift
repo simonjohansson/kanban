@@ -54,6 +54,26 @@ struct CardDetailsOverlay: View {
                                 }
                             }
                         }
+                        section(title: "Todos") {
+                            if details.todos.isEmpty {
+                                Text("No todos")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(Array(details.todos.enumerated()), id: \.offset) { _, todo in
+                                    detailItem("[\(todo.completed ? "x" : " ")] #\(todo.id) \(todo.text)")
+                                }
+                            }
+                        }
+                        section(title: "Acceptance criteria") {
+                            if details.acceptanceCriteria.isEmpty {
+                                Text("No acceptance criteria")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(Array(details.acceptanceCriteria.enumerated()), id: \.offset) { _, criterion in
+                                    detailItem("[\(criterion.completed ? "x" : " ")] #\(criterion.id) \(criterion.text)")
+                                }
+                            }
+                        }
                         section(title: "Comments") {
                             if details.comments.isEmpty {
                                 Text("No comments")

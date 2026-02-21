@@ -40,6 +40,14 @@ func TestSQLiteProjectionLifecycle(t *testing.T) {
 		UpdatedAt:   now,
 		Comments:    []model.TextEvent{{Timestamp: now, Body: "comment"}},
 		History:     []model.HistoryEvent{{Timestamp: now, Type: "card.created", Details: "status=Todo"}},
+		Todos: []model.Todo{
+			{ID: 1, Text: "Write tests", Completed: false},
+			{ID: 2, Text: "Run tests", Completed: true},
+		},
+		AcceptanceCriteria: []model.AcceptanceCriterion{
+			{ID: 1, Text: "Criterion A", Completed: true},
+			{ID: 2, Text: "Criterion B", Completed: false},
+		},
 	}
 	require.NoError(t, p.UpsertCard(card1))
 
@@ -55,6 +63,10 @@ func TestSQLiteProjectionLifecycle(t *testing.T) {
 	require.Len(t, active, 1)
 	require.Equal(t, "alpha/card-1", active[0].ID)
 	require.Equal(t, "feature/card-1", active[0].Branch)
+	require.Equal(t, 2, active[0].TodosCount)
+	require.Equal(t, 1, active[0].TodosCompletedCount)
+	require.Equal(t, 2, active[0].AcceptanceCriteriaCount)
+	require.Equal(t, 1, active[0].AcceptanceCriteriaCompletedCount)
 
 	allCards, err := p.ListCards("alpha", true)
 	require.NoError(t, err)
@@ -107,16 +119,20 @@ func TestSQLiteProjectionRebuildFromMarkdown(t *testing.T) {
 
 func TestSQLiteHelperFunctions(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
-	summary, err := cardSummaryFromRaw("alpha/card-1", "alpha", 1, "Task", sql.NullString{String: "feature/x", Valid: true}, "Todo", 1, now.Format(time.RFC3339), now.Format(time.RFC3339), 2, 3)
+	summary, err := cardSummaryFromRaw("alpha/card-1", "alpha", 1, "Task", sql.NullString{String: "feature/x", Valid: true}, "Todo", 1, now.Format(time.RFC3339), now.Format(time.RFC3339), 2, 3, 4, 1, 5, 2)
 	require.NoError(t, err)
 	require.True(t, summary.Deleted)
 	require.Equal(t, "feature/x", summary.Branch)
 	require.Equal(t, 2, summary.CommentsCount)
 	require.Equal(t, 3, summary.HistoryCount)
+	require.Equal(t, 4, summary.TodosCount)
+	require.Equal(t, 1, summary.TodosCompletedCount)
+	require.Equal(t, 5, summary.AcceptanceCriteriaCount)
+	require.Equal(t, 2, summary.AcceptanceCriteriaCompletedCount)
 
-	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", sql.NullString{}, "Todo", 0, "bad", now.Format(time.RFC3339), 0, 0)
+	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", sql.NullString{}, "Todo", 0, "bad", now.Format(time.RFC3339), 0, 0, 0, 0, 0, 0)
 	require.Error(t, err)
-	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", sql.NullString{}, "Todo", 0, now.Format(time.RFC3339), "bad", 0, 0)
+	_, err = cardSummaryFromRaw("id", "alpha", 1, "Task", sql.NullString{}, "Todo", 0, now.Format(time.RFC3339), "bad", 0, 0, 0, 0, 0, 0)
 	require.Error(t, err)
 
 	require.EqualValues(t, 1, boolToInt(true))

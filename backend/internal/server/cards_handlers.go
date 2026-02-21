@@ -205,3 +205,233 @@ func normalizeCardNumber(number int) (int, error) {
 	}
 	return number, nil
 }
+
+type addTodoRequest struct {
+	Text string `json:"text"`
+}
+
+type addTodoInput struct {
+	Project string `path:"project"`
+	Number  int    `path:"number"`
+	Body    addTodoRequest
+}
+
+type addTodoOutput struct {
+	Body model.Todo
+}
+
+func (s *Server) addTodo(_ context.Context, input *addTodoInput) (*addTodoOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	todo, err := s.service.AddTodo(input.Project, number, input.Body.Text)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	return &addTodoOutput{Body: todo}, nil
+}
+
+type listTodosInput struct {
+	Project string `path:"project"`
+	Number  int    `path:"number"`
+}
+
+type listTodosOutput struct {
+	Body struct {
+		Todos []model.Todo `json:"todos"`
+	}
+}
+
+func (s *Server) listTodos(_ context.Context, input *listTodosInput) (*listTodosOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	todos, err := s.service.ListTodos(input.Project, number)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	out := &listTodosOutput{}
+	out.Body.Todos = todos
+	return out, nil
+}
+
+type updateTodoRequest struct {
+	Completed bool `json:"completed"`
+}
+
+type todoPathInput struct {
+	Project string `path:"project"`
+	Number  int    `path:"number"`
+	TodoID  int    `path:"todo_id"`
+}
+
+type updateTodoInput struct {
+	Project string `path:"project"`
+	Number  int    `path:"number"`
+	TodoID  int    `path:"todo_id"`
+	Body    updateTodoRequest
+}
+
+type updateTodoOutput struct {
+	Body model.Todo
+}
+
+func (s *Server) updateTodo(_ context.Context, input *updateTodoInput) (*updateTodoOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	todoID, err := normalizeTodoID(input.TodoID)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	todo, err := s.service.SetTodoCompleted(input.Project, number, todoID, input.Body.Completed)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	return &updateTodoOutput{Body: todo}, nil
+}
+
+type deleteTodoOutput struct {
+	Body model.Todo
+}
+
+func (s *Server) deleteTodo(_ context.Context, input *todoPathInput) (*deleteTodoOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	todoID, err := normalizeTodoID(input.TodoID)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	todo, err := s.service.DeleteTodo(input.Project, number, todoID)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	return &deleteTodoOutput{Body: todo}, nil
+}
+
+func normalizeTodoID(todoID int) (int, error) {
+	if todoID <= 0 {
+		return 0, fmt.Errorf("invalid todo id")
+	}
+	return todoID, nil
+}
+
+type addAcceptanceCriterionRequest struct {
+	Text string `json:"text"`
+}
+
+type addAcceptanceCriterionInput struct {
+	Project string `path:"project"`
+	Number  int    `path:"number"`
+	Body    addAcceptanceCriterionRequest
+}
+
+type addAcceptanceCriterionOutput struct {
+	Body model.AcceptanceCriterion
+}
+
+func (s *Server) addAcceptanceCriterion(_ context.Context, input *addAcceptanceCriterionInput) (*addAcceptanceCriterionOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	criterion, err := s.service.AddAcceptanceCriterion(input.Project, number, input.Body.Text)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	return &addAcceptanceCriterionOutput{Body: criterion}, nil
+}
+
+type listAcceptanceCriteriaInput struct {
+	Project string `path:"project"`
+	Number  int    `path:"number"`
+}
+
+type listAcceptanceCriteriaOutput struct {
+	Body struct {
+		AcceptanceCriteria []model.AcceptanceCriterion `json:"acceptance_criteria"`
+	}
+}
+
+func (s *Server) listAcceptanceCriteria(_ context.Context, input *listAcceptanceCriteriaInput) (*listAcceptanceCriteriaOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	criteria, err := s.service.ListAcceptanceCriteria(input.Project, number)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	out := &listAcceptanceCriteriaOutput{}
+	out.Body.AcceptanceCriteria = criteria
+	return out, nil
+}
+
+type criterionPathInput struct {
+	Project     string `path:"project"`
+	Number      int    `path:"number"`
+	CriterionID int    `path:"criterion_id"`
+}
+
+type updateAcceptanceCriterionRequest struct {
+	Completed bool `json:"completed"`
+}
+
+type updateAcceptanceCriterionInput struct {
+	Project     string `path:"project"`
+	Number      int    `path:"number"`
+	CriterionID int    `path:"criterion_id"`
+	Body        updateAcceptanceCriterionRequest
+}
+
+type updateAcceptanceCriterionOutput struct {
+	Body model.AcceptanceCriterion
+}
+
+func (s *Server) updateAcceptanceCriterion(_ context.Context, input *updateAcceptanceCriterionInput) (*updateAcceptanceCriterionOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	criterionID, err := normalizeCriterionID(input.CriterionID)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	criterion, err := s.service.SetAcceptanceCriterionCompleted(input.Project, number, criterionID, input.Body.Completed)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	return &updateAcceptanceCriterionOutput{Body: criterion}, nil
+}
+
+type deleteAcceptanceCriterionOutput struct {
+	Body model.AcceptanceCriterion
+}
+
+func (s *Server) deleteAcceptanceCriterion(_ context.Context, input *criterionPathInput) (*deleteAcceptanceCriterionOutput, error) {
+	number, err := normalizeCardNumber(input.Number)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	criterionID, err := normalizeCriterionID(input.CriterionID)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	criterion, err := s.service.DeleteAcceptanceCriterion(input.Project, number, criterionID)
+	if err != nil {
+		return nil, toHumaError(err)
+	}
+	return &deleteAcceptanceCriterionOutput{Body: criterion}, nil
+}
+
+func normalizeCriterionID(criterionID int) (int, error) {
+	if criterionID <= 0 {
+		return 0, fmt.Errorf("invalid criterion id")
+	}
+	return criterionID, nil
+}

@@ -27,7 +27,7 @@ func TestE2EBlackBoxServerProcess(t *testing.T) {
 	binaryPath := filepath.Join(t.TempDir(), "kanban")
 
 	build := exec.Command("go", "build", "-o", binaryPath, "./cmd/kanban")
-	build.Dir = "/Users/simonjohansson/src/kanban/backend"
+	build.Dir = "."
 	buildOut, err := build.CombinedOutput()
 	require.NoError(t, err, string(buildOut))
 
@@ -73,10 +73,61 @@ func TestE2EBlackBoxServerProcess(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, createCard.StatusCode)
 
+	addTodoA := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/todos", http.MethodPost, map[string]string{
+		"text": "write e2e test",
+	})
+	require.Equal(t, http.StatusCreated, addTodoA.StatusCode)
+
+	addTodoB := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/todos", http.MethodPost, map[string]string{
+		"text": "run e2e test",
+	})
+	require.Equal(t, http.StatusCreated, addTodoB.StatusCode)
+
+	completeTodo := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/todos/2", http.MethodPatch, map[string]bool{
+		"completed": true,
+	})
+	require.Equal(t, http.StatusOK, completeTodo.StatusCode)
+
+	addAC1 := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/acceptance", http.MethodPost, map[string]string{
+		"text": "meets requirement A",
+	})
+	require.Equal(t, http.StatusCreated, addAC1.StatusCode)
+
+	addAC2 := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/acceptance", http.MethodPost, map[string]string{
+		"text": "meets requirement B",
+	})
+	require.Equal(t, http.StatusCreated, addAC2.StatusCode)
+
+	completeAC := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/acceptance/2", http.MethodPatch, map[string]bool{
+		"completed": true,
+	})
+	require.Equal(t, http.StatusOK, completeAC.StatusCode)
+
+	listAcceptance := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/acceptance", http.MethodGet, nil)
+	require.Equal(t, http.StatusOK, listAcceptance.StatusCode)
+	acceptanceMap := decodeBodyMap(t, listAcceptance.Body)
+	require.Len(t, acceptanceMap["acceptance_criteria"].([]any), 2)
+
+	listTodos := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1/todos", http.MethodGet, nil)
+	require.Equal(t, http.StatusOK, listTodos.StatusCode)
+	todosMap := decodeBodyMap(t, listTodos.Body)
+	require.Len(t, todosMap["todos"].([]any), 2)
+
+	getCard := doJSONRequest(t, baseURL+"/projects/blackbox/cards/1", http.MethodGet, nil)
+	require.Equal(t, http.StatusOK, getCard.StatusCode)
+	getCardMap := decodeBodyMap(t, getCard.Body)
+	require.Len(t, getCardMap["todos"].([]any), 2)
+	require.Len(t, getCardMap["acceptance_criteria"].([]any), 2)
+
 	cards := doJSONRequest(t, baseURL+"/projects/blackbox/cards", http.MethodGet, nil)
 	require.Equal(t, http.StatusOK, cards.StatusCode)
 	cardsMap := decodeBodyMap(t, cards.Body)
 	require.Len(t, cardsMap["cards"].([]any), 1)
+	summary := cardsMap["cards"].([]any)[0].(map[string]any)
+	require.Equal(t, float64(2), summary["todos_count"])
+	require.Equal(t, float64(1), summary["todos_completed_count"])
+	require.Equal(t, float64(2), summary["acceptance_criteria_count"])
+	require.Equal(t, float64(1), summary["acceptance_criteria_completed_count"])
 
 	_, err = os.Stat(filepath.Join(dataDir, "projects", "blackbox", "card-1.md"))
 	require.NoError(t, err)
