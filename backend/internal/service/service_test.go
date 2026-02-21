@@ -23,6 +23,14 @@ type markdownStoreStub struct {
 	setCardBranchFn     func(string, int, string) (model.Card, error)
 	addCommentFn        func(string, int, string) (model.Card, error)
 	appendDescriptionFn func(string, int, string) (model.Card, error)
+	addTodoFn           func(string, int, string) (model.Todo, error)
+	listTodosFn         func(string, int) ([]model.Todo, error)
+	setTodoCompletedFn  func(string, int, int, bool) (model.Todo, error)
+	deleteTodoFn        func(string, int, int) (model.Todo, error)
+	addAcceptanceCriterionFn          func(string, int, string) (model.AcceptanceCriterion, error)
+	listAcceptanceCriteriaFn          func(string, int) ([]model.AcceptanceCriterion, error)
+	setAcceptanceCriterionCompletedFn func(string, int, int, bool) (model.AcceptanceCriterion, error)
+	deleteAcceptanceCriterionFn       func(string, int, int) (model.AcceptanceCriterion, error)
 	deleteCardFn        func(string, int, bool) (model.Card, error)
 	snapshotFn          func() ([]model.Project, []model.Card, error)
 }
@@ -65,6 +73,38 @@ func (m *markdownStoreStub) AddComment(projectSlug string, number int, body stri
 
 func (m *markdownStoreStub) AppendDescription(projectSlug string, number int, body string) (model.Card, error) {
 	return m.appendDescriptionFn(projectSlug, number, body)
+}
+
+func (m *markdownStoreStub) AddTodo(projectSlug string, number int, text string) (model.Todo, error) {
+	return m.addTodoFn(projectSlug, number, text)
+}
+
+func (m *markdownStoreStub) ListTodos(projectSlug string, number int) ([]model.Todo, error) {
+	return m.listTodosFn(projectSlug, number)
+}
+
+func (m *markdownStoreStub) SetTodoCompleted(projectSlug string, number int, todoID int, completed bool) (model.Todo, error) {
+	return m.setTodoCompletedFn(projectSlug, number, todoID, completed)
+}
+
+func (m *markdownStoreStub) DeleteTodo(projectSlug string, number int, todoID int) (model.Todo, error) {
+	return m.deleteTodoFn(projectSlug, number, todoID)
+}
+
+func (m *markdownStoreStub) AddAcceptanceCriterion(projectSlug string, number int, text string) (model.AcceptanceCriterion, error) {
+	return m.addAcceptanceCriterionFn(projectSlug, number, text)
+}
+
+func (m *markdownStoreStub) ListAcceptanceCriteria(projectSlug string, number int) ([]model.AcceptanceCriterion, error) {
+	return m.listAcceptanceCriteriaFn(projectSlug, number)
+}
+
+func (m *markdownStoreStub) SetAcceptanceCriterionCompleted(projectSlug string, number int, criterionID int, completed bool) (model.AcceptanceCriterion, error) {
+	return m.setAcceptanceCriterionCompletedFn(projectSlug, number, criterionID, completed)
+}
+
+func (m *markdownStoreStub) DeleteAcceptanceCriterion(projectSlug string, number int, criterionID int) (model.AcceptanceCriterion, error) {
+	return m.deleteAcceptanceCriterionFn(projectSlug, number, criterionID)
 }
 
 func (m *markdownStoreStub) DeleteCard(projectSlug string, number int, hard bool) (model.Card, error) {
@@ -359,6 +399,171 @@ func TestAppendDescriptionSuccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, publisher.events, 1)
 	require.Equal(t, "card.updated", publisher.events[0].Type)
+}
+
+func TestTodoLifecycleMethods(t *testing.T) {
+	t.Parallel()
+
+	todo := model.Todo{ID: 1, Text: "Write tests", Completed: false}
+	publisher := &publisherStub{}
+
+	svc := newNoopService(&markdownStoreStub{
+		addTodoFn: func(project string, number int, text string) (model.Todo, error) {
+			require.Equal(t, "alpha", project)
+			require.Equal(t, 1, number)
+			require.Equal(t, "Write tests", text)
+			return todo, nil
+		},
+		listTodosFn: func(project string, number int) ([]model.Todo, error) {
+			require.Equal(t, "alpha", project)
+			require.Equal(t, 1, number)
+			return []model.Todo{todo}, nil
+		},
+		setTodoCompletedFn: func(project string, number int, todoID int, completed bool) (model.Todo, error) {
+			require.Equal(t, "alpha", project)
+			require.Equal(t, 1, number)
+			require.Equal(t, 1, todoID)
+			return model.Todo{ID: todoID, Text: "Write tests", Completed: completed}, nil
+		},
+		deleteTodoFn: func(project string, number int, todoID int) (model.Todo, error) {
+			require.Equal(t, "alpha", project)
+			require.Equal(t, 1, number)
+			require.Equal(t, 1, todoID)
+			return model.Todo{ID: todoID, Text: "Write tests", Completed: true}, nil
+		},
+		getCardFn: func(project string, number int) (model.Card, error) {
+			return model.Card{
+				ID:          "alpha/card-1",
+				ProjectSlug: project,
+				Number:      number,
+				Title:       "Task",
+				Status:      "Todo",
+				Todos:       []model.Todo{{ID: 1, Text: "Write tests", Completed: false}},
+			}, nil
+		},
+	}, &projectionStub{
+		upsertCardFn: func(_ model.Card) error { return nil },
+	}, publisher)
+
+	added, err := svc.AddTodo("alpha", 1, "Write tests")
+	require.NoError(t, err)
+	require.Equal(t, 1, added.ID)
+
+	listed, err := svc.ListTodos("alpha", 1)
+	require.NoError(t, err)
+	require.Len(t, listed, 1)
+
+	done, err := svc.SetTodoCompleted("alpha", 1, 1, true)
+	require.NoError(t, err)
+	require.True(t, done.Completed)
+
+	undo, err := svc.SetTodoCompleted("alpha", 1, 1, false)
+	require.NoError(t, err)
+	require.False(t, undo.Completed)
+
+	removed, err := svc.DeleteTodo("alpha", 1, 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, removed.ID)
+
+	require.Len(t, publisher.events, 4)
+	require.Equal(t, "card.todo.added", publisher.events[0].Type)
+	require.Equal(t, "card.todo.updated", publisher.events[1].Type)
+	require.Equal(t, "card.todo.updated", publisher.events[2].Type)
+	require.Equal(t, "card.todo.deleted", publisher.events[3].Type)
+}
+
+func TestTodoMethodsMapNotFoundErrors(t *testing.T) {
+	t.Parallel()
+
+	svc := newNoopService(&markdownStoreStub{
+		addTodoFn: func(_ string, _ int, _ string) (model.Todo, error) { return model.Todo{}, os.ErrNotExist },
+		listTodosFn: func(_ string, _ int) ([]model.Todo, error) {
+			return nil, os.ErrNotExist
+		},
+		setTodoCompletedFn: func(_ string, _ int, _ int, _ bool) (model.Todo, error) {
+			return model.Todo{}, os.ErrNotExist
+		},
+		deleteTodoFn: func(_ string, _ int, _ int) (model.Todo, error) { return model.Todo{}, os.ErrNotExist },
+	}, &projectionStub{}, &publisherStub{})
+
+	_, err := svc.AddTodo("alpha", 1, "Write tests")
+	require.Error(t, err)
+	require.Equal(t, CodeNotFound, CodeOf(err))
+
+	_, err = svc.ListTodos("alpha", 1)
+	require.Error(t, err)
+	require.Equal(t, CodeNotFound, CodeOf(err))
+
+	_, err = svc.SetTodoCompleted("alpha", 1, 1, true)
+	require.Error(t, err)
+	require.Equal(t, CodeNotFound, CodeOf(err))
+
+	_, err = svc.DeleteTodo("alpha", 1, 1)
+	require.Error(t, err)
+	require.Equal(t, CodeNotFound, CodeOf(err))
+}
+
+func TestAcceptanceCriteriaLifecycleMethods(t *testing.T) {
+	t.Parallel()
+
+	criterion := model.AcceptanceCriterion{ID: 1, Text: "Requirement A", Completed: false}
+	publisher := &publisherStub{}
+
+	svc := newNoopService(&markdownStoreStub{
+		addAcceptanceCriterionFn: func(project string, number int, text string) (model.AcceptanceCriterion, error) {
+			require.Equal(t, "alpha", project)
+			require.Equal(t, 1, number)
+			require.Equal(t, "Requirement A", text)
+			return criterion, nil
+		},
+		listAcceptanceCriteriaFn: func(_ string, _ int) ([]model.AcceptanceCriterion, error) {
+			return []model.AcceptanceCriterion{criterion}, nil
+		},
+		setAcceptanceCriterionCompletedFn: func(_ string, _ int, criterionID int, completed bool) (model.AcceptanceCriterion, error) {
+			return model.AcceptanceCriterion{ID: criterionID, Text: "Requirement A", Completed: completed}, nil
+		},
+		deleteAcceptanceCriterionFn: func(_ string, _ int, criterionID int) (model.AcceptanceCriterion, error) {
+			return model.AcceptanceCriterion{ID: criterionID, Text: "Requirement A", Completed: true}, nil
+		},
+		getCardFn: func(project string, number int) (model.Card, error) {
+			return model.Card{
+				ID:                "alpha/card-1",
+				ProjectSlug:       project,
+				Number:            number,
+				Title:             "Task",
+				Status:            "Todo",
+				AcceptanceCriteria: []model.AcceptanceCriterion{{ID: 1, Text: "Requirement A", Completed: false}},
+			}, nil
+		},
+	}, &projectionStub{
+		upsertCardFn: func(_ model.Card) error { return nil },
+	}, publisher)
+
+	added, err := svc.AddAcceptanceCriterion("alpha", 1, "Requirement A")
+	require.NoError(t, err)
+	require.Equal(t, 1, added.ID)
+
+	listed, err := svc.ListAcceptanceCriteria("alpha", 1)
+	require.NoError(t, err)
+	require.Len(t, listed, 1)
+
+	done, err := svc.SetAcceptanceCriterionCompleted("alpha", 1, 1, true)
+	require.NoError(t, err)
+	require.True(t, done.Completed)
+
+	undo, err := svc.SetAcceptanceCriterionCompleted("alpha", 1, 1, false)
+	require.NoError(t, err)
+	require.False(t, undo.Completed)
+
+	removed, err := svc.DeleteAcceptanceCriterion("alpha", 1, 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, removed.ID)
+
+	require.Len(t, publisher.events, 4)
+	require.Equal(t, "card.acceptance.added", publisher.events[0].Type)
+	require.Equal(t, "card.acceptance.updated", publisher.events[1].Type)
+	require.Equal(t, "card.acceptance.updated", publisher.events[2].Type)
+	require.Equal(t, "card.acceptance.deleted", publisher.events[3].Type)
 }
 
 func TestDeleteCardSoftAndHardPaths(t *testing.T) {

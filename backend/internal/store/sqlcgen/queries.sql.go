@@ -73,6 +73,10 @@ CREATE TABLE IF NOT EXISTS cards (
   updated_at TEXT NOT NULL,
   comments_count INTEGER NOT NULL,
   history_count INTEGER NOT NULL,
+  todos_count INTEGER NOT NULL,
+  todos_completed_count INTEGER NOT NULL,
+  acceptance_criteria_count INTEGER NOT NULL,
+  acceptance_criteria_completed_count INTEGER NOT NULL,
   UNIQUE(project_slug, number)
 )
 `
@@ -101,23 +105,27 @@ func (q *Queries) InitProjectsTable(ctx context.Context) error {
 
 const insertCard = `-- name: InsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertCardParams struct {
-	ID            string
-	ProjectSlug   string
-	Number        int64
-	Title         string
-	Branch        sql.NullString
-	Status        string
-	Deleted       int64
-	CreatedAt     string
-	UpdatedAt     string
-	CommentsCount int64
-	HistoryCount  int64
+	ID                               string
+	ProjectSlug                      string
+	Number                           int64
+	Title                            string
+	Branch                           sql.NullString
+	Status                           string
+	Deleted                          int64
+	CreatedAt                        string
+	UpdatedAt                        string
+	CommentsCount                    int64
+	HistoryCount                     int64
+	TodosCount                       int64
+	TodosCompletedCount              int64
+	AcceptanceCriteriaCount          int64
+	AcceptanceCriteriaCompletedCount int64
 }
 
 func (q *Queries) InsertCard(ctx context.Context, arg InsertCardParams) error {
@@ -133,6 +141,10 @@ func (q *Queries) InsertCard(ctx context.Context, arg InsertCardParams) error {
 		arg.UpdatedAt,
 		arg.CommentsCount,
 		arg.HistoryCount,
+		arg.TodosCount,
+		arg.TodosCompletedCount,
+		arg.AcceptanceCriteriaCount,
+		arg.AcceptanceCriteriaCompletedCount,
 	)
 	return err
 }
@@ -166,7 +178,7 @@ func (q *Queries) InsertProject(ctx context.Context, arg InsertProjectParams) er
 }
 
 const listCardsActive = `-- name: ListCardsActive :many
-SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 FROM cards
 WHERE project_slug = ? AND deleted = 0
 ORDER BY number ASC
@@ -193,6 +205,10 @@ func (q *Queries) ListCardsActive(ctx context.Context, projectSlug string) ([]Ca
 			&i.UpdatedAt,
 			&i.CommentsCount,
 			&i.HistoryCount,
+			&i.TodosCount,
+			&i.TodosCompletedCount,
+			&i.AcceptanceCriteriaCount,
+			&i.AcceptanceCriteriaCompletedCount,
 		); err != nil {
 			return nil, err
 		}
@@ -208,7 +224,7 @@ func (q *Queries) ListCardsActive(ctx context.Context, projectSlug string) ([]Ca
 }
 
 const listCardsWithDeleted = `-- name: ListCardsWithDeleted :many
-SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+SELECT id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 FROM cards
 WHERE project_slug = ?
 ORDER BY number ASC
@@ -235,6 +251,10 @@ func (q *Queries) ListCardsWithDeleted(ctx context.Context, projectSlug string) 
 			&i.UpdatedAt,
 			&i.CommentsCount,
 			&i.HistoryCount,
+			&i.TodosCount,
+			&i.TodosCompletedCount,
+			&i.AcceptanceCriteriaCount,
+			&i.AcceptanceCriteriaCompletedCount,
 		); err != nil {
 			return nil, err
 		}
@@ -251,9 +271,9 @@ func (q *Queries) ListCardsWithDeleted(ctx context.Context, projectSlug string) 
 
 const upsertCard = `-- name: UpsertCard :exec
 INSERT INTO cards (
-  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count
+  id, project_slug, number, title, branch, status, deleted, created_at, updated_at, comments_count, history_count, todos_count, todos_completed_count, acceptance_criteria_count, acceptance_criteria_completed_count
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   project_slug = excluded.project_slug,
   number = excluded.number,
@@ -264,21 +284,29 @@ ON CONFLICT(id) DO UPDATE SET
   created_at = excluded.created_at,
   updated_at = excluded.updated_at,
   comments_count = excluded.comments_count,
-  history_count = excluded.history_count
+  history_count = excluded.history_count,
+  todos_count = excluded.todos_count,
+  todos_completed_count = excluded.todos_completed_count,
+  acceptance_criteria_count = excluded.acceptance_criteria_count,
+  acceptance_criteria_completed_count = excluded.acceptance_criteria_completed_count
 `
 
 type UpsertCardParams struct {
-	ID            string
-	ProjectSlug   string
-	Number        int64
-	Title         string
-	Branch        sql.NullString
-	Status        string
-	Deleted       int64
-	CreatedAt     string
-	UpdatedAt     string
-	CommentsCount int64
-	HistoryCount  int64
+	ID                               string
+	ProjectSlug                      string
+	Number                           int64
+	Title                            string
+	Branch                           sql.NullString
+	Status                           string
+	Deleted                          int64
+	CreatedAt                        string
+	UpdatedAt                        string
+	CommentsCount                    int64
+	HistoryCount                     int64
+	TodosCount                       int64
+	TodosCompletedCount              int64
+	AcceptanceCriteriaCount          int64
+	AcceptanceCriteriaCompletedCount int64
 }
 
 func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
@@ -294,6 +322,10 @@ func (q *Queries) UpsertCard(ctx context.Context, arg UpsertCardParams) error {
 		arg.UpdatedAt,
 		arg.CommentsCount,
 		arg.HistoryCount,
+		arg.TodosCount,
+		arg.TodosCompletedCount,
+		arg.AcceptanceCriteriaCount,
+		arg.AcceptanceCriteriaCompletedCount,
 	)
 	return err
 }

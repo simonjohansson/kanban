@@ -16,7 +16,7 @@ func New(runtime common.Runtime, stdout io.Writer, handle common.HandleResponseF
 		Use:     "card",
 		Aliases: []string{"cards"},
 		Short:   "Manage cards.",
-		Long:    "Create, list, get, move, comment, describe, and delete cards.",
+		Long:    "Create, list, get, move, comment, describe, manage todos/acceptance criteria, and delete cards.",
 	}
 
 	createCmd := &cobra.Command{
@@ -246,6 +246,268 @@ kanban cards rm -p alpha -i 1 --hard`),
 	_ = deleteCmd.MarkFlagRequired("project")
 	_ = deleteCmd.MarkFlagRequired("id")
 
-	cardCmd.AddCommand(createCmd, listCmd, getCmd, moveCmd, commentCmd, describeCmd, branchCmd, deleteCmd)
+	todoCmd := &cobra.Command{
+		Use:     "todo",
+		Aliases: []string{"todos"},
+		Short:   "Manage card todos.",
+		Long:    "Add, list, complete, uncomplete, and remove card todos.",
+	}
+
+	addTodoCmd := &cobra.Command{
+		Use:     "add",
+		Aliases: []string{"new"},
+		Short:   "Add a todo to a card.",
+		Example: strings.TrimSpace(`kanban card todo add --project alpha --id 1 --body "Write tests"
+kanban cards todos new -p alpha -i 1 -b "Review logs"`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := common.NewClient(runtime)
+			if err != nil {
+				return wrapErr(http.StatusBadRequest, err.Error())
+			}
+
+			project, _ := cmd.Flags().GetString("project")
+			id, _ := cmd.Flags().GetInt64("id")
+			bodyRaw, _ := cmd.Flags().GetString("body")
+			body := apiclient.AddTodoRequest{Text: strings.TrimSpace(bodyRaw)}
+			resp, reqErr := client.AddTodo(context.Background(), strings.TrimSpace(project), id, body)
+			return handle(runtime.Output(), stdout, resp, reqErr)
+		},
+	}
+	addTodoCmd.Flags().StringP("project", "p", "", "Project slug")
+	addTodoCmd.Flags().Int64P("id", "i", 0, "Card number")
+	addTodoCmd.Flags().StringP("body", "b", "", "Todo text")
+	_ = addTodoCmd.MarkFlagRequired("project")
+	_ = addTodoCmd.MarkFlagRequired("id")
+	_ = addTodoCmd.MarkFlagRequired("body")
+
+	listTodosCmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List todos on a card.",
+		Example: strings.TrimSpace(`kanban card todo list --project alpha --id 1
+kanban cards todos ls -p alpha -i 1`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := common.NewClient(runtime)
+			if err != nil {
+				return wrapErr(http.StatusBadRequest, err.Error())
+			}
+
+			project, _ := cmd.Flags().GetString("project")
+			id, _ := cmd.Flags().GetInt64("id")
+			resp, reqErr := client.ListTodos(context.Background(), strings.TrimSpace(project), id)
+			return handle(runtime.Output(), stdout, resp, reqErr)
+		},
+	}
+	listTodosCmd.Flags().StringP("project", "p", "", "Project slug")
+	listTodosCmd.Flags().Int64P("id", "i", 0, "Card number")
+	_ = listTodosCmd.MarkFlagRequired("project")
+	_ = listTodosCmd.MarkFlagRequired("id")
+
+	doneTodoCmd := &cobra.Command{
+		Use:   "done",
+		Short: "Mark a todo as completed.",
+		Example: strings.TrimSpace(`kanban card todo done --project alpha --id 1 --todo-id 2
+kanban cards todos done -p alpha -i 1 --todo-id 2`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return setTodoCompleted(runtime, stdout, handle, wrapErr, cmd, true)
+		},
+	}
+	doneTodoCmd.Flags().StringP("project", "p", "", "Project slug")
+	doneTodoCmd.Flags().Int64P("id", "i", 0, "Card number")
+	doneTodoCmd.Flags().Int64("todo-id", 0, "Todo identifier")
+	_ = doneTodoCmd.MarkFlagRequired("project")
+	_ = doneTodoCmd.MarkFlagRequired("id")
+	_ = doneTodoCmd.MarkFlagRequired("todo-id")
+
+	undoTodoCmd := &cobra.Command{
+		Use:   "undo",
+		Short: "Mark a todo as not completed.",
+		Example: strings.TrimSpace(`kanban card todo undo --project alpha --id 1 --todo-id 2
+kanban cards todos undo -p alpha -i 1 --todo-id 2`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return setTodoCompleted(runtime, stdout, handle, wrapErr, cmd, false)
+		},
+	}
+	undoTodoCmd.Flags().StringP("project", "p", "", "Project slug")
+	undoTodoCmd.Flags().Int64P("id", "i", 0, "Card number")
+	undoTodoCmd.Flags().Int64("todo-id", 0, "Todo identifier")
+	_ = undoTodoCmd.MarkFlagRequired("project")
+	_ = undoTodoCmd.MarkFlagRequired("id")
+	_ = undoTodoCmd.MarkFlagRequired("todo-id")
+
+	deleteTodoCmd := &cobra.Command{
+		Use:     "delete",
+		Aliases: []string{"rm", "remove"},
+		Short:   "Delete a todo from a card.",
+		Example: strings.TrimSpace(`kanban card todo delete --project alpha --id 1 --todo-id 2
+kanban cards todos rm -p alpha -i 1 --todo-id 2`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := common.NewClient(runtime)
+			if err != nil {
+				return wrapErr(http.StatusBadRequest, err.Error())
+			}
+
+			project, _ := cmd.Flags().GetString("project")
+			id, _ := cmd.Flags().GetInt64("id")
+			todoID, _ := cmd.Flags().GetInt64("todo-id")
+			resp, reqErr := client.DeleteTodo(context.Background(), strings.TrimSpace(project), id, todoID)
+			return handle(runtime.Output(), stdout, resp, reqErr)
+		},
+	}
+	deleteTodoCmd.Flags().StringP("project", "p", "", "Project slug")
+	deleteTodoCmd.Flags().Int64P("id", "i", 0, "Card number")
+	deleteTodoCmd.Flags().Int64("todo-id", 0, "Todo identifier")
+	_ = deleteTodoCmd.MarkFlagRequired("project")
+	_ = deleteTodoCmd.MarkFlagRequired("id")
+	_ = deleteTodoCmd.MarkFlagRequired("todo-id")
+
+	todoCmd.AddCommand(addTodoCmd, listTodosCmd, doneTodoCmd, undoTodoCmd, deleteTodoCmd)
+
+	acceptanceCmd := &cobra.Command{
+		Use:     "acceptance",
+		Aliases: []string{"ac"},
+		Short:   "Manage acceptance criteria checklists.",
+		Long:    "Add, list, complete, uncomplete, and remove acceptance criteria on a card.",
+	}
+
+	addAcceptanceCmd := &cobra.Command{
+		Use:     "add",
+		Aliases: []string{"new"},
+		Short:   "Add acceptance criterion to a card.",
+		Example: strings.TrimSpace(`kanban card acceptance add --project alpha --id 1 --body "Requirement A"
+kanban card ac new -p alpha -i 1 -b "Requirement B"`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := common.NewClient(runtime)
+			if err != nil {
+				return wrapErr(http.StatusBadRequest, err.Error())
+			}
+
+			project, _ := cmd.Flags().GetString("project")
+			id, _ := cmd.Flags().GetInt64("id")
+			bodyRaw, _ := cmd.Flags().GetString("body")
+			body := apiclient.AddAcceptanceCriterionRequest{Text: strings.TrimSpace(bodyRaw)}
+			resp, reqErr := client.AddAcceptanceCriterion(context.Background(), strings.TrimSpace(project), id, body)
+			return handle(runtime.Output(), stdout, resp, reqErr)
+		},
+	}
+	addAcceptanceCmd.Flags().StringP("project", "p", "", "Project slug")
+	addAcceptanceCmd.Flags().Int64P("id", "i", 0, "Card number")
+	addAcceptanceCmd.Flags().StringP("body", "b", "", "Acceptance criterion text")
+	_ = addAcceptanceCmd.MarkFlagRequired("project")
+	_ = addAcceptanceCmd.MarkFlagRequired("id")
+	_ = addAcceptanceCmd.MarkFlagRequired("body")
+
+	listAcceptanceCmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List acceptance criteria on a card.",
+		Example: strings.TrimSpace(`kanban card acceptance list --project alpha --id 1
+kanban card ac ls -p alpha -i 1`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := common.NewClient(runtime)
+			if err != nil {
+				return wrapErr(http.StatusBadRequest, err.Error())
+			}
+
+			project, _ := cmd.Flags().GetString("project")
+			id, _ := cmd.Flags().GetInt64("id")
+			resp, reqErr := client.ListAcceptanceCriteria(context.Background(), strings.TrimSpace(project), id)
+			return handle(runtime.Output(), stdout, resp, reqErr)
+		},
+	}
+	listAcceptanceCmd.Flags().StringP("project", "p", "", "Project slug")
+	listAcceptanceCmd.Flags().Int64P("id", "i", 0, "Card number")
+	_ = listAcceptanceCmd.MarkFlagRequired("project")
+	_ = listAcceptanceCmd.MarkFlagRequired("id")
+
+	doneAcceptanceCmd := &cobra.Command{
+		Use:   "done",
+		Short: "Mark an acceptance criterion as completed.",
+		Example: strings.TrimSpace(`kanban card acceptance done --project alpha --id 1 --criterion-id 2
+kanban card ac done -p alpha -i 1 --criterion-id 2`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return setAcceptanceCriterionCompleted(runtime, stdout, handle, wrapErr, cmd, true)
+		},
+	}
+	doneAcceptanceCmd.Flags().StringP("project", "p", "", "Project slug")
+	doneAcceptanceCmd.Flags().Int64P("id", "i", 0, "Card number")
+	doneAcceptanceCmd.Flags().Int64("criterion-id", 0, "Acceptance criterion identifier")
+	_ = doneAcceptanceCmd.MarkFlagRequired("project")
+	_ = doneAcceptanceCmd.MarkFlagRequired("id")
+	_ = doneAcceptanceCmd.MarkFlagRequired("criterion-id")
+
+	undoAcceptanceCmd := &cobra.Command{
+		Use:   "undo",
+		Short: "Mark an acceptance criterion as not completed.",
+		Example: strings.TrimSpace(`kanban card acceptance undo --project alpha --id 1 --criterion-id 2
+kanban card ac undo -p alpha -i 1 --criterion-id 2`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return setAcceptanceCriterionCompleted(runtime, stdout, handle, wrapErr, cmd, false)
+		},
+	}
+	undoAcceptanceCmd.Flags().StringP("project", "p", "", "Project slug")
+	undoAcceptanceCmd.Flags().Int64P("id", "i", 0, "Card number")
+	undoAcceptanceCmd.Flags().Int64("criterion-id", 0, "Acceptance criterion identifier")
+	_ = undoAcceptanceCmd.MarkFlagRequired("project")
+	_ = undoAcceptanceCmd.MarkFlagRequired("id")
+	_ = undoAcceptanceCmd.MarkFlagRequired("criterion-id")
+
+	deleteAcceptanceCmd := &cobra.Command{
+		Use:     "delete",
+		Aliases: []string{"rm", "remove"},
+		Short:   "Delete acceptance criterion from a card.",
+		Example: strings.TrimSpace(`kanban card acceptance delete --project alpha --id 1 --criterion-id 2
+kanban card ac rm -p alpha -i 1 --criterion-id 2`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := common.NewClient(runtime)
+			if err != nil {
+				return wrapErr(http.StatusBadRequest, err.Error())
+			}
+
+			project, _ := cmd.Flags().GetString("project")
+			id, _ := cmd.Flags().GetInt64("id")
+			criterionID, _ := cmd.Flags().GetInt64("criterion-id")
+			resp, reqErr := client.DeleteAcceptanceCriterion(context.Background(), strings.TrimSpace(project), id, criterionID)
+			return handle(runtime.Output(), stdout, resp, reqErr)
+		},
+	}
+	deleteAcceptanceCmd.Flags().StringP("project", "p", "", "Project slug")
+	deleteAcceptanceCmd.Flags().Int64P("id", "i", 0, "Card number")
+	deleteAcceptanceCmd.Flags().Int64("criterion-id", 0, "Acceptance criterion identifier")
+	_ = deleteAcceptanceCmd.MarkFlagRequired("project")
+	_ = deleteAcceptanceCmd.MarkFlagRequired("id")
+	_ = deleteAcceptanceCmd.MarkFlagRequired("criterion-id")
+
+	acceptanceCmd.AddCommand(addAcceptanceCmd, listAcceptanceCmd, doneAcceptanceCmd, undoAcceptanceCmd, deleteAcceptanceCmd)
+
+	cardCmd.AddCommand(createCmd, listCmd, getCmd, moveCmd, commentCmd, describeCmd, branchCmd, todoCmd, acceptanceCmd, deleteCmd)
 	return cardCmd
+}
+
+func setTodoCompleted(runtime common.Runtime, stdout io.Writer, handle common.HandleResponseFunc, wrapErr common.WrapErrorFunc, cmd *cobra.Command, completed bool) error {
+	client, err := common.NewClient(runtime)
+	if err != nil {
+		return wrapErr(http.StatusBadRequest, err.Error())
+	}
+
+	project, _ := cmd.Flags().GetString("project")
+	id, _ := cmd.Flags().GetInt64("id")
+	todoID, _ := cmd.Flags().GetInt64("todo-id")
+	body := apiclient.UpdateTodoRequest{Completed: completed}
+	resp, reqErr := client.UpdateTodo(context.Background(), strings.TrimSpace(project), id, todoID, body)
+	return handle(runtime.Output(), stdout, resp, reqErr)
+}
+
+func setAcceptanceCriterionCompleted(runtime common.Runtime, stdout io.Writer, handle common.HandleResponseFunc, wrapErr common.WrapErrorFunc, cmd *cobra.Command, completed bool) error {
+	client, err := common.NewClient(runtime)
+	if err != nil {
+		return wrapErr(http.StatusBadRequest, err.Error())
+	}
+
+	project, _ := cmd.Flags().GetString("project")
+	id, _ := cmd.Flags().GetInt64("id")
+	criterionID, _ := cmd.Flags().GetInt64("criterion-id")
+	body := apiclient.UpdateAcceptanceCriterionRequest{Completed: completed}
+	resp, reqErr := client.UpdateAcceptanceCriterion(context.Background(), strings.TrimSpace(project), id, criterionID, body)
+	return handle(runtime.Output(), stdout, resp, reqErr)
 }

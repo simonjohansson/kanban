@@ -75,6 +75,30 @@ func TestRunExecutesProjectAndCardCommands(t *testing.T) {
 		case r.Method == http.MethodDelete && r.URL.Path == "/projects/alpha/cards/1":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"id":"alpha/card-1","project":"alpha","number":1,"deleted":true}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/projects/alpha/cards/1/todos":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Write tests","completed":false}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/projects/alpha/cards/1/todos":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"todos":[{"id":1,"text":"Write tests","completed":false}]}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/todos/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Write tests","completed":true}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/projects/alpha/cards/1/todos/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Write tests","completed":true}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/projects/alpha/cards/1/acceptance":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Criterion A","completed":false}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/projects/alpha/cards/1/acceptance":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"acceptance_criteria":[{"id":1,"text":"Criterion A","completed":false}]}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/projects/alpha/cards/1/acceptance/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Criterion A","completed":true}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/projects/alpha/cards/1/acceptance/1":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":1,"text":"Criterion A","completed":true}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(`{"detail":"not found"}`))
@@ -94,6 +118,16 @@ func TestRunExecutesProjectAndCardCommands(t *testing.T) {
 		{"card", "move", "-p", "alpha", "-i", "1", "-s", "Doing"},
 		{"card", "comment", "-p", "alpha", "-i", "1", "-b", "note"},
 		{"card", "desc", "-p", "alpha", "-i", "1", "-b", "body"},
+		{"card", "todo", "add", "-p", "alpha", "-i", "1", "-b", "Write tests"},
+		{"card", "todo", "ls", "-p", "alpha", "-i", "1"},
+		{"card", "todo", "done", "-p", "alpha", "-i", "1", "--todo-id", "1"},
+		{"card", "todo", "undo", "-p", "alpha", "-i", "1", "--todo-id", "1"},
+		{"card", "todo", "rm", "-p", "alpha", "-i", "1", "--todo-id", "1"},
+		{"card", "acceptance", "add", "-p", "alpha", "-i", "1", "-b", "Criterion A"},
+		{"card", "ac", "ls", "-p", "alpha", "-i", "1"},
+		{"card", "acceptance", "done", "-p", "alpha", "-i", "1", "--criterion-id", "1"},
+		{"card", "ac", "undo", "-p", "alpha", "-i", "1", "--criterion-id", "1"},
+		{"card", "acceptance", "rm", "-p", "alpha", "-i", "1", "--criterion-id", "1"},
 		{"card", "rm", "-p", "alpha", "-i", "1", "--hard"},
 		{"project", "rm", "alpha"},
 	}

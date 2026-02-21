@@ -341,6 +341,20 @@
     return lines.length > 0 ? lines.join('\n') : project.slug;
   }
 
+  function checklistSummary(card: CardSummary): string | null {
+    const segments: string[] = [];
+    if (card.todos_count > 0) {
+      segments.push(`${card.todos_completed_count}/${card.todos_count} Todos`);
+    }
+    if (card.acceptance_criteria_count > 0) {
+      segments.push(`${card.acceptance_criteria_completed_count}/${card.acceptance_criteria_count} AC`);
+    }
+    if (segments.length === 0) {
+      return null;
+    }
+    return segments.join(' ');
+  }
+
   function toggleSidebar(): void {
     sidebarHidden = !sidebarHidden;
   }
@@ -466,6 +480,9 @@
                   on:click={() => openCardDetails(card.project, card.number, { historyMode: 'push', selectProject: false })}
                 >
                   <div class="card-title">{card.title}</div>
+                  {#if checklistSummary(card)}
+                    <div class="card-checklists">{checklistSummary(card)}</div>
+                  {/if}
                   {#if card.branch?.trim()}
                     <div class="card-branch">{card.branch.trim()}</div>
                   {/if}
@@ -657,6 +674,13 @@
   }
 
   .card-branch {
+    font-size: 0.78rem;
+    line-height: 1.2;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+    color: #4b5563;
+  }
+
+  .card-checklists {
     font-size: 0.78rem;
     line-height: 1.2;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;

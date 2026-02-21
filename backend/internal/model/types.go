@@ -30,33 +30,53 @@ type HistoryEvent struct {
 	Details   string    `json:"details"`
 }
 
+type Todo struct {
+	ID        int    `json:"id"`
+	Text      string `json:"text"`
+	Completed bool   `json:"completed"`
+}
+
+type AcceptanceCriterion struct {
+	ID        int    `json:"id"`
+	Text      string `json:"text"`
+	Completed bool   `json:"completed"`
+}
+
 type Card struct {
-	ID          string         `json:"id"`
-	ProjectSlug string         `json:"project"`
-	Number      int            `json:"number"`
-	Title       string         `json:"title"`
-	Branch      string         `json:"branch"`
-	Status      string         `json:"status"`
-	Deleted     bool           `json:"deleted"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	Description []TextEvent    `json:"description"`
-	Comments    []TextEvent    `json:"comments"`
-	History     []HistoryEvent `json:"history"`
+	ID                        string                `json:"id"`
+	ProjectSlug               string                `json:"project"`
+	Number                    int                   `json:"number"`
+	Title                     string                `json:"title"`
+	Branch                    string                `json:"branch"`
+	Status                    string                `json:"status"`
+	Deleted                   bool                  `json:"deleted"`
+	CreatedAt                 time.Time             `json:"created_at"`
+	UpdatedAt                 time.Time             `json:"updated_at"`
+	Description               []TextEvent           `json:"description"`
+	Comments                  []TextEvent           `json:"comments"`
+	History                   []HistoryEvent        `json:"history"`
+	Todos                     []Todo                `json:"todos"`
+	AcceptanceCriteria        []AcceptanceCriterion `json:"acceptance_criteria"`
+	NextTodoID                int                   `json:"-"`
+	NextAcceptanceCriterionID int                   `json:"-"`
 }
 
 type CardSummary struct {
-	ID            string    `json:"id"`
-	ProjectSlug   string    `json:"project"`
-	Number        int       `json:"number"`
-	Title         string    `json:"title"`
-	Branch        string    `json:"branch"`
-	Status        string    `json:"status"`
-	Deleted       bool      `json:"deleted"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	CommentsCount int       `json:"comments_count"`
-	HistoryCount  int       `json:"history_count"`
+	ID                                 string    `json:"id"`
+	ProjectSlug                        string    `json:"project"`
+	Number                             int       `json:"number"`
+	Title                              string    `json:"title"`
+	Branch                             string    `json:"branch"`
+	Status                             string    `json:"status"`
+	Deleted                            bool      `json:"deleted"`
+	CreatedAt                          time.Time `json:"created_at"`
+	UpdatedAt                          time.Time `json:"updated_at"`
+	CommentsCount                      int       `json:"comments_count"`
+	HistoryCount                       int       `json:"history_count"`
+	TodosCount                         int       `json:"todos_count"`
+	TodosCompletedCount                int       `json:"todos_completed_count"`
+	AcceptanceCriteriaCount            int       `json:"acceptance_criteria_count"`
+	AcceptanceCriteriaCompletedCount   int       `json:"acceptance_criteria_completed_count"`
 }
 
 type Event struct {

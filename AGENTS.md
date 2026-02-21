@@ -8,6 +8,9 @@
 - Ask extensive clarifying questions about the feature before planning implementation.
 - Create cards in the kanban board for the agreed work.
 - Every card must include a detailed description that synthesizes the initial feature request and all follow-up clarifications/questions.
+- For actionable task checklists on cards, use first-class todos via `kanban card todo ...`; do not store todo checklist items in `card desc`/description.
+- For acceptance checklists on cards, use first-class acceptance criteria via `kanban card acceptance ...` (or `kanban card ac ...`); do not store acceptance checklist items in `card desc`/description.
+- While implementing work on a card, keep both todo and acceptance checklists current by ticking/unticking items as progress changes.
 - A card is not ready for `doing` until its description explicitly includes:
   - the original feature request summary,
   - the key decisions/clarifications from follow-up Q&A,

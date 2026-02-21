@@ -20,5 +20,9 @@ CREATE TABLE IF NOT EXISTS cards (
   updated_at TEXT NOT NULL,
   comments_count INTEGER NOT NULL,
   history_count INTEGER NOT NULL,
+  todos_count INTEGER NOT NULL,
+  todos_completed_count INTEGER NOT NULL,
+  acceptance_criteria_count INTEGER NOT NULL,
+  acceptance_criteria_completed_count INTEGER NOT NULL,
   UNIQUE(project_slug, number)
 );

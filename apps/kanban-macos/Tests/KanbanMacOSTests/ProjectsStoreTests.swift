@@ -81,6 +81,7 @@ private actor APIStub: ProjectsAPIClient {
             title: "Task \(number)",
             status: "Todo",
             description: [],
+            todos: [],
             comments: []
         )
     }

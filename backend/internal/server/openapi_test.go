@@ -21,4 +21,8 @@ func TestOpenAPIYamlEndpoint(t *testing.T) {
 	require.Contains(t, string(raw), "openapi:")
 	require.Contains(t, string(raw), "/projects:")
 	require.Contains(t, string(raw), "/ws:")
+	require.Contains(t, string(raw), "/projects/{project}/cards/{number}/todos:")
+	require.Contains(t, string(raw), "/projects/{project}/cards/{number}/todos/{todo_id}:")
+	require.Contains(t, string(raw), "/projects/{project}/cards/{number}/acceptance:")
+	require.Contains(t, string(raw), "/projects/{project}/cards/{number}/acceptance/{criterion_id}:")
 }

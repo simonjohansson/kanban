@@ -250,6 +250,12 @@ struct MainSplitView: View {
                             .font(.system(size: zoom.scaled(13), weight: .medium))
                             .foregroundStyle(BoardPresentation.cardTitleColor)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                        if let checklistSummary = checklistSummary(for: card) {
+                            Text(checklistSummary)
+                                .font(.system(size: zoom.scaled(11), design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         if let branch = card.branch?.trimmingCharacters(in: .whitespacesAndNewlines), !branch.isEmpty {
                             Text(branch)
                                 .font(.system(size: zoom.scaled(11), design: .monospaced))
@@ -356,5 +362,19 @@ struct MainSplitView: View {
 
     private func parseReviewReasonCancelRequest(_ raw: String) -> Bool {
         raw.hasPrefix("card-review-reason-cancel:")
+    }
+
+    private func checklistSummary(for card: KanbanCardSummary) -> String? {
+        var segments: [String] = []
+        if card.todosCount > 0 {
+            segments.append("\(card.todosCompletedCount)/\(card.todosCount) Todos")
+        }
+        if card.acceptanceCriteriaCount > 0 {
+            segments.append("\(card.acceptanceCriteriaCompletedCount)/\(card.acceptanceCriteriaCount) AC")
+        }
+        if segments.isEmpty {
+            return nil
+        }
+        return segments.joined(separator: " ")
     }
 }
