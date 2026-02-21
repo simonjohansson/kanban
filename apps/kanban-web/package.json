@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:embed": "KANBAN_WEB_OUTDIR=../../backend/internal/server/webui/dist vite build",
+    "check:websocket-events": "tsc -p tsconfig.websocket-events.json --noEmit",
+    "build": "npm run check:websocket-events && vite build",
+    "build:embed": "npm run check:websocket-events && KANBAN_WEB_OUTDIR=../../backend/internal/server/webui/dist vite build",
     "preview": "vite preview",
     "generate:client": "openapi --input ../../backend/api/openapi.yaml --output src/lib/generated --client fetch --useUnionTypes",
     "test:e2e": "playwright test"

@@ -62,25 +62,25 @@ type Card struct {
 }
 
 type CardSummary struct {
-	ID                                 string    `json:"id"`
-	ProjectSlug                        string    `json:"project"`
-	Number                             int       `json:"number"`
-	Title                              string    `json:"title"`
-	Branch                             string    `json:"branch"`
-	Status                             string    `json:"status"`
-	Deleted                            bool      `json:"deleted"`
-	CreatedAt                          time.Time `json:"created_at"`
-	UpdatedAt                          time.Time `json:"updated_at"`
-	CommentsCount                      int       `json:"comments_count"`
-	HistoryCount                       int       `json:"history_count"`
-	TodosCount                         int       `json:"todos_count"`
-	TodosCompletedCount                int       `json:"todos_completed_count"`
-	AcceptanceCriteriaCount            int       `json:"acceptance_criteria_count"`
-	AcceptanceCriteriaCompletedCount   int       `json:"acceptance_criteria_completed_count"`
+	ID                               string    `json:"id"`
+	ProjectSlug                      string    `json:"project"`
+	Number                           int       `json:"number"`
+	Title                            string    `json:"title"`
+	Branch                           string    `json:"branch"`
+	Status                           string    `json:"status"`
+	Deleted                          bool      `json:"deleted"`
+	CreatedAt                        time.Time `json:"created_at"`
+	UpdatedAt                        time.Time `json:"updated_at"`
+	CommentsCount                    int       `json:"comments_count"`
+	HistoryCount                     int       `json:"history_count"`
+	TodosCount                       int       `json:"todos_count"`
+	TodosCompletedCount              int       `json:"todos_completed_count"`
+	AcceptanceCriteriaCount          int       `json:"acceptance_criteria_count"`
+	AcceptanceCriteriaCompletedCount int       `json:"acceptance_criteria_completed_count"`
 }
 
 type Event struct {
-	Type      string    `json:"type"`
+	Type      EventType `json:"type"`
 	Project   string    `json:"project"`
 	CardID    string    `json:"card_id,omitempty"`
 	CardNum   int       `json:"card_number,omitempty"`

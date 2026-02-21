@@ -178,10 +178,25 @@ public final class ProjectsViewModel {
         guard let selected = selectedProjectSlug else {
             return false
         }
-        if event.type.hasPrefix("project.") {
+        switch event.type {
+        case .project_period_created, .project_period_deleted:
             return true
+        case .card_period_created,
+             .card_period_branch_period_updated,
+             .card_period_moved,
+             .card_period_commented,
+             .card_period_updated,
+             .card_period_todo_period_added,
+             .card_period_todo_period_updated,
+             .card_period_todo_period_deleted,
+             .card_period_acceptance_period_added,
+             .card_period_acceptance_period_updated,
+             .card_period_acceptance_period_deleted,
+             .card_period_deleted_soft,
+             .card_period_deleted_hard,
+             .resync_period_required:
+            return event.projectSlug == nil || event.projectSlug == selected
         }
-        return event.projectSlug == nil || event.projectSlug == selected
     }
 
     private func reloadCards() async {

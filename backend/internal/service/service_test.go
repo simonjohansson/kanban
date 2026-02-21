@@ -13,26 +13,26 @@ import (
 )
 
 type markdownStoreStub struct {
-	deleteProjectFn     func(string) error
-	createProjectFn     func(string, string, string) (model.Project, error)
-	listProjectsFn      func() ([]model.Project, error)
-	createCardFn        func(string, string, string, string, string) (model.Card, error)
-	getProjectFn        func(string) (model.Project, error)
-	getCardFn           func(string, int) (model.Card, error)
-	moveCardFn          func(string, int, string) (model.Card, error)
-	setCardBranchFn     func(string, int, string) (model.Card, error)
-	addCommentFn        func(string, int, string) (model.Card, error)
-	appendDescriptionFn func(string, int, string) (model.Card, error)
-	addTodoFn           func(string, int, string) (model.Todo, error)
-	listTodosFn         func(string, int) ([]model.Todo, error)
-	setTodoCompletedFn  func(string, int, int, bool) (model.Todo, error)
-	deleteTodoFn        func(string, int, int) (model.Todo, error)
+	deleteProjectFn                   func(string) error
+	createProjectFn                   func(string, string, string) (model.Project, error)
+	listProjectsFn                    func() ([]model.Project, error)
+	createCardFn                      func(string, string, string, string, string) (model.Card, error)
+	getProjectFn                      func(string) (model.Project, error)
+	getCardFn                         func(string, int) (model.Card, error)
+	moveCardFn                        func(string, int, string) (model.Card, error)
+	setCardBranchFn                   func(string, int, string) (model.Card, error)
+	addCommentFn                      func(string, int, string) (model.Card, error)
+	appendDescriptionFn               func(string, int, string) (model.Card, error)
+	addTodoFn                         func(string, int, string) (model.Todo, error)
+	listTodosFn                       func(string, int) ([]model.Todo, error)
+	setTodoCompletedFn                func(string, int, int, bool) (model.Todo, error)
+	deleteTodoFn                      func(string, int, int) (model.Todo, error)
 	addAcceptanceCriterionFn          func(string, int, string) (model.AcceptanceCriterion, error)
 	listAcceptanceCriteriaFn          func(string, int) ([]model.AcceptanceCriterion, error)
 	setAcceptanceCriterionCompletedFn func(string, int, int, bool) (model.AcceptanceCriterion, error)
 	deleteAcceptanceCriterionFn       func(string, int, int) (model.AcceptanceCriterion, error)
-	deleteCardFn        func(string, int, bool) (model.Card, error)
-	snapshotFn          func() ([]model.Project, []model.Card, error)
+	deleteCardFn                      func(string, int, bool) (model.Card, error)
+	snapshotFn                        func() ([]model.Project, []model.Card, error)
 }
 
 func (m *markdownStoreStub) CreateProject(name, localPath, remoteURL string) (model.Project, error) {
@@ -181,7 +181,7 @@ func TestDeleteProjectPublishesEventAfterProjectionSync(t *testing.T) {
 	require.Equal(t, "alpha", markdownDeleted)
 	require.Equal(t, "alpha", projectionDeleted)
 	require.Len(t, publisher.events, 1)
-	require.Equal(t, "project.deleted", publisher.events[0].Type)
+	require.Equal(t, model.EventTypeProjectDeleted, publisher.events[0].Type)
 	require.Equal(t, "alpha", publisher.events[0].Project)
 }
 
@@ -277,7 +277,7 @@ func TestCreateCardUpsertsProjectAndCard(t *testing.T) {
 	require.True(t, projectUpserted)
 	require.True(t, cardUpserted)
 	require.Len(t, publisher.events, 1)
-	require.Equal(t, "card.created", publisher.events[0].Type)
+	require.Equal(t, model.EventTypeCardCreated, publisher.events[0].Type)
 }
 
 func TestListProjectsMapsStoreErrorToInternal(t *testing.T) {
@@ -342,7 +342,7 @@ func TestMoveCardSuccessPublishesEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, card.ID, got.ID)
 	require.Len(t, publisher.events, 1)
-	require.Equal(t, "card.moved", publisher.events[0].Type)
+	require.Equal(t, model.EventTypeCardMoved, publisher.events[0].Type)
 }
 
 func TestMoveCardProjectionFailureReturnsInternal(t *testing.T) {
@@ -379,7 +379,7 @@ func TestCommentCardSuccess(t *testing.T) {
 	_, err := svc.CommentCard("alpha", 1, "hello")
 	require.NoError(t, err)
 	require.Len(t, publisher.events, 1)
-	require.Equal(t, "card.commented", publisher.events[0].Type)
+	require.Equal(t, model.EventTypeCardCommented, publisher.events[0].Type)
 }
 
 func TestAppendDescriptionSuccess(t *testing.T) {
@@ -398,7 +398,7 @@ func TestAppendDescriptionSuccess(t *testing.T) {
 	_, err := svc.AppendDescription("alpha", 1, "desc")
 	require.NoError(t, err)
 	require.Len(t, publisher.events, 1)
-	require.Equal(t, "card.updated", publisher.events[0].Type)
+	require.Equal(t, model.EventTypeCardUpdated, publisher.events[0].Type)
 }
 
 func TestTodoLifecycleMethods(t *testing.T) {
@@ -466,10 +466,10 @@ func TestTodoLifecycleMethods(t *testing.T) {
 	require.Equal(t, 1, removed.ID)
 
 	require.Len(t, publisher.events, 4)
-	require.Equal(t, "card.todo.added", publisher.events[0].Type)
-	require.Equal(t, "card.todo.updated", publisher.events[1].Type)
-	require.Equal(t, "card.todo.updated", publisher.events[2].Type)
-	require.Equal(t, "card.todo.deleted", publisher.events[3].Type)
+	require.Equal(t, model.EventTypeCardTodoAdded, publisher.events[0].Type)
+	require.Equal(t, model.EventTypeCardTodoUpdated, publisher.events[1].Type)
+	require.Equal(t, model.EventTypeCardTodoUpdated, publisher.events[2].Type)
+	require.Equal(t, model.EventTypeCardTodoDeleted, publisher.events[3].Type)
 }
 
 func TestTodoMethodsMapNotFoundErrors(t *testing.T) {
@@ -527,11 +527,11 @@ func TestAcceptanceCriteriaLifecycleMethods(t *testing.T) {
 		},
 		getCardFn: func(project string, number int) (model.Card, error) {
 			return model.Card{
-				ID:                "alpha/card-1",
-				ProjectSlug:       project,
-				Number:            number,
-				Title:             "Task",
-				Status:            "Todo",
+				ID:                 "alpha/card-1",
+				ProjectSlug:        project,
+				Number:             number,
+				Title:              "Task",
+				Status:             "Todo",
 				AcceptanceCriteria: []model.AcceptanceCriterion{{ID: 1, Text: "Requirement A", Completed: false}},
 			}, nil
 		},
@@ -560,10 +560,10 @@ func TestAcceptanceCriteriaLifecycleMethods(t *testing.T) {
 	require.Equal(t, 1, removed.ID)
 
 	require.Len(t, publisher.events, 4)
-	require.Equal(t, "card.acceptance.added", publisher.events[0].Type)
-	require.Equal(t, "card.acceptance.updated", publisher.events[1].Type)
-	require.Equal(t, "card.acceptance.updated", publisher.events[2].Type)
-	require.Equal(t, "card.acceptance.deleted", publisher.events[3].Type)
+	require.Equal(t, model.EventTypeCardAcceptanceAdded, publisher.events[0].Type)
+	require.Equal(t, model.EventTypeCardAcceptanceUpdated, publisher.events[1].Type)
+	require.Equal(t, model.EventTypeCardAcceptanceUpdated, publisher.events[2].Type)
+	require.Equal(t, model.EventTypeCardAcceptanceDeleted, publisher.events[3].Type)
 }
 
 func TestDeleteCardSoftAndHardPaths(t *testing.T) {
@@ -587,8 +587,8 @@ func TestDeleteCardSoftAndHardPaths(t *testing.T) {
 	_, err = svc.DeleteCard("alpha", 1, true)
 	require.NoError(t, err)
 	require.Len(t, publisher.events, 2)
-	require.Equal(t, "card.deleted_soft", publisher.events[0].Type)
-	require.Equal(t, "card.deleted_hard", publisher.events[1].Type)
+	require.Equal(t, model.EventTypeCardDeletedSoft, publisher.events[0].Type)
+	require.Equal(t, model.EventTypeCardDeletedHard, publisher.events[1].Type)
 }
 
 func TestDeleteCardProjectionFailureReturnsInternal(t *testing.T) {
@@ -873,7 +873,7 @@ func TestPublishNoPublisherAndTrimmedProject(t *testing.T) {
 
 	publisher := &publisherStub{}
 	svc = newNoopService(&markdownStoreStub{}, &projectionStub{}, publisher)
-	svc.publish(model.Event{Type: "x", Project: " alpha "})
+	svc.publish(model.Event{Type: model.EventType("x"), Project: " alpha "})
 	require.Len(t, publisher.events, 1)
 	require.Equal(t, "alpha", publisher.events[0].Project)
 }

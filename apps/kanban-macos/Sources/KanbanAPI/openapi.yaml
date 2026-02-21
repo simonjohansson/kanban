@@ -958,6 +958,16 @@ paths:
             responses:
                 "101":
                     description: Switching protocols to websocket
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WebsocketEvent'
+                "200":
+                    description: Websocket event payload schema for generated clients.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WebsocketEvent'
 components:
     schemas:
         AcceptanceCriterion:
@@ -1530,3 +1540,41 @@ components:
                     type: boolean
             required:
                 - completed
+        WebsocketEvent:
+            type: object
+            properties:
+                card_id:
+                    type: string
+                card_number:
+                    type: integer
+                    format: int64
+                project:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                type:
+                    $ref: '#/components/schemas/WebsocketEventType'
+            required:
+                - type
+                - project
+                - timestamp
+        WebsocketEventType:
+            type: string
+            enum:
+                - project.created
+                - project.deleted
+                - card.created
+                - card.branch.updated
+                - card.moved
+                - card.commented
+                - card.updated
+                - card.todo.added
+                - card.todo.updated
+                - card.todo.deleted
+                - card.acceptance.added
+                - card.acceptance.updated
+                - card.acceptance.deleted
+                - card.deleted_soft
+                - card.deleted_hard
+                - resync.required

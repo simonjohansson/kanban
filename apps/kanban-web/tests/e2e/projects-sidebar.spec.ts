@@ -390,6 +390,43 @@ test('guards malformed deep links and ignores stale card-detail requests', async
   await expect(page.getByTestId('lane-Todo')).toContainText('Race A Card');
 });
 
+test('surfaces malformed websocket payloads as stream errors', async ({ page }) => {
+  await page.addInitScript(() => {
+    class MockWebSocket extends EventTarget {
+      static readonly CONNECTING = 0;
+      static readonly OPEN = 1;
+      static readonly CLOSING = 2;
+      static readonly CLOSED = 3;
+
+      readonly url: string;
+      readyState = MockWebSocket.OPEN;
+
+      constructor(url: string | URL) {
+        super();
+        this.url = String(url);
+        setTimeout(() => {
+          this.dispatchEvent(new MessageEvent('message', { data: '{\"type\":123}' }));
+        }, 10);
+      }
+
+      close(): void {
+        this.readyState = MockWebSocket.CLOSED;
+      }
+
+      send(): void {}
+    }
+
+    Object.defineProperty(window, 'WebSocket', {
+      configurable: true,
+      writable: true,
+      value: MockWebSocket,
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('Project stream failed');
+});
+
 test('live-updates open card details when todos and acceptance criteria change', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 820 });
   await page.goto('/');

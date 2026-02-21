@@ -1,15 +1,20 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { DefaultService, OpenAPI, type Card, type CardSummary, type Project } from './lib/generated';
+  import {
+    DefaultService,
+    OpenAPI,
+    type Card,
+    type CardSummary,
+    type Project,
+  } from './lib/generated';
   import CardDetailsModal from './lib/components/CardDetailsModal.svelte';
+  import { handleWebSocketEvent, parseWebSocketEvent } from './lib/websocketEvents';
 
   type ProjectSummary = Pick<Project, 'name' | 'slug' | 'local_path' | 'remote_url'>;
   const LANES = ['Todo', 'Doing', 'Review', 'Done'] as const;
   type LaneStatus = (typeof LANES)[number];
   type ReviewReasonStatus = 'Todo' | 'Doing';
   type HistoryMode = 'push' | 'replace' | 'none';
-  const CARD_EVENT_PREFIX = 'card.';
-  const PROJECT_EVENT_TYPES = new Set(['project.created', 'project.deleted']);
   const CARD_ROUTE_RE = /^\/card\/([^/]+)\/(\d+)\/?$/;
 
   const configuredBase = (import.meta.env.VITE_KANBAN_SERVER_URL ?? '').trim();
@@ -269,24 +274,17 @@
 
     ws.addEventListener('message', async (event) => {
       try {
-        const payload = JSON.parse(String(event.data)) as { type?: string; project?: string };
-        if (payload.type && PROJECT_EVENT_TYPES.has(payload.type)) {
-          await loadProjects();
-          return;
-        }
-        if (
-          payload.type &&
-          payload.type.startsWith(CARD_EVENT_PREFIX) &&
-          selectedProjectSlug &&
-          payload.project === selectedProjectSlug
-        ) {
-          await loadCards();
-          if (cardDetailsProjectSlug === selectedProjectSlug && cardDetailsNumber !== null) {
-            await retryCardDetails();
-          }
-        }
-      } catch {
-        // ignore malformed event payloads
+        await handleWebSocketEvent(parseWebSocketEvent(String(event.data)), {
+          selectedProjectSlug,
+          cardDetailsProjectSlug,
+          cardDetailsNumber,
+          loadProjects,
+          loadCards,
+          retryCardDetails,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        alertMessage = `Project stream failed: ${message}`;
       }
     });
 

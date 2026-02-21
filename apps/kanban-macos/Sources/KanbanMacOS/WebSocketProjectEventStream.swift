@@ -1,4 +1,5 @@
 import Foundation
+import KanbanAPI
 
 public struct WebSocketProjectEventStream: ProjectEventStream {
     private let serverURL: URL
@@ -37,15 +38,7 @@ public struct WebSocketProjectEventStream: ProjectEventStream {
                             continue
                         }
 
-                        if let raw = try? JSONDecoder().decode(RawEvent.self, from: payload) {
-                            let project = raw.project?.trimmingCharacters(in: .whitespacesAndNewlines)
-                            continuation.yield(
-                                ProjectEvent(
-                                    type: raw.type,
-                                    projectSlug: project?.isEmpty == false ? project : nil
-                                )
-                            )
-                        }
+                        continuation.yield(try decodeProjectEventPayload(payload))
                     } catch {
                         continuation.finish(throwing: error)
                         return
@@ -61,9 +54,19 @@ public struct WebSocketProjectEventStream: ProjectEventStream {
     }
 }
 
+func decodeProjectEventPayload(_ payload: Data) throws -> ProjectEvent {
+    let raw = try JSONDecoder().decode(RawEvent.self, from: payload)
+    let project = raw.project.trimmingCharacters(in: .whitespacesAndNewlines)
+    return ProjectEvent(
+        type: raw.type,
+        projectSlug: project.isEmpty ? nil : project
+    )
+}
+
 private struct RawEvent: Decodable {
-    let type: String
-    let project: String?
+    let type: WebSocketEventType
+    let project: String
+    let timestamp: String
 }
 
 private func websocketURL(from baseURL: URL) -> URL? {

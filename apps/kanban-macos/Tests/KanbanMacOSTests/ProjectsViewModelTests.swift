@@ -215,6 +215,7 @@ struct ProjectsViewModelTests {
             branch: nil,
             status: "Review",
             description: [],
+            todos: [],
             comments: []
         )
         let recorder = CallRecorder()
@@ -250,6 +251,7 @@ struct ProjectsViewModelTests {
             branch: nil,
             status: "Review",
             description: [],
+            todos: [],
             comments: []
         )
         let recorder = CallRecorder()
@@ -286,6 +288,7 @@ struct ProjectsViewModelTests {
             branch: nil,
             status: "Review",
             description: [],
+            todos: [],
             comments: []
         )
         let recorder = CallRecorder()
@@ -327,6 +330,7 @@ struct ProjectsViewModelTests {
             branch: nil,
             status: "Review",
             description: [],
+            todos: [],
             comments: []
         )
         let recorder = CallRecorder()
