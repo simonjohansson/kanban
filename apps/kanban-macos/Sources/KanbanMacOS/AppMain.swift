@@ -56,6 +56,12 @@ private struct FallbackProjectsClient: ProjectsAPIClient {
     func getCard(projectSlug _: String, number _: Int) async throws -> KanbanCardDetails {
         throw URLError(.badServerResponse)
     }
+    func moveCard(projectSlug _: String, number _: Int, status _: String) async throws {
+        throw URLError(.badServerResponse)
+    }
+    func commentOnCard(projectSlug _: String, number _: Int, body _: String) async throws {
+        throw URLError(.badServerResponse)
+    }
 }
 
 private final class AppDelegate: NSObject, NSApplicationDelegate {

@@ -4,6 +4,8 @@ public protocol ProjectsAPIClient: Sendable {
     func listProjects() async throws -> [ProjectSummary]
     func listCards(projectSlug: String) async throws -> [KanbanCardSummary]
     func getCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails
+    func moveCard(projectSlug: String, number: Int, status: String) async throws
+    func commentOnCard(projectSlug: String, number: Int, body: String) async throws
 }
 
 public protocol ProjectEventStream: Sendable {
@@ -24,6 +26,8 @@ public protocol ProjectsStoreProtocol: Sendable {
     func initialLoad() async throws -> [ProjectSummary]
     func loadCards(projectSlug: String) async throws -> [KanbanCardSummary]
     func loadCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails
+    func moveCard(projectSlug: String, number: Int, status: String) async throws
+    func commentOnCard(projectSlug: String, number: Int, body: String) async throws
     func startWatching() -> AsyncThrowingStream<StoreUpdate, Error>
 }
 
@@ -46,6 +50,14 @@ public final class ProjectsStore: ProjectsStoreProtocol {
 
     public func loadCard(projectSlug: String, number: Int) async throws -> KanbanCardDetails {
         try await apiClient.getCard(projectSlug: projectSlug, number: number)
+    }
+
+    public func moveCard(projectSlug: String, number: Int, status: String) async throws {
+        try await apiClient.moveCard(projectSlug: projectSlug, number: number, status: status)
+    }
+
+    public func commentOnCard(projectSlug: String, number: Int, body: String) async throws {
+        try await apiClient.commentOnCard(projectSlug: projectSlug, number: number, body: body)
     }
 
     public func startWatching() -> AsyncThrowingStream<StoreUpdate, Error> {

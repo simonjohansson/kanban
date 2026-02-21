@@ -79,6 +79,32 @@ public struct OpenAPIProjectsClient: ProjectsAPIClient {
         }
     }
 
+    public func moveCard(projectSlug: String, number: Int, status: String) async throws {
+        let response = try await client.moveCard(
+            path: .init(project: projectSlug, number: Int64(number)),
+            body: .json(.init(status: status))
+        )
+        switch response {
+        case .ok:
+            return
+        default:
+            throw URLError(.badServerResponse)
+        }
+    }
+
+    public func commentOnCard(projectSlug: String, number: Int, body: String) async throws {
+        let response = try await client.commentCard(
+            path: .init(project: projectSlug, number: Int64(number)),
+            body: .json(.init(body: body))
+        )
+        switch response {
+        case .ok:
+            return
+        default:
+            throw URLError(.badServerResponse)
+        }
+    }
+
     private static func formatTimestamp(_ date: Date) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

@@ -196,6 +196,157 @@ struct ProjectsViewModelTests {
         #expect(viewModel.cardDetails == nil)
         #expect(viewModel.cardDetailsErrorMessage == nil)
     }
+
+    @Test
+    @MainActor
+    func reviewMoveToDoingOpensReasonPromptWithoutMutatingCard() async throws {
+        let details = KanbanCardDetails(
+            id: "alpha/card-1",
+            number: 1,
+            projectSlug: "alpha",
+            title: "Task A",
+            branch: nil,
+            status: "Review",
+            description: [],
+            comments: []
+        )
+        let recorder = CallRecorder()
+        let store = StoreStub(
+            result: .success([
+                .init(name: "Alpha", slug: "alpha", localPath: nil, remoteURL: nil),
+            ]),
+            cards: ["alpha": [.init(id: "alpha/card-1", number: 1, projectSlug: "alpha", title: "Task A", status: "Review")]],
+            cardDetails: ["alpha/1": .success(details)],
+            stream: .updates([]),
+            recorder: recorder
+        )
+        let viewModel = ProjectsViewModel(store: store)
+
+        await viewModel.selectProject(slug: "alpha")
+        await viewModel.load()
+        await viewModel.selectCard(number: 1)
+        await viewModel.requestReviewTransition(to: "Doing")
+
+        #expect(viewModel.reviewReasonPromptVisible == true)
+        #expect(viewModel.reviewReasonTargetStatus == "Doing")
+        #expect(await recorder.snapshot().isEmpty)
+    }
+
+    @Test
+    @MainActor
+    func submittingBlankReviewReasonShowsValidationError() async throws {
+        let details = KanbanCardDetails(
+            id: "alpha/card-1",
+            number: 1,
+            projectSlug: "alpha",
+            title: "Task A",
+            branch: nil,
+            status: "Review",
+            description: [],
+            comments: []
+        )
+        let recorder = CallRecorder()
+        let store = StoreStub(
+            result: .success([
+                .init(name: "Alpha", slug: "alpha", localPath: nil, remoteURL: nil),
+            ]),
+            cards: ["alpha": [.init(id: "alpha/card-1", number: 1, projectSlug: "alpha", title: "Task A", status: "Review")]],
+            cardDetails: ["alpha/1": .success(details)],
+            stream: .updates([]),
+            recorder: recorder
+        )
+        let viewModel = ProjectsViewModel(store: store)
+
+        await viewModel.selectProject(slug: "alpha")
+        await viewModel.load()
+        await viewModel.selectCard(number: 1)
+        await viewModel.requestReviewTransition(to: "Doing")
+        await viewModel.submitReviewReason("   ")
+
+        #expect(viewModel.reviewReasonPromptVisible == true)
+        #expect(viewModel.reviewReasonErrorMessage == "Reason is required")
+        #expect(await recorder.snapshot().isEmpty)
+    }
+
+    @Test
+    @MainActor
+    func successfulReviewMoveToDoingAddsCommentInFixedFormat() async throws {
+        let details = KanbanCardDetails(
+            id: "alpha/card-1",
+            number: 1,
+            projectSlug: "alpha",
+            title: "Task A",
+            branch: nil,
+            status: "Review",
+            description: [],
+            comments: []
+        )
+        let recorder = CallRecorder()
+        let store = StoreStub(
+            result: .success([
+                .init(name: "Alpha", slug: "alpha", localPath: nil, remoteURL: nil),
+            ]),
+            cards: ["alpha": [.init(id: "alpha/card-1", number: 1, projectSlug: "alpha", title: "Task A", status: "Review")]],
+            cardDetails: ["alpha/1": .success(details)],
+            stream: .updates([]),
+            recorder: recorder
+        )
+        let viewModel = ProjectsViewModel(store: store)
+
+        await viewModel.selectProject(slug: "alpha")
+        await viewModel.load()
+        await viewModel.selectCard(number: 1)
+        await viewModel.requestReviewTransition(to: "Doing")
+        await viewModel.submitReviewReason("Address QA feedback")
+
+        #expect(viewModel.reviewReasonPromptVisible == false)
+        #expect(viewModel.reviewReasonErrorMessage == nil)
+        #expect(await recorder.snapshot() == [
+            "move alpha/1 -> Doing",
+            "comment alpha/1 -> Moved back to Doing: Address QA feedback",
+        ])
+    }
+
+    @Test
+    @MainActor
+    func commentFailureAfterMoveRollsCardBackToReview() async throws {
+        let details = KanbanCardDetails(
+            id: "alpha/card-1",
+            number: 1,
+            projectSlug: "alpha",
+            title: "Task A",
+            branch: nil,
+            status: "Review",
+            description: [],
+            comments: []
+        )
+        let recorder = CallRecorder()
+        let store = StoreStub(
+            result: .success([
+                .init(name: "Alpha", slug: "alpha", localPath: nil, remoteURL: nil),
+            ]),
+            cards: ["alpha": [.init(id: "alpha/card-1", number: 1, projectSlug: "alpha", title: "Task A", status: "Review")]],
+            cardDetails: ["alpha/1": .success(details)],
+            stream: .updates([]),
+            commentFailures: ["alpha/1/Moved back to Doing: Will fail"],
+            recorder: recorder
+        )
+        let viewModel = ProjectsViewModel(store: store)
+
+        await viewModel.selectProject(slug: "alpha")
+        await viewModel.load()
+        await viewModel.selectCard(number: 1)
+        await viewModel.requestReviewTransition(to: "Doing")
+        await viewModel.submitReviewReason("Will fail")
+
+        #expect(viewModel.reviewReasonPromptVisible == false)
+        #expect(viewModel.alertMessage == "Failed to add transition reason")
+        #expect(await recorder.snapshot() == [
+            "move alpha/1 -> Doing",
+            "comment alpha/1 -> Moved back to Doing: Will fail",
+            "move alpha/1 -> Review",
+        ])
+    }
 }
 
 private struct StoreStub: ProjectsStoreProtocol {
@@ -203,6 +354,27 @@ private struct StoreStub: ProjectsStoreProtocol {
     let cards: [String: [KanbanCardSummary]]
     let cardDetails: [String: Result<KanbanCardDetails, Error>]
     let stream: StreamBehavior
+    let moveFailures: Set<String>
+    let commentFailures: Set<String>
+    let recorder: CallRecorder
+
+    init(
+        result: Result<[ProjectSummary], Error>,
+        cards: [String: [KanbanCardSummary]],
+        cardDetails: [String: Result<KanbanCardDetails, Error>],
+        stream: StreamBehavior,
+        moveFailures: Set<String> = [],
+        commentFailures: Set<String> = [],
+        recorder: CallRecorder = CallRecorder()
+    ) {
+        self.result = result
+        self.cards = cards
+        self.cardDetails = cardDetails
+        self.stream = stream
+        self.moveFailures = moveFailures
+        self.commentFailures = commentFailures
+        self.recorder = recorder
+    }
 
     func initialLoad() async throws -> [ProjectSummary] {
         switch result {
@@ -228,6 +400,20 @@ private struct StoreStub: ProjectsStoreProtocol {
         }
     }
 
+    func moveCard(projectSlug: String, number: Int, status: String) async throws {
+        await recorder.record("move \(projectSlug)/\(number) -> \(status)")
+        if moveFailures.contains("\(projectSlug)/\(number)/\(status)") {
+            throw URLError(.badServerResponse)
+        }
+    }
+
+    func commentOnCard(projectSlug: String, number: Int, body: String) async throws {
+        await recorder.record("comment \(projectSlug)/\(number) -> \(body)")
+        if commentFailures.contains("\(projectSlug)/\(number)/\(body)") {
+            throw URLError(.badServerResponse)
+        }
+    }
+
     func startWatching() -> AsyncThrowingStream<StoreUpdate, Error> {
         AsyncThrowingStream { continuation in
             switch stream {
@@ -246,4 +432,16 @@ private struct StoreStub: ProjectsStoreProtocol {
 private enum StreamBehavior {
     case updates([StoreUpdate])
     case failure(Error)
+}
+
+private actor CallRecorder {
+    private var calls: [String] = []
+
+    func record(_ value: String) {
+        calls.append(value)
+    }
+
+    func snapshot() -> [String] {
+        calls
+    }
 }

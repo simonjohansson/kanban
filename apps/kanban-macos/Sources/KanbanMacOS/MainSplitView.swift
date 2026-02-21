@@ -53,6 +53,12 @@ struct MainSplitView: View {
                             details: viewModel.cardDetails,
                             isLoading: viewModel.isCardDetailsLoading,
                             errorMessage: viewModel.cardDetailsErrorMessage,
+                            reviewActionsVisible: viewModel.cardDetails?.status == KanbanLaneStatus.review.rawValue,
+                            reviewActionBusy: viewModel.isReviewTransitionInFlight,
+                            reviewReasonPromptVisible: viewModel.reviewReasonPromptVisible,
+                            reviewReasonTargetStatus: viewModel.reviewReasonTargetStatus,
+                            reviewReasonErrorMessage: viewModel.reviewReasonErrorMessage,
+                            reviewReasonInput: viewModel.reviewReasonInput,
                             onClose: { _ in
                                 viewModel.closeCardDetails()
                                 writeProbe()
@@ -62,6 +68,41 @@ struct MainSplitView: View {
                                     await viewModel.retrySelectedCard()
                                     writeProbe()
                                 }
+                            },
+                            onMoveReviewToTodo: {
+                                Task {
+                                    await viewModel.requestReviewTransition(to: KanbanLaneStatus.todo.rawValue)
+                                    writeProbe()
+                                }
+                            },
+                            onMoveReviewToDoing: {
+                                Task {
+                                    await viewModel.requestReviewTransition(to: KanbanLaneStatus.doing.rawValue)
+                                    writeProbe()
+                                }
+                            },
+                            onMoveReviewToDone: {
+                                Task {
+                                    await viewModel.requestReviewTransition(to: KanbanLaneStatus.done.rawValue)
+                                    writeProbe()
+                                }
+                            },
+                            onReviewReasonChanged: { value in
+                                viewModel.reviewReasonInput = value
+                                if viewModel.reviewReasonErrorMessage != nil {
+                                    viewModel.reviewReasonErrorMessage = nil
+                                }
+                                writeProbe()
+                            },
+                            onSubmitReviewReason: {
+                                Task {
+                                    await viewModel.submitReviewReason(viewModel.reviewReasonInput)
+                                    writeProbe()
+                                }
+                            },
+                            onCancelReviewReason: {
+                                viewModel.cancelReviewReasonPrompt()
+                                writeProbe()
                             }
                         )
                         .zIndex(2)
@@ -93,6 +134,21 @@ struct MainSplitView: View {
             writeProbe()
         }
         .onChange(of: viewModel.isCardDetailsLoading) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.reviewReasonPromptVisible) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.reviewReasonTargetStatus) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.reviewReasonInput) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.reviewReasonErrorMessage) { _, _ in
+            writeProbe()
+        }
+        .onChange(of: viewModel.isReviewTransitionInFlight) { _, _ in
             writeProbe()
         }
         .onChange(of: selectedProjectID) { _, latest in
@@ -148,6 +204,15 @@ struct MainSplitView: View {
             if let requested = sidebarProbe.consumeSelectionRequest() {
                 if let cardNumber = parseCardOpenRequest(requested) {
                     await viewModel.selectCard(number: cardNumber)
+                    writeProbe()
+                } else if let status = parseReviewMoveRequest(requested) {
+                    await viewModel.requestReviewTransition(to: status)
+                    writeProbe()
+                } else if let reason = parseReviewReasonSubmitRequest(requested) {
+                    await viewModel.submitReviewReason(reason)
+                    writeProbe()
+                } else if parseReviewReasonCancelRequest(requested) {
+                    viewModel.cancelReviewReasonPrompt()
                     writeProbe()
                 } else if parseCardCloseRequest(requested) {
                     viewModel.closeCardDetails()
@@ -226,7 +291,10 @@ struct MainSplitView: View {
                     commentBodies: $0.comments.map(\.body)
                 )
             },
-            cardDetailsError: viewModel.cardDetailsErrorMessage
+            cardDetailsError: viewModel.cardDetailsErrorMessage,
+            reviewReasonPromptVisible: viewModel.reviewReasonPromptVisible,
+            reviewReasonTargetStatus: viewModel.reviewReasonTargetStatus,
+            reviewReasonError: viewModel.reviewReasonErrorMessage
         )
     }
 
@@ -255,5 +323,32 @@ struct MainSplitView: View {
 
     private func parseCardCloseRequest(_ raw: String) -> Bool {
         raw.hasPrefix("card-close:")
+    }
+
+    private func parseReviewMoveRequest(_ raw: String) -> String? {
+        let prefix = "card-review-move:"
+        guard raw.hasPrefix(prefix) else {
+            return nil
+        }
+        let value = String(raw.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value == KanbanLaneStatus.todo.rawValue
+            || value == KanbanLaneStatus.doing.rawValue
+            || value == KanbanLaneStatus.done.rawValue else {
+            return nil
+        }
+        return value
+    }
+
+    private func parseReviewReasonSubmitRequest(_ raw: String) -> String? {
+        let prefix = "card-review-reason-submit:"
+        guard raw.hasPrefix(prefix) else {
+            return nil
+        }
+        return String(raw.dropFirst(prefix.count))
+    }
+
+    private func parseReviewReasonCancelRequest(_ raw: String) -> Bool {
+        raw.hasPrefix("card-review-reason-cancel:")
     }
 }

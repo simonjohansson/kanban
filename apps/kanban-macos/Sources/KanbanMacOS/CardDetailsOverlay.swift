@@ -4,8 +4,20 @@ struct CardDetailsOverlay: View {
     let details: KanbanCardDetails?
     let isLoading: Bool
     let errorMessage: String?
+    let reviewActionsVisible: Bool
+    let reviewActionBusy: Bool
+    let reviewReasonPromptVisible: Bool
+    let reviewReasonTargetStatus: String?
+    let reviewReasonErrorMessage: String?
+    let reviewReasonInput: String
     let onClose: (String) -> Void
     let onRetry: () -> Void
+    let onMoveReviewToTodo: () -> Void
+    let onMoveReviewToDoing: () -> Void
+    let onMoveReviewToDone: () -> Void
+    let onReviewReasonChanged: (String) -> Void
+    let onSubmitReviewReason: () -> Void
+    let onCancelReviewReason: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -47,6 +59,53 @@ struct CardDetailsOverlay: View {
                             } else {
                                 ForEach(Array(details.comments.enumerated()), id: \.offset) { _, event in
                                     detailItem(event.body)
+                                }
+                            }
+                        }
+                        if reviewActionsVisible {
+                            section(title: "Review Actions") {
+                                HStack(spacing: 8) {
+                                    Button("Move to Todo") {
+                                        onMoveReviewToTodo()
+                                    }
+                                    .disabled(reviewActionBusy)
+                                    Button("Move to Doing") {
+                                        onMoveReviewToDoing()
+                                    }
+                                    .disabled(reviewActionBusy)
+                                    Button("Move to Done") {
+                                        onMoveReviewToDone()
+                                    }
+                                    .disabled(reviewActionBusy)
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                        }
+                        if reviewReasonPromptVisible {
+                            section(title: "Reason for Moving to \(reviewReasonTargetStatus ?? "")") {
+                                TextField(
+                                    "Why is this card moving back?",
+                                    text: Binding(
+                                        get: { reviewReasonInput },
+                                        set: { onReviewReasonChanged($0) }
+                                    )
+                                )
+                                .textFieldStyle(.roundedBorder)
+                                if let reviewReasonErrorMessage {
+                                    Text(reviewReasonErrorMessage)
+                                        .foregroundStyle(.red)
+                                }
+                                HStack(spacing: 8) {
+                                    Button("Confirm") {
+                                        onSubmitReviewReason()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(reviewActionBusy)
+                                    Button("Cancel") {
+                                        onCancelReviewReason()
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(reviewActionBusy)
                                 }
                             }
                         }

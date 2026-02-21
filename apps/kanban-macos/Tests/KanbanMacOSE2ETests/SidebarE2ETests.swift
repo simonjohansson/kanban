@@ -186,6 +186,87 @@ struct SidebarE2ETests {
         try harness.clickCard(number: 999)
         _ = try await harness.waitForCardDetailsError(contains: "Failed to load card details")
     }
+
+    @Test
+    func reviewCardTransitionsRequireReasonAndSupportTodoDoingDone() async throws {
+        guard ProcessInfo.processInfo.environment["KANBAN_RUN_SWIFT_E2E"] == "1" else {
+            return
+        }
+
+        let harness = try E2EHarness()
+        defer { harness.stop() }
+
+        try harness.startBackend()
+        try await harness.waitForBackendReady()
+        try harness.startApp()
+
+        let configuration = Configuration(dateTranscoder: FlexibleE2EDateTranscoder())
+        let client = Client(serverURL: harness.serverURL, configuration: configuration, transport: URLSessionTransport())
+        let createOutput = try await client.createProject(
+            body: .json(
+                Components.Schemas.CreateProjectRequest(
+                    name: "Swift Review Flow Project"
+                )
+            )
+        )
+        guard case .created(let created) = createOutput else {
+            Issue.record("expected createProject to return .created")
+            return
+        }
+        let projectSlug = try created.body.json.slug
+        _ = try await harness.waitForSidebarProject(named: "Swift Review Flow Project")
+
+        try harness.clickProject(slug: projectSlug)
+        _ = try await harness.waitForSelectedProject(slug: projectSlug)
+
+        let reviewCard = try await harness.createCard(
+            projectSlug: projectSlug,
+            title: "Swift Review Flow Card",
+            status: "Review",
+            branch: "feature/swift-review-flow"
+        )
+        _ = try await harness.waitForLaneContains(status: "Review", title: "Swift Review Flow Card")
+
+        try harness.clickCard(number: reviewCard)
+        _ = try await harness.waitForCardDetails(
+            title: "Swift Review Flow Card",
+            branch: "feature/swift-review-flow",
+            descriptionBody: "Swift Review Flow Card",
+            commentBody: ""
+        )
+
+        try harness.requestReviewMove(status: "Doing")
+        _ = try await harness.waitForReviewReasonPrompt(status: "Doing")
+
+        try harness.submitReviewReason("")
+        _ = try await harness.waitForReviewReasonError(contains: "Reason is required")
+
+        try harness.submitReviewReason("Address QA feedback")
+        _ = try await harness.waitForLaneContains(status: "Doing", title: "Swift Review Flow Card")
+        let movedToDoing = try await harness.getCard(projectSlug: projectSlug, cardNumber: reviewCard)
+        let movedToDoingComments = movedToDoing["comments"] as? [[String: Any]] ?? []
+        #expect(movedToDoingComments.last?["body"] as? String == "Moved back to Doing: Address QA feedback")
+
+        try await harness.moveCard(projectSlug: projectSlug, cardNumber: reviewCard, status: "Review")
+        _ = try await harness.waitForLaneContains(status: "Review", title: "Swift Review Flow Card")
+
+        try harness.requestReviewMove(status: "Todo")
+        _ = try await harness.waitForReviewReasonPrompt(status: "Todo")
+        try harness.cancelReviewReason()
+        _ = try await harness.waitForReviewReasonPromptClosed()
+        _ = try await harness.waitForLaneContains(status: "Review", title: "Swift Review Flow Card")
+
+        let afterCancel = try await harness.getCard(projectSlug: projectSlug, cardNumber: reviewCard)
+        let afterCancelComments = afterCancel["comments"] as? [[String: Any]] ?? []
+        #expect(afterCancelComments.count == 1)
+
+        try harness.requestReviewMove(status: "Done")
+        _ = try await harness.waitForReviewReasonPromptClosed()
+        _ = try await harness.waitForLaneContains(status: "Done", title: "Swift Review Flow Card")
+        let movedToDone = try await harness.getCard(projectSlug: projectSlug, cardNumber: reviewCard)
+        let movedToDoneComments = movedToDone["comments"] as? [[String: Any]] ?? []
+        #expect(movedToDoneComments.count == 1)
+    }
 }
 
 private struct SidebarState: Codable {
@@ -196,6 +277,9 @@ private struct SidebarState: Codable {
     let cardDetailsVisible: Bool?
     let cardDetails: SidebarCardDetailsState?
     let cardDetailsError: String?
+    let reviewReasonPromptVisible: Bool?
+    let reviewReasonTargetStatus: String?
+    let reviewReasonError: String?
 
     enum CodingKeys: String, CodingKey {
         case projects
@@ -205,6 +289,9 @@ private struct SidebarState: Codable {
         case cardDetailsVisible = "card_details_visible"
         case cardDetails = "card_details"
         case cardDetailsError = "card_details_error"
+        case reviewReasonPromptVisible = "review_reason_prompt_visible"
+        case reviewReasonTargetStatus = "review_reason_target_status"
+        case reviewReasonError = "review_reason_error"
     }
 }
 
@@ -401,6 +488,18 @@ private final class E2EHarness {
         try "card:\(number)".write(to: selectFileURL, atomically: true, encoding: .utf8)
     }
 
+    func requestReviewMove(status: String) throws {
+        try "card-review-move:\(status)".write(to: selectFileURL, atomically: true, encoding: .utf8)
+    }
+
+    func submitReviewReason(_ reason: String) throws {
+        try "card-review-reason-submit:\(reason)".write(to: selectFileURL, atomically: true, encoding: .utf8)
+    }
+
+    func cancelReviewReason() throws {
+        try "card-review-reason-cancel:".write(to: selectFileURL, atomically: true, encoding: .utf8)
+    }
+
     func closeCardDetails(method: String) throws {
         try "card-close:\(method)".write(to: selectFileURL, atomically: true, encoding: .utf8)
     }
@@ -519,7 +618,7 @@ private final class E2EHarness {
                state.cardDetails?.title == title,
                state.cardDetails?.branch == branch,
                state.cardDetails?.descriptionBodies.contains(descriptionBody) == true,
-               state.cardDetails?.commentBodies.contains(commentBody) == true {
+               (commentBody.isEmpty || state.cardDetails?.commentBodies.contains(commentBody) == true) {
                 return state
             }
             try await Task.sleep(nanoseconds: 120_000_000)
@@ -557,6 +656,52 @@ private final class E2EHarness {
         throw HarnessError.timeout("card details error did not appear")
     }
 
+    func waitForReviewReasonPrompt(status: String) async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(12)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before review reason prompt appeared")
+            }
+            if let state = try readSidebarState(),
+               state.reviewReasonPromptVisible == true,
+               state.reviewReasonTargetStatus == status {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("review reason prompt for status \(status) did not appear")
+    }
+
+    func waitForReviewReasonPromptClosed() async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(12)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before review reason prompt closed")
+            }
+            if let state = try readSidebarState(), state.reviewReasonPromptVisible != true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("review reason prompt did not close")
+    }
+
+    func waitForReviewReasonError(contains message: String) async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(12)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before review reason error appeared")
+            }
+            if let state = try readSidebarState(),
+               state.reviewReasonPromptVisible == true,
+               state.reviewReasonError?.contains(message) == true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("review reason error did not appear")
+    }
+
     func moveCard(projectSlug: String, cardNumber: Int, status: String) async throws {
         let url = serverURL.appendingPathComponent("projects/\(projectSlug)/cards/\(cardNumber)/move")
         var request = URLRequest(url: url)
@@ -568,6 +713,20 @@ private final class E2EHarness {
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw HarnessError.processFailed("move card failed")
         }
+    }
+
+    func getCard(projectSlug: String, cardNumber: Int) async throws -> [String: Any] {
+        let url = serverURL.appendingPathComponent("projects/\(projectSlug)/cards/\(cardNumber)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw HarnessError.processFailed("get card failed")
+        }
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw HarnessError.processFailed("get card response was not an object")
+        }
+        return payload
     }
 
     func stop() {

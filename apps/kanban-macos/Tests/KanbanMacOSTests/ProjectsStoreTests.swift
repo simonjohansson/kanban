@@ -84,6 +84,10 @@ private actor APIStub: ProjectsAPIClient {
             comments: []
         )
     }
+
+    func moveCard(projectSlug: String, number: Int, status: String) async throws {}
+
+    func commentOnCard(projectSlug: String, number: Int, body: String) async throws {}
 }
 
 private struct EventStreamStub: ProjectEventStream {

@@ -332,3 +332,99 @@ test('guards malformed deep links and ignores stale card-detail requests', async
   await page.getByTestId('project-item').filter({ hasText: 'Race A' }).click();
   await expect(page.getByTestId('lane-Todo')).toContainText('Race A Card');
 });
+
+test('requires reason for Review to Todo/Doing and rolls back when comment fails', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto('/');
+
+  const createProjectResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Review Flow Project' }),
+  });
+  expect(createProjectResponse.status).toBe(201);
+
+  const createCardResponse = await fetch('http://127.0.0.1:18080/projects/review-flow-project/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Review Flow Card',
+      description: 'Review card body',
+      status: 'Review',
+    }),
+  });
+  expect(createCardResponse.status).toBe(201);
+
+  await page.reload();
+  await page.getByTestId('project-item').filter({ hasText: 'Review Flow Project' }).click();
+  await expect(page.getByTestId('lane-Review')).toContainText('Review Flow Card');
+
+  await page.getByTestId('card-item').filter({ hasText: 'Review Flow Card' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-review-actions')).toBeVisible();
+  await expect(page.getByTestId('card-review-move-todo')).toBeVisible();
+  await expect(page.getByTestId('card-review-move-doing')).toBeVisible();
+  await expect(page.getByTestId('card-review-move-done')).toBeVisible();
+
+  await page.getByTestId('card-review-move-doing').click();
+  await expect(page.getByTestId('review-reason-modal')).toBeVisible();
+  await page.getByTestId('review-reason-submit').click();
+  await expect(page.getByTestId('review-reason-error')).toContainText('Reason is required');
+  await page.getByTestId('review-reason-input').fill('Address QA feedback');
+  await page.getByTestId('review-reason-submit').click();
+
+  await expect(page.getByTestId('lane-Review')).not.toContainText('Review Flow Card');
+  await expect(page.getByTestId('lane-Doing')).toContainText('Review Flow Card');
+  const movedToDoing = await fetch('http://127.0.0.1:18080/projects/review-flow-project/cards/1');
+  expect(movedToDoing.status).toBe(200);
+  const movedToDoingBody = (await movedToDoing.json()) as { comments?: Array<{ body?: string }> };
+  const doingComment = movedToDoingBody.comments?.[movedToDoingBody.comments.length - 1]?.body;
+  expect(doingComment).toBe('Moved back to Doing: Address QA feedback');
+
+  const moveBackToReview = await fetch('http://127.0.0.1:18080/projects/review-flow-project/cards/1/move', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ status: 'Review' }),
+  });
+  expect(moveBackToReview.status).toBe(200);
+  await expect(page.getByTestId('lane-Review')).toContainText('Review Flow Card');
+
+  await page.getByTestId('card-review-move-todo').click();
+  await expect(page.getByTestId('review-reason-modal')).toBeVisible();
+  await page.getByTestId('review-reason-input').fill('Should be canceled');
+  await page.getByTestId('review-reason-cancel').click();
+  await expect(page.getByTestId('review-reason-modal')).toHaveCount(0);
+  await expect(page.getByTestId('lane-Review')).toContainText('Review Flow Card');
+
+  const afterCancel = await fetch('http://127.0.0.1:18080/projects/review-flow-project/cards/1');
+  expect(afterCancel.status).toBe(200);
+  const afterCancelBody = (await afterCancel.json()) as { comments?: Array<{ body?: string }> };
+  expect(afterCancelBody.comments?.length).toBe(1);
+
+  await page.route('**/projects/review-flow-project/cards/1/comments', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 500, error: 'forced comment failure for test' }),
+    });
+  });
+
+  await page.getByTestId('card-review-move-doing').click();
+  await expect(page.getByTestId('review-reason-modal')).toBeVisible();
+  await page.getByTestId('review-reason-input').fill('Will fail');
+  await page.getByTestId('review-reason-submit').click();
+  await expect(page.getByRole('alert')).toContainText('Failed to add transition reason');
+  await expect(page.getByTestId('lane-Review')).toContainText('Review Flow Card');
+  await expect(page.getByTestId('lane-Doing')).not.toContainText('Review Flow Card');
+  await page.unroute('**/projects/review-flow-project/cards/1/comments');
+
+  await page.getByTestId('card-review-move-done').click();
+  await expect(page.getByTestId('review-reason-modal')).toHaveCount(0);
+  await expect(page.getByTestId('lane-Done')).toContainText('Review Flow Card');
+  await expect(page.getByTestId('lane-Review')).not.toContainText('Review Flow Card');
+
+  const movedToDone = await fetch('http://127.0.0.1:18080/projects/review-flow-project/cards/1');
+  expect(movedToDone.status).toBe(200);
+  const movedToDoneBody = (await movedToDone.json()) as { comments?: Array<{ body?: string }> };
+  expect(movedToDoneBody.comments?.length).toBe(1);
+});

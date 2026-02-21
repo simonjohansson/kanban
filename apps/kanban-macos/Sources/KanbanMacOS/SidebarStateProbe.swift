@@ -33,7 +33,10 @@ struct SidebarStateProbe {
         cardsByStatusDetailed: [String: [SidebarCardStateProbe]],
         cardDetailsVisible: Bool,
         cardDetails: SidebarCardDetailsStateProbe?,
-        cardDetailsError: String?
+        cardDetailsError: String?,
+        reviewReasonPromptVisible: Bool,
+        reviewReasonTargetStatus: String?,
+        reviewReasonError: String?
     ) {
         guard let outputURL else {
             return
@@ -46,7 +49,10 @@ struct SidebarStateProbe {
             cardsByStatusDetailed: cardsByStatusDetailed,
             cardDetailsVisible: cardDetailsVisible,
             cardDetails: cardDetails,
-            cardDetailsError: cardDetailsError
+            cardDetailsError: cardDetailsError,
+            reviewReasonPromptVisible: reviewReasonPromptVisible,
+            reviewReasonTargetStatus: reviewReasonTargetStatus,
+            reviewReasonError: reviewReasonError
         )
         guard let raw = try? JSONEncoder().encode(payload) else {
             return
@@ -75,6 +81,9 @@ struct SidebarStateProbePayload: Codable, Equatable {
     let cardDetailsVisible: Bool
     let cardDetails: SidebarCardDetailsStateProbe?
     let cardDetailsError: String?
+    let reviewReasonPromptVisible: Bool
+    let reviewReasonTargetStatus: String?
+    let reviewReasonError: String?
 
     enum CodingKeys: String, CodingKey {
         case projects
@@ -84,6 +93,9 @@ struct SidebarStateProbePayload: Codable, Equatable {
         case cardDetailsVisible = "card_details_visible"
         case cardDetails = "card_details"
         case cardDetailsError = "card_details_error"
+        case reviewReasonPromptVisible = "review_reason_prompt_visible"
+        case reviewReasonTargetStatus = "review_reason_target_status"
+        case reviewReasonError = "review_reason_error"
     }
 }
 
