@@ -390,6 +390,78 @@ test('guards malformed deep links and ignores stale card-detail requests', async
   await expect(page.getByTestId('lane-Todo')).toContainText('Race A Card');
 });
 
+test('live-updates open card details when todos and acceptance criteria change', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto('/');
+
+  const createProjectResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Live Update Project' }),
+  });
+  expect(createProjectResponse.status).toBe(201);
+
+  const createCardResponse = await fetch('http://127.0.0.1:18080/projects/live-update-project/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      title: 'Observe live updates',
+      description: 'watch todo/ac changes without closing modal',
+      status: 'Todo',
+    }),
+  });
+  expect(createCardResponse.status).toBe(201);
+
+  await page.reload();
+  await page.getByTestId('project-item').filter({ hasText: 'Live Update Project' }).click();
+  await page.getByTestId('card-item').filter({ hasText: 'Observe live updates' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await expect(page.getByTestId('card-details-todos')).toContainText('No todos');
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('No acceptance criteria');
+
+  const addTodoResponse = await fetch('http://127.0.0.1:18080/projects/live-update-project/cards/1/todos', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Live todo item' }),
+  });
+  expect(addTodoResponse.status).toBe(201);
+  const addedTodo = (await addTodoResponse.json()) as { id: number };
+
+  await expect(page.getByTestId('card-details-todos')).toContainText('Live todo item');
+
+  const addAcceptanceResponse = await fetch('http://127.0.0.1:18080/projects/live-update-project/cards/1/acceptance', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Live AC item' }),
+  });
+  expect(addAcceptanceResponse.status).toBe(201);
+  const addedAcceptance = (await addAcceptanceResponse.json()) as { id: number };
+
+  await expect(page.getByTestId('card-details-acceptance-criteria')).toContainText('Live AC item');
+
+  const doneTodoResponse = await fetch(
+    `http://127.0.0.1:18080/projects/live-update-project/cards/1/todos/${addedTodo.id}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ completed: true }),
+    }
+  );
+  expect(doneTodoResponse.status).toBe(200);
+
+  const doneAcceptanceResponse = await fetch(
+    `http://127.0.0.1:18080/projects/live-update-project/cards/1/acceptance/${addedAcceptance.id}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ completed: true }),
+    }
+  );
+  expect(doneAcceptanceResponse.status).toBe(200);
+
+  await expect(page.getByTestId('card-item').filter({ hasText: 'Observe live updates' })).toContainText('1/1 Todos 1/1 AC');
+});
+
 test('requires reason for Review to Todo/Doing and rolls back when comment fails', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 820 });
   await page.goto('/');

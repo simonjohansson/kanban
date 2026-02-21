@@ -8,7 +8,7 @@
   type LaneStatus = (typeof LANES)[number];
   type ReviewReasonStatus = 'Todo' | 'Doing';
   type HistoryMode = 'push' | 'replace' | 'none';
-  const CARD_EVENT_TYPES = new Set(['card.created', 'card.moved', 'card.deleted_soft', 'card.deleted_hard']);
+  const CARD_EVENT_PREFIX = 'card.';
   const PROJECT_EVENT_TYPES = new Set(['project.created', 'project.deleted']);
   const CARD_ROUTE_RE = /^\/card\/([^/]+)\/(\d+)\/?$/;
 
@@ -276,7 +276,7 @@
         }
         if (
           payload.type &&
-          CARD_EVENT_TYPES.has(payload.type) &&
+          payload.type.startsWith(CARD_EVENT_PREFIX) &&
           selectedProjectSlug &&
           payload.project === selectedProjectSlug
         ) {
