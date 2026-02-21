@@ -301,6 +301,8 @@ struct ProjectsViewModelTests {
 
         #expect(viewModel.reviewReasonPromptVisible == false)
         #expect(viewModel.reviewReasonErrorMessage == nil)
+        #expect(viewModel.selectedCardNumber == nil)
+        #expect(viewModel.cardDetails == nil)
         #expect(await recorder.snapshot() == [
             "move alpha/1 -> Doing",
             "comment alpha/1 -> Moved back to Doing: Address QA feedback",

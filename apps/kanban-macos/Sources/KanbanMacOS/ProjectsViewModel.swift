@@ -239,6 +239,7 @@ public final class ProjectsViewModel {
                 }
             }
             closeReviewReasonPrompt()
+            closeCardDetails()
         } catch {
             alertMessage = "Failed to move card: \(error.localizedDescription)"
         }

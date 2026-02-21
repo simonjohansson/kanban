@@ -18,6 +18,8 @@ struct CardDetailsOverlay: View {
     let onReviewReasonChanged: (String) -> Void
     let onSubmitReviewReason: () -> Void
     let onCancelReviewReason: () -> Void
+    let onReviewReasonFocusChanged: (Bool) -> Void
+    @FocusState private var reviewReasonInputFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -91,6 +93,10 @@ struct CardDetailsOverlay: View {
                                     )
                                 )
                                 .textFieldStyle(.roundedBorder)
+                                .focused($reviewReasonInputFocused)
+                                .onChange(of: reviewReasonInputFocused) { _, latest in
+                                    onReviewReasonFocusChanged(latest)
+                                }
                                 if let reviewReasonErrorMessage {
                                     Text(reviewReasonErrorMessage)
                                         .foregroundStyle(.red)
@@ -125,6 +131,21 @@ struct CardDetailsOverlay: View {
         )
         .shadow(color: Color.black.opacity(0.24), radius: 24, y: 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .onChange(of: reviewReasonPromptVisible) { _, latest in
+            if latest {
+                reviewReasonInputFocused = true
+                onReviewReasonFocusChanged(true)
+            } else {
+                reviewReasonInputFocused = false
+                onReviewReasonFocusChanged(false)
+            }
+        }
+        .onAppear {
+            if reviewReasonPromptVisible {
+                reviewReasonInputFocused = true
+                onReviewReasonFocusChanged(true)
+            }
+        }
         .onExitCommand {
             onClose("escape")
         }

@@ -177,16 +177,18 @@
     if (!cardDetailsProjectSlug || cardDetailsNumber === null) {
       return;
     }
+    const transitionProjectSlug = cardDetailsProjectSlug;
+    const transitionCardNumber = cardDetailsNumber;
     reviewActionBusy = true;
     try {
-      await DefaultService.moveCard(cardDetailsProjectSlug, cardDetailsNumber, { status: targetStatus });
+      await DefaultService.moveCard(transitionProjectSlug, transitionCardNumber, { status: targetStatus });
       if (reason !== null) {
         const commentBody = `Moved back to ${targetStatus}: ${reason}`;
         try {
-          await DefaultService.commentCard(cardDetailsProjectSlug, cardDetailsNumber, { body: commentBody });
+          await DefaultService.commentCard(transitionProjectSlug, transitionCardNumber, { body: commentBody });
         } catch {
           try {
-            await DefaultService.moveCard(cardDetailsProjectSlug, cardDetailsNumber, { status: 'Review' });
+            await DefaultService.moveCard(transitionProjectSlug, transitionCardNumber, { status: 'Review' });
           } catch {
             // noop; error state is shared for both failure modes
           }
@@ -196,6 +198,7 @@
         }
       }
       closeReviewReasonPrompt();
+      closeCardDetails({ historyMode: 'replace' });
     } catch (err) {
       alertMessage = `Failed to move card: ${String(err)}`;
     } finally {

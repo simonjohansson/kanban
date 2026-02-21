@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import type { Card } from '../generated';
 
   export let card: Card | null = null;
@@ -20,6 +20,8 @@
   export let onCancelReviewReason: () => void = () => {};
 
   let modalElement: HTMLElement | null = null;
+  let reviewReasonInputElement: HTMLTextAreaElement | null = null;
+  let lastReviewReasonTargetStatus: 'Todo' | 'Doing' | null = null;
 
   onMount(() => {
     const handlePointerDown = (event: PointerEvent): void => {
@@ -39,7 +41,15 @@
 
   onDestroy(() => {
     modalElement = null;
+    reviewReasonInputElement = null;
   });
+
+  $: if (reviewReasonTargetStatus !== lastReviewReasonTargetStatus) {
+    lastReviewReasonTargetStatus = reviewReasonTargetStatus;
+    if (reviewReasonTargetStatus) {
+      void tick().then(() => reviewReasonInputElement?.focus());
+    }
+  }
 
   function renderText(body: string): string {
     return body.replace(/\\n/g, '\n');
@@ -133,6 +143,7 @@
           <section class="reason-modal" data-testid="review-reason-modal">
             <h3>Reason for Moving to {reviewReasonTargetStatus}</h3>
             <textarea
+              bind:this={reviewReasonInputElement}
               data-testid="review-reason-input"
               on:input={(event) => onReviewReasonInput((event.currentTarget as HTMLTextAreaElement).value)}
               placeholder="Why is this card moving back?"

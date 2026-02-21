@@ -43,7 +43,8 @@ struct SidebarStateProbeTests {
             cardDetailsError: nil,
             reviewReasonPromptVisible: true,
             reviewReasonTargetStatus: "Doing",
-            reviewReasonError: "Reason is required"
+            reviewReasonError: "Reason is required",
+            reviewReasonInputFocused: true
         )
 
         let raw = try Data(contentsOf: output)
@@ -58,6 +59,7 @@ struct SidebarStateProbeTests {
         #expect(payload.reviewReasonPromptVisible == true)
         #expect(payload.reviewReasonTargetStatus == "Doing")
         #expect(payload.reviewReasonError == "Reason is required")
+        #expect(payload.reviewReasonInputFocused == true)
     }
 
     @Test

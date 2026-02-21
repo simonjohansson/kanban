@@ -368,6 +368,7 @@ test('requires reason for Review to Todo/Doing and rolls back when comment fails
 
   await page.getByTestId('card-review-move-doing').click();
   await expect(page.getByTestId('review-reason-modal')).toBeVisible();
+  await expect(page.getByTestId('review-reason-input')).toBeFocused();
   await page.getByTestId('review-reason-submit').click();
   await expect(page.getByTestId('review-reason-error')).toContainText('Reason is required');
   await page.getByTestId('review-reason-input').fill('Address QA feedback');
@@ -375,6 +376,7 @@ test('requires reason for Review to Todo/Doing and rolls back when comment fails
 
   await expect(page.getByTestId('lane-Review')).not.toContainText('Review Flow Card');
   await expect(page.getByTestId('lane-Doing')).toContainText('Review Flow Card');
+  await expect(page.getByTestId('card-details-modal')).toHaveCount(0);
   const movedToDoing = await fetch('http://127.0.0.1:18080/projects/review-flow-project/cards/1');
   expect(movedToDoing.status).toBe(200);
   const movedToDoingBody = (await movedToDoing.json()) as { comments?: Array<{ body?: string }> };
@@ -388,9 +390,12 @@ test('requires reason for Review to Todo/Doing and rolls back when comment fails
   });
   expect(moveBackToReview.status).toBe(200);
   await expect(page.getByTestId('lane-Review')).toContainText('Review Flow Card');
+  await page.getByTestId('card-item').filter({ hasText: 'Review Flow Card' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
 
   await page.getByTestId('card-review-move-todo').click();
   await expect(page.getByTestId('review-reason-modal')).toBeVisible();
+  await expect(page.getByTestId('review-reason-input')).toBeFocused();
   await page.getByTestId('review-reason-input').fill('Should be canceled');
   await page.getByTestId('review-reason-cancel').click();
   await expect(page.getByTestId('review-reason-modal')).toHaveCount(0);
@@ -419,6 +424,7 @@ test('requires reason for Review to Todo/Doing and rolls back when comment fails
   await page.unroute('**/projects/review-flow-project/cards/1/comments');
 
   await page.getByTestId('card-review-move-done').click();
+  await expect(page.getByTestId('card-details-modal')).toHaveCount(0);
   await expect(page.getByTestId('review-reason-modal')).toHaveCount(0);
   await expect(page.getByTestId('lane-Done')).toContainText('Review Flow Card');
   await expect(page.getByTestId('lane-Review')).not.toContainText('Review Flow Card');
@@ -427,4 +433,67 @@ test('requires reason for Review to Todo/Doing and rolls back when comment fails
   expect(movedToDone.status).toBe(200);
   const movedToDoneBody = (await movedToDone.json()) as { comments?: Array<{ body?: string }> };
   expect(movedToDoneBody.comments?.length).toBe(1);
+});
+
+test('review reason comment stays on original card when selection changes mid-transition', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.goto('/');
+
+  const createProjectResponse = await fetch('http://127.0.0.1:18080/projects', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Review Race Project' }),
+  });
+  expect(createProjectResponse.status).toBe(201);
+
+  const createCardOneResponse = await fetch('http://127.0.0.1:18080/projects/review-race-project/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Race Card One', description: 'one', status: 'Review' }),
+  });
+  expect(createCardOneResponse.status).toBe(201);
+
+  const createCardTwoResponse = await fetch('http://127.0.0.1:18080/projects/review-race-project/cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Race Card Two', description: 'two', status: 'Review' }),
+  });
+  expect(createCardTwoResponse.status).toBe(201);
+
+  await page.reload();
+  await page.getByTestId('project-item').filter({ hasText: 'Review Race Project' }).click();
+  await expect(page.getByTestId('lane-Review')).toContainText('Race Card One');
+  await expect(page.getByTestId('lane-Review')).toContainText('Race Card Two');
+
+  let commentRequestURL = '';
+  await page.route('**/projects/review-race-project/cards/1/move', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.continue();
+  });
+  await page.route('**/projects/review-race-project/cards/*/comments', async (route) => {
+    commentRequestURL = route.request().url();
+    await route.continue();
+  });
+
+  await page.getByTestId('card-item').filter({ hasText: 'Race Card One' }).click();
+  await expect(page.getByTestId('card-details-modal')).toBeVisible();
+  await page.getByTestId('card-review-move-doing').click();
+  await expect(page.getByTestId('review-reason-modal')).toBeVisible();
+  await page.getByTestId('review-reason-input').fill('Race reason');
+  await page.getByTestId('review-reason-submit').click();
+
+  await page.getByTestId('card-item').filter({ hasText: 'Race Card Two' }).click();
+  await expect(page.getByTestId('card-details-title')).toHaveText('Race Card Two');
+
+  await expect.poll(() => commentRequestURL, { timeout: 10000 }).toContain('/projects/review-race-project/cards/1/comments');
+
+  const cardOne = await fetch('http://127.0.0.1:18080/projects/review-race-project/cards/1');
+  expect(cardOne.status).toBe(200);
+  const cardOneBody = (await cardOne.json()) as { comments?: Array<{ body?: string }> };
+  expect(cardOneBody.comments?.some((entry) => entry.body === 'Moved back to Doing: Race reason')).toBe(true);
+
+  const cardTwo = await fetch('http://127.0.0.1:18080/projects/review-race-project/cards/2');
+  expect(cardTwo.status).toBe(200);
+  const cardTwoBody = (await cardTwo.json()) as { comments?: Array<{ body?: string }> };
+  expect(cardTwoBody.comments?.length ?? 0).toBe(0);
 });

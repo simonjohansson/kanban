@@ -36,7 +36,8 @@ struct SidebarStateProbe {
         cardDetailsError: String?,
         reviewReasonPromptVisible: Bool,
         reviewReasonTargetStatus: String?,
-        reviewReasonError: String?
+        reviewReasonError: String?,
+        reviewReasonInputFocused: Bool
     ) {
         guard let outputURL else {
             return
@@ -52,7 +53,8 @@ struct SidebarStateProbe {
             cardDetailsError: cardDetailsError,
             reviewReasonPromptVisible: reviewReasonPromptVisible,
             reviewReasonTargetStatus: reviewReasonTargetStatus,
-            reviewReasonError: reviewReasonError
+            reviewReasonError: reviewReasonError,
+            reviewReasonInputFocused: reviewReasonInputFocused
         )
         guard let raw = try? JSONEncoder().encode(payload) else {
             return
@@ -84,6 +86,7 @@ struct SidebarStateProbePayload: Codable, Equatable {
     let reviewReasonPromptVisible: Bool
     let reviewReasonTargetStatus: String?
     let reviewReasonError: String?
+    let reviewReasonInputFocused: Bool
 
     enum CodingKeys: String, CodingKey {
         case projects
@@ -96,6 +99,7 @@ struct SidebarStateProbePayload: Codable, Equatable {
         case reviewReasonPromptVisible = "review_reason_prompt_visible"
         case reviewReasonTargetStatus = "review_reason_target_status"
         case reviewReasonError = "review_reason_error"
+        case reviewReasonInputFocused = "review_reason_input_focused"
     }
 }
 

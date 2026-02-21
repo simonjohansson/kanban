@@ -237,11 +237,13 @@ struct SidebarE2ETests {
 
         try harness.requestReviewMove(status: "Doing")
         _ = try await harness.waitForReviewReasonPrompt(status: "Doing")
+        _ = try await harness.waitForReviewReasonInputFocused()
 
         try harness.submitReviewReason("")
         _ = try await harness.waitForReviewReasonError(contains: "Reason is required")
 
         try harness.submitReviewReason("Address QA feedback")
+        _ = try await harness.waitForCardDetailsClosed()
         _ = try await harness.waitForLaneContains(status: "Doing", title: "Swift Review Flow Card")
         let movedToDoing = try await harness.getCard(projectSlug: projectSlug, cardNumber: reviewCard)
         let movedToDoingComments = movedToDoing["comments"] as? [[String: Any]] ?? []
@@ -249,9 +251,17 @@ struct SidebarE2ETests {
 
         try await harness.moveCard(projectSlug: projectSlug, cardNumber: reviewCard, status: "Review")
         _ = try await harness.waitForLaneContains(status: "Review", title: "Swift Review Flow Card")
+        try harness.clickCard(number: reviewCard)
+        _ = try await harness.waitForCardDetails(
+            title: "Swift Review Flow Card",
+            branch: "feature/swift-review-flow",
+            descriptionBody: "Swift Review Flow Card",
+            commentBody: "Moved back to Doing: Address QA feedback"
+        )
 
         try harness.requestReviewMove(status: "Todo")
         _ = try await harness.waitForReviewReasonPrompt(status: "Todo")
+        _ = try await harness.waitForReviewReasonInputFocused()
         try harness.cancelReviewReason()
         _ = try await harness.waitForReviewReasonPromptClosed()
         _ = try await harness.waitForLaneContains(status: "Review", title: "Swift Review Flow Card")
@@ -262,6 +272,7 @@ struct SidebarE2ETests {
 
         try harness.requestReviewMove(status: "Done")
         _ = try await harness.waitForReviewReasonPromptClosed()
+        _ = try await harness.waitForCardDetailsClosed()
         _ = try await harness.waitForLaneContains(status: "Done", title: "Swift Review Flow Card")
         let movedToDone = try await harness.getCard(projectSlug: projectSlug, cardNumber: reviewCard)
         let movedToDoneComments = movedToDone["comments"] as? [[String: Any]] ?? []
@@ -280,6 +291,7 @@ private struct SidebarState: Codable {
     let reviewReasonPromptVisible: Bool?
     let reviewReasonTargetStatus: String?
     let reviewReasonError: String?
+    let reviewReasonInputFocused: Bool?
 
     enum CodingKeys: String, CodingKey {
         case projects
@@ -292,6 +304,7 @@ private struct SidebarState: Codable {
         case reviewReasonPromptVisible = "review_reason_prompt_visible"
         case reviewReasonTargetStatus = "review_reason_target_status"
         case reviewReasonError = "review_reason_error"
+        case reviewReasonInputFocused = "review_reason_input_focused"
     }
 }
 
@@ -700,6 +713,22 @@ private final class E2EHarness {
             try await Task.sleep(nanoseconds: 120_000_000)
         }
         throw HarnessError.timeout("review reason error did not appear")
+    }
+
+    func waitForReviewReasonInputFocused() async throws -> SidebarState {
+        let deadline = Date().addingTimeInterval(12)
+        while Date() < deadline {
+            if let appProcess, !appProcess.isRunning {
+                throw HarnessError.processFailed("swift app exited before review reason focus appeared")
+            }
+            if let state = try readSidebarState(),
+               state.reviewReasonPromptVisible == true,
+               state.reviewReasonInputFocused == true {
+                return state
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+        }
+        throw HarnessError.timeout("review reason input did not gain focus")
     }
 
     func moveCard(projectSlug: String, cardNumber: Int, status: String) async throws {

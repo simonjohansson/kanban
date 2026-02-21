@@ -4,6 +4,7 @@ struct MainSplitView: View {
     @Bindable var viewModel: ProjectsViewModel
     let zoomScale: Double
     @State private var selectedProjectID: ProjectSummary.ID?
+    @State private var reviewReasonInputFocused = false
     private let sidebarProbe = SidebarStateProbe.fromEnvironment()
 
     var body: some View {
@@ -102,6 +103,10 @@ struct MainSplitView: View {
                             },
                             onCancelReviewReason: {
                                 viewModel.cancelReviewReasonPrompt()
+                                writeProbe()
+                            },
+                            onReviewReasonFocusChanged: { focused in
+                                reviewReasonInputFocused = focused
                                 writeProbe()
                             }
                         )
@@ -294,7 +299,8 @@ struct MainSplitView: View {
             cardDetailsError: viewModel.cardDetailsErrorMessage,
             reviewReasonPromptVisible: viewModel.reviewReasonPromptVisible,
             reviewReasonTargetStatus: viewModel.reviewReasonTargetStatus,
-            reviewReasonError: viewModel.reviewReasonErrorMessage
+            reviewReasonError: viewModel.reviewReasonErrorMessage,
+            reviewReasonInputFocused: reviewReasonInputFocused
         )
     }
 
